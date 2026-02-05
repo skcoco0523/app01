@@ -153,7 +153,10 @@ class User extends Authenticatable
                 if (isset($data['email']) && $user->email != $data['email'])
                     $updateData['email'] = $data['email']; 
 
-                if (isset($data['birthdate']) && $user->birthdate->format('Y-m-d') != $data['birthdate'])
+                //NULLからの変更対応
+                //if (isset($data['birthdate']) && $user->birthdate->format('Y-m-d') != $data['birthdate'])
+                $before_birthdate = $user->birthdate ? $user->birthdate->format('Y-m-d') : null;
+                if (isset($data['birthdate']) && $before_birthdate != $data['birthdate'])
                     $updateData['birthdate']= $data['birthdate']; 
 
                 if (isset($data['prefectures']) && $user->prefectures != $data['prefectures'])
