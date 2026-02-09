@@ -142,6 +142,9 @@ class NoteController extends Controller
 
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
 
+        //リダイレクトでGETの許容オーバーを防ぐため、内容はクリアしておく
+        $input['content'] = null; //内容は不要なのでクリア
+
         return redirect()->route('note-show-detail', ['input' => $input, 'msg' => $msg])->with($message);
 
     }
