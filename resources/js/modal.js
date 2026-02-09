@@ -34,6 +34,10 @@ window.openModal = function openModal(modal_id, params = {}) {
     // ▼ user_chk が true の場合だけチェックボックス表示 & confirm 無効化
     //キャンセル・確認ボタンの表示制御
     if(modal_id === 'common-modal'){
+        // ボタン表示制御
+        cancelBtn.style.display  = ('cancel_btn'  in params) ? '' : 'none';
+        confirmBtn.style.display = ('confirm_btn' in params) ? '' : 'none';
+
         if (params.user_chk === true) {
             if (userChkArea)   userChkArea.style.display = 'block'; // チェックエリア表示
             
