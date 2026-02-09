@@ -31,8 +31,6 @@
                             </td>
                         </table>
 
-
-
                         {{-- ナビ用の色選択タブ --}}
                         <div class="d-flex overflow-auto contents_box mb-3">
                             <ul class="nav nav-pills flex-nowrap" id="noteColorTabs">
@@ -50,6 +48,7 @@
                                 @endforeach
                             </ul>
                         </div>
+
                         {{-- 既存のメモリストのテーブル --}}
                         <table id="noteTable" class="table table-borderless table-data-center" style="table-layout: fixed;">
                             <colgroup>
@@ -104,20 +103,25 @@
                                 @endforeach
                             </ul>
                         </div>
+                        
                         {{-- 既存のメモリストのテーブル --}}
                         <table id="noteShareTable" class="table table-borderless table-data-center" style="table-layout: fixed;">
                             <colgroup>
-                                <!--
                                 <col style="width: 85%">
                                 <col style="width: 15%">
-                                -->
-                                <col style="width: 100%">
                             </colgroup>
                             @foreach ($share_note_list as $key => $detail)
-                                <tr class="table-row note-item" data-color="{{ $detail->color_num }}" onclick="window.location='{{ route('note-show-detail') }}?id={{ $detail->id }}&share_flag=1'">
-                                    <td class="" style="background-color: {{ $detail->color_code }};">
+                                <tr class="table-row note-item" data-color="{{ $detail->color_num }}">
+                                    <td class="" style="background-color: {{ $detail->color_code }};" onclick="window.location='{{ route('note-show-detail') }}?id={{ $detail->id }}&share_flag=1'">
                                         {{ $detail->title }}<br>
                                         <small class="text-muted">{{ $detail->content }}</small>
+                                    </td>
+                                    <td class="" style="background-color: {{ $detail->color_code }};"
+                                        onclick="openModal('common-modal', {
+                                            title: '所有者' ,mess:'{{ $detail->owner_name }}',
+                                            user_chk: false
+                                        });">
+                                        <i class="fa-solid fa-user-gear red"></i>
                                     </td>
                                 </tr>
                             @endforeach
