@@ -17,6 +17,10 @@ import './sounds.js';                   //サウンド
 import './search_history.js';           //検索履歴
 import './advertisement.js';            //広告情報
 
+//==========================================================================================
+// グローバルに公開
+window.getOS = getOS;
+//==========================================================================================
 
 /**
  * First we will load all of this project's JavaScript dependencies which
