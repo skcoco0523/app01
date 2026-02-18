@@ -1,7 +1,4 @@
 @extends('layouts.app')
-
-@section('content')
-
 @php
     $tab_name = [
         'accepted' => 'フレンド',
@@ -17,80 +14,82 @@
     }
 @endphp
 
-<a href="{{ url()->previous() }}" class="no-decoration">＜＜</a>
-<div class="d-flex overflow-auto contents_box">
-    <ul class="nav nav-pills flex-nowrap">
-        <li class="nav-item nav-item-red">
-            <a class="nav-link nav-link-red {{ $input['table']=='accepted' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('accepted')">{{$tab_name['accepted']}}</a>
-        </li>
-        <li class="nav-item nav-item-red">
-            <a class="nav-link nav-link-red {{ $input['table']=='search' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('search')">{{$tab_name['search']}}</a>
-        </li>
-        <li class="nav-item nav-item-red">
-            <a class="nav-link nav-link-red {{ $input['table']=='pending' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('pending')">{{$tab_name['pending']}}</a>
-        </li>
-        <li class="nav-item nav-item-red">
-            <a class="nav-link nav-link-red {{ $input['table']=='request' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('request')">{{$tab_name['request']}}</a>
-        </li>
-        <li class="nav-item nav-item-red">
-            <a class="nav-link nav-link-red {{ $input['table']=='declined' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('declined')">{{$tab_name['declined']}}</a>
-        </li>
-    </ul>
-</div>
-<br>
+@section('content')
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
 
-<h3>{{$tab_name[$input['table']]}}</h3>
-@if($input['table']=="search")
-    <form action="{{ route('friendlist-show') }}" method="GET">
-        <div class="input-group mb-3">
-            <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-            <input type="search" name="friend_code" class="form-control" placeholder="ユーザーID">
-            <input type="hidden" name="table" value="{{ $input['table'] }}">
-        </div>
-    </form>
+    <div class="d-flex overflow-auto contents_box">
+        <ul class="nav nav-pills flex-nowrap">
+            <li class="nav-item nav-item-red">
+                <a class="nav-link nav-link-red {{ $input['table']=='accepted' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('accepted')">{{$tab_name['accepted']}}</a>
+            </li>
+            <li class="nav-item nav-item-red">
+                <a class="nav-link nav-link-red {{ $input['table']=='search' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('search')">{{$tab_name['search']}}</a>
+            </li>
+            <li class="nav-item nav-item-red">
+                <a class="nav-link nav-link-red {{ $input['table']=='pending' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('pending')">{{$tab_name['pending']}}</a>
+            </li>
+            <li class="nav-item nav-item-red">
+                <a class="nav-link nav-link-red {{ $input['table']=='request' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('request')">{{$tab_name['request']}}</a>
+            </li>
+            <li class="nav-item nav-item-red">
+                <a class="nav-link nav-link-red {{ $input['table']=='declined' ? 'active' : '' }}" onclick="redirectToFavoriteListShow('declined')">{{$tab_name['declined']}}</a>
+            </li>
+        </ul>
+    </div>
+    <br>
 
-@endif
-<table class="table table-borderless table-data-center" style="table-layout: fixed;">
-    <colgroup>
-        <col style="width: 80%; min-width: 70px;">
-        <col style="width: 20%; min-width: 120px;">
-    </colgroup>
-    <tbody>
+    <h3>{{$tab_name[$input['table']]}}</h3>
+    @if($input['table']=="search")
+        <form action="{{ route('friendlist-show') }}" method="GET">
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="search" name="friend_code" class="form-control" placeholder="ユーザーID">
+                <input type="hidden" name="table" value="{{ $input['table'] }}">
+            </div>
+        </form>
 
-        @foreach ($friendlist[$input['table']] as $key => $friend)   
-            <tr>
-            @if ($status == 'accepted')
-                <td onclick="redirectToFriendShow({{ $friend->id }})">{{ $friend->name }}</td>
-            @else
-                <td>{{ $friend->name }}</td>
-            @endif
-                <td>
-                    @if ($status == 'pending')
-                        <a class="btn btn-gray" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'cancel')">キャンセル</a>
-                        
-                    @elseif ($status == 'request')
-                        <div class="button-group">
-                            <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
-                            <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-decline') }}', 'decline')">拒否</a>
-                        </div>
-                    @elseif ($status == 'declined')
-                        <div class="button-group">
-                            <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
+    @endif
+    <table class="table table-borderless table-data-center" style="table-layout: fixed;">
+        <colgroup>
+            <col style="width: 80%; min-width: 70px;">
+            <col style="width: 20%; min-width: 120px;">
+        </colgroup>
+        <tbody>
+
+            @foreach ($friendlist[$input['table']] as $key => $friend)   
+                <tr>
+                @if ($status == 'accepted')
+                    <td onclick="redirectToFriendShow({{ $friend->id }})">{{ $friend->name }}</td>
+                @else
+                    <td>{{ $friend->name }}</td>
+                @endif
+                    <td>
+                        @if ($status == 'pending')
+                            <a class="btn btn-gray" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'cancel')">キャンセル</a>
+                            
+                        @elseif ($status == 'request')
+                            <div class="button-group">
+                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
+                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-decline') }}', 'decline')">拒否</a>
+                            </div>
+                        @elseif ($status == 'declined')
+                            <div class="button-group">
+                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
+                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'del')">削除</a>
+                            </div>
+                        @elseif ($status == 'accepted')
                             <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'del')">削除</a>
-                        </div>
-                    @elseif ($status == 'accepted')
-                        <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'del')">削除</a>
-                    @else
-                        <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-request') }}', 'request')">申請</a>
-                    @endif
-                </td>
-            </tr>
-        @endforeach
-    </tbody>
-</table>
+                        @else
+                            <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-request') }}', 'request')">申請</a>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 
-<?//広告モーダル?>   
-@include('layouts.adv_popup')
+    <?//広告モーダル?>   
+    @include('layouts.adv_popup')
 
 @endsection
 

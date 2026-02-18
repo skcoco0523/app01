@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
     <div class="container py-4">
         <h1 class="mb-4">スマートリモコン管理</h1>
 

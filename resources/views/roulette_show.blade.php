@@ -1,80 +1,79 @@
 @extends('layouts.app')
 
-@section('content')
-
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 
-<div id="sections">
-    <div id="spinArea">
-        <!--円グラフ-->
-        <canvas id="roulette"></canvas>
+@section('content')
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
+    <div id="sections">
+        <div id="spinArea">
+            <!--円グラフ-->
+            <canvas id="roulette"></canvas>
+        </div>
+        <div id="pointer"></div>
     </div>
-    <div id="pointer"></div>
-</div>
 
-<div id="resultDisplay" style="display:none; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; margin-top: 10px;">
-    <span id="resultText"></span>
-</div>
+    <div id="resultDisplay" style="display:none; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; margin-top: 10px;">
+        <span id="resultText"></span>
+    </div>
 
-<button id="spinButton" class="btn btn-primary">スタート</button>
+    <button id="spinButton" class="btn btn-primary">スタート</button>
 
-<p id="result" class="text-center mt-4"></p>
-<!-- 入力フォーム -->
-<div class="input-form mt-4">
-    <form id="rouletteForm">
-        <!-- データ選択 -->
-        <div class="mb-3">
-            <div class="row">
-                <div class="col-4">
-                    <select class="form-select" id="dataSelector" style="max-width: 100%;">
-                        <option value="0">1</option>
-                        <option value="1">2</option>
-                        <option value="2">3</option>
-                        <option value="3">4</option>
-                        <option value="4">5</option>
-                    </select>
+    <p id="result" class="text-center mt-4"></p>
+    <!-- 入力フォーム -->
+    <div class="input-form mt-4">
+        <form id="rouletteForm">
+            <!-- データ選択 -->
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-4">
+                        <select class="form-select" id="dataSelector" style="max-width: 100%;">
+                            <option value="0">1</option>
+                            <option value="1">2</option>
+                            <option value="2">3</option>
+                            <option value="3">4</option>
+                            <option value="4">5</option>
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" class="form-control" id="dataName">
+                    </div>
+                    <div class="col-3">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
                 </div>
-                <div class="col-5">
-                    <input type="text" class="form-control" id="dataName">
-                </div>
-                <div class="col-3">
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
+                <input type="hidden" id="dataCnt" value="5">
             </div>
-            <input type="hidden" id="dataCnt" value="5">
-        </div>
-             
-        </div>
-        <div class="mb-3">
-            <div class="row">
-                <div class="col-4">
-                    <label class="form-label">項目(必須)</label>
-                </div>
-                <div class="col-4">
-                    <label class="form-label">値</label>
-                </div>
-                <div class="col-4">
-                    <label class="form-label">倍率</label>
-                </div>
+                
             </div>
-            @for($i=0; $i<5; $i++)
-            <div class="row">
-                <div class="col-4">
-                    <input type="text" class="form-control" id="itemName{{$i}}" placeholder="項目">
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-4">
+                        <label class="form-label">項目(必須)</label>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">値</label>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">倍率</label>
+                    </div>
                 </div>
-                <div class="col-4">
-                    <input type="text" class="form-control" id="itemValue{{$i}}" placeholder="値">
+                @for($i=0; $i<5; $i++)
+                <div class="row">
+                    <div class="col-4">
+                        <input type="text" class="form-control" id="itemName{{$i}}" placeholder="項目">
+                    </div>
+                    <div class="col-4">
+                        <input type="text" class="form-control" id="itemValue{{$i}}" placeholder="値">
+                    </div>
+                    <div class="col-4">
+                    <input type="number" class="form-control" id="multiple{{$i}}" placeholder="倍率">
+                    </div>
                 </div>
-                <div class="col-4">
-                <input type="number" class="form-control" id="multiple{{$i}}" placeholder="倍率">
-                </div>
+                @endfor
             </div>
-            @endfor
-        </div>
-    </form>
-</div>
+        </form>
+    </div>
 
 @endsection
 
