@@ -6,13 +6,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail; //メールアドレス認証対応
 use Laravel\Sanctum\HasApiTokens;
+
 
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Friendlist;
 
-class User extends Authenticatable
+//class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -150,8 +153,11 @@ class User extends Authenticatable
                 if (isset($data['name']) && $user->name != $data['name'])
                     $updateData['name'] = $data['name']; 
 
-                if (isset($data['email']) && $user->email != $data['email'])
+                if (isset($data['email']) && $user->email != $data['email']){
                     $updateData['email'] = $data['email']; 
+                    //メールアドレス変更の場合は、メール認証状態をリセットする
+                    $updateData['email_verified_at'] = null;
+                }
 
                 //NULLからの変更対応
                 //if (isset($data['birthdate']) && $user->birthdate->format('Y-m-d') != $data['birthdate'])

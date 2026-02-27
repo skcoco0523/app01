@@ -76,7 +76,10 @@ if (! function_exists('get_MailMessage')) {
         $error_log = __FUNCTION__.".log";
         //app01\vendor\laravel\framework\src\Illuminate\Notifications\Messages\MailMessage.php
         switch($tmpl){
-            case 'password_reset':
+            //==============================================================================================
+            //ユーザー充て
+            //==============================================================================================
+            case 'password_reset':  //パスワードリセットメール
                 $MailMessage = (new MailMessage)
                     ->markdown('emails.mail')
                     ->subject(Lang::get('パスワードリセット'))
@@ -90,8 +93,23 @@ if (! function_exists('get_MailMessage')) {
 
                 return $MailMessage;
                 break;
+                
+            case 'email_verify':  //メールアドレス認証メール
+                // $send_infoの中に 'url' を含めて渡す想定
+                $MailMessage = (new MailMessage)
+                    ->markdown('emails.mail')
+                    ->subject(Lang::get('メールアドレスの確認'))
+                    ->line(Lang::get('会員登録ありがとうございます。下のボタンをクリックして、メールアドレスの認証を完了させてください。'))
+                    ->action(Lang::get('メールアドレスを認証する'), $send_info->url) // 生成したURLをセット
+                    ->line(Lang::get('もし心当たりがない場合は、このメールを破棄してください。'))
+                    ->line(Lang::get('************************************'))
+                    ->line(Lang::get('問い合わせ先:skcoco.05.23@gmail.com'))
+                    ->line(Lang::get('************************************'));
+
+                return $MailMessage;
+                break;
                     
-            case 'user_reg':
+            case 'user_reg':    //ユーザー登録完了メール
                 $MailMessage = (new MailMessage)
                 ->markdown('emails.mail')
                 ->subject(Lang::get('会員登録のお知らせ'))
@@ -108,8 +126,10 @@ if (! function_exists('get_MailMessage')) {
                 break;
 
 
+            //==============================================================================================
             //ここからは管理者充て
-            case 'user_reg_notice':
+            //==============================================================================================
+            case 'user_reg_notice':   //ユーザー登録通知メール
                 $MailMessage = (new MailMessage)
                 ->markdown('emails.mail')
                 ->subject(Lang::get('【SK_HOME:管理者】ユーザー登録通知'))
