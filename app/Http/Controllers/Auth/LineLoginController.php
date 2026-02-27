@@ -156,6 +156,7 @@ class LineLoginController extends Controller
             $user->line_id=$profile->userId;
             $user->name=$profile->displayName;
             $user->friend_code = User::generateUniqueFriendCode();
+            $user->email_verified_at = now();   // メール認証を「現在時刻」で完了状態にする
             $user->save();
             // 第二引数(remember)を使ってログイン
             //Auth::login($user);
