@@ -154,6 +154,10 @@ class User extends Authenticatable implements MustVerifyEmail
                     $updateData['name'] = $data['name']; 
 
                 if (isset($data['email']) && $user->email != $data['email']){
+                    // 自分以外でそのメールを使っている人がいるか確認する
+                    $exists = User::where('email', $data['email'])->where('id', '!=', $data['id'])->exists();
+                    if($exists) return ['id' => null, 'error_code' => -2];   //メールアドレス重複エラー
+
                     $updateData['email'] = $data['email']; 
                     //メールアドレス変更の場合は、メール認証状態をリセットする
                     $updateData['email_verified_at'] = null;
