@@ -76,20 +76,19 @@ class UserController extends Controller
 
         $after_profile = $request->all();
         $profile['id'] = Auth::id();
-        //dd($profile);
+        
         $ret = User::chgProfile($after_profile);
         $msg = null;
-        if($ret['error_code'] == 0){        
-            //$profile = Auth::user();
-            //dd($profile);
-            $message = ['message' => 'プロフィール情報を更新しました。',
-                        'type' => 'profile',
-                        'sec' => '2000'];
+        if($ret['error_code'] == 0){     
+            $message = ['message' => 'プロフィール情報を更新しました。', 'type' => 'profile', 'sec' => '2000'];
             return redirect()->route('profile-show')->with($message);
+            
+        }elseif($ret['error_code'] == -2){     
+            $message = ['message' => 'メールアドレスが既に使用されています。', 'type' => 'error', 'sec' => '2000'];
+            return redirect()->route('profile-show')->with($message);
+            
         }else{
-            $message = ['message' => 'プロフィール情報の更新に失敗しました。',
-                        'type' => 'error',
-                        'sec' => '2000'];
+            $message = ['message' => 'プロフィール情報の更新に失敗しました。', 'type' => 'error', 'sec' => '2000'];
             return redirect()->route('home')->with($message);
         }
     }
