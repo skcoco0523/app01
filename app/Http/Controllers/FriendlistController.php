@@ -11,24 +11,8 @@ use App\Models\User;
 
 class FriendlistController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
-
     //フレンドリスト表示
-    public function friendlist_show(Request $request)
+    public function show(Request $request)
     {
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -70,13 +54,13 @@ class FriendlistController extends Controller
 
         //dd($friendlist,$search_user);
         //if($friendlist || $search_user){
-            return view('friendlist_show', compact('friendlist', 'input', 'msg'));
+            return view('friendlist.show', compact('friendlist', 'input', 'msg'));
         //}else{
             //return redirect()->route('home')->with('error', 'エラーが発生しました');
         //}
     }    
-    //フレンド情報表示
-    public function friend_show(Request $request)
+    //フレンド詳細表示
+    public function detail(Request $request)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -103,13 +87,13 @@ class FriendlistController extends Controller
         //dd($friend_profile);
         $msg = null;
         if($friend_profile){
-            return view('friend_show', compact('friend_profile', 'input', 'msg'));
+            return view('friendlist.detail', compact('friend_profile', 'input', 'msg'));
         }else{
             return redirect()->route('home')->with('error', 'エラーが発生しました');
         }
     }
     //フレンド申請
-    public function friend_request(Request $request)
+    public function request(Request $request)
     {
         $user_id = Auth::id();
         $friend_id =  (int) $request->user_id;
@@ -137,7 +121,7 @@ class FriendlistController extends Controller
         return redirect()->route('friendlist-show')->with($message);
     }
     //フレンド申請承諾
-    public function friend_accept(Request $request)
+    public function accept(Request $request)
     {
         $user_id = Auth::id();
         $friend_id =  (int) $request->user_id;
@@ -164,7 +148,7 @@ class FriendlistController extends Controller
         return redirect()->route('friendlist-show')->with($message);
     }
     //フレンド申請拒否
-    public function friend_decline(Request $request)
+    public function decline(Request $request)
     {
         $friend_id =  (int) $request->user_id;
         $status = Friendlist::declineFriend(Auth::id(), $friend_id);
@@ -177,7 +161,7 @@ class FriendlistController extends Controller
         return redirect()->route('friendlist-show')->with($message);
     }
     //フレンド申請キャンセル
-    public function friend_cancel(Request $request)
+    public function cancel(Request $request)
     {
         $friend_id =  (int) $request->user_id;
         $status = Friendlist::cancelFriend(Auth::id(), $friend_id);

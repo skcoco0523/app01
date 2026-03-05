@@ -23,7 +23,6 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\RouletteController;
 use App\Http\Controllers\SmartRemoteController;
 use App\Http\Controllers\IotDeviceController;
-use App\Http\Controllers\NoteController;
 
 
 Auth::routes();
@@ -45,9 +44,9 @@ Route::get('roulette/show', [RouletteController::class, 'roulette_show'])->name(
 
 
 
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // 認証済み　メール未認証ユーザー向けルート
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 Route::middleware(['auth'])->group(function () {
     //プロフィール
     Route::get('profile/show', [UserController::class, 'profile_show'])->name('profile-show');
@@ -57,9 +56,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('request/show', [RequestController::class, 'request_show'])->name('request-show');
     Route::post('request/send', [RequestController::class, 'request_send'])->name('request-send');
 
-    //-----------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------------
     //メールアドレス認証用ルート　XXXXX-XXXXXの定義にしたいが、Laravelの定義に合わせてXXXXX.XXXXXに変更
-    //-----------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------------
     // メール認証通知ページ
     Route::get('/email/verify', [VerificationController::class, 'show'])->name('verification.notice');
     // 確認メール送信
@@ -70,27 +69,31 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['signed']);   //署名付きURLを検証するミドルウェア
 });
 
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // 管理者権限不要
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    //-------------------------------------------------------------------------------------------------------
     //フレンドリスト表示
-    Route::get('friendlist', [FriendlistController::class, 'friendlist_show'])->name('friendlist-show');
-    //フレンド申請
-    Route::post('friend/request', [FriendlistController::class, 'friend_request'])->name('friend-request');
-    //フレンド承認
-    Route::post('friend/accept', [FriendlistController::class, 'friend_accept'])->name('friend-accept');
-    //フレンド申請拒否
-    Route::post('friend/decline', [FriendlistController::class, 'friend_decline'])->name('friend-decline');
-    //フレンド申請キャンセル
-    Route::post('friend/cancel', [FriendlistController::class, 'friend_cancel'])->name('friend-cancel');
+    //-------------------------------------------------------------------------------------------------------
+    Route::get('friendlist/show', [FriendlistController::class, 'show'])->name('friendlist-show');
     //フレンド情報表示
-    Route::get('friend/show', [FriendlistController::class, 'friend_show'])->name('friend-show');
+    Route::get('friend/show', [FriendlistController::class, 'detail'])->name('friend-show');
+    //フレンド申請
+    Route::post('friend/request', [FriendlistController::class, 'request'])->name('friend-request');
+    //フレンド承認
+    Route::post('friend/accept', [FriendlistController::class, 'accept'])->name('friend-accept');
+    //フレンド申請拒否
+    Route::post('friend/decline', [FriendlistController::class, 'decline'])->name('friend-decline');
+    //フレンド申請キャンセル
+    Route::post('friend/cancel', [FriendlistController::class, 'cancel'])->name('friend-cancel');
 
+    //-------------------------------------------------------------------------------------------------------
     //スマートリモコンリスト表示
+    //-------------------------------------------------------------------------------------------------------
+    //スマートリモコン一覧　デバイス一覧
     Route::get('smart-remote/show', [SmartRemoteController::class, 'remote_show'])->name('remote-show');
-
     //スマートリモコン詳細
     Route::get('smart-remote/show/detail', [SmartRemoteController::class, 'remote_show_detail'])->name('remote-show-detail');
     //スマートリモコン登録
@@ -102,7 +105,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //スマートリモコン共有解除
     Route::post('smart-remote/unshare', [SmartRemoteController::class, 'remote_unshare'])->name('remote-unshare');
 
-    
+    //-------------------------------------------------------------------------------------------------------
+    //デバイス詳細
+    //-------------------------------------------------------------------------------------------------------
     //デバイス詳細
     Route::get('iotdevice/show/detail', [IotDeviceController::class, 'iotdevice_show_detail'])->name('iotdevice-show-detail');
     //デバイス登録
@@ -112,7 +117,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //スマートリモコン削除
     Route::post('iotdevice/del', [IotDeviceController::class, 'iotdevice_del'])->name('iotdevice-del');
 
+    //-------------------------------------------------------------------------------------------------------
     //メモ
+    //-------------------------------------------------------------------------------------------------------
+    //メモ一覧
     Route::get('note/show', [NoteController::class, 'note_show'])->name('note-show');
     //メモ詳細
     Route::get('note/show/detail', [NoteController::class, 'note_show_detail'])->name('note-show-detail');
@@ -123,23 +131,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //メモ削除
     Route::post('note/del', [NoteController::class, 'note_del'])->name('note-del');
     //メモ共有　API経由で実施
-    
     //メモ共有解除
     Route::post('note/unshare', [NoteController::class, 'note_unshare'])->name('note-unshare');
-    //-----------------------------------------------------------------------------------
+
 });
 
 
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // 管理者権限必須
-//-----------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function () {
     Route::group(['prefix' => 'admin'], function(){
 
         Route::get('home', [AdminHomeController::class, 'home'])->name('admin-home');
 
         //----------------------------------------------------------------------------------
-        //ユーザー------------------------------------------------------------------------
+        //ユーザー
         //----------------------------------------------------------------------------------
         //一覧
         Route::get('user/search', [AdminUserController::class, 'user_search'])->name('admin-user-search');
@@ -151,7 +158,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
 
 
         //----------------------------------------------------------------------------------
-        //IoTデバイス------------------------------------------------------------------------
+        //IoTデバイス
         //----------------------------------------------------------------------------------
         //デバイス一覧
         Route::get('iotdevice/search', [AdminSmartRemoteController::class, 'iotdevice_search'])->name('admin-iotdevice-search');
@@ -166,7 +173,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
 
 
         //----------------------------------------------------------------------------------
-        //リモコン------------------------------------------------------------------------
+        //リモコン
         //----------------------------------------------------------------------------------
         //リモコンデザイン一覧
         Route::get('virtualremote-blade/search', [AdminSmartRemoteController::class, 'virtualremote_blade_search'])->name('admin-virtualremote-blade-search');
@@ -183,7 +190,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
 
         
         //----------------------------------------------------------------------------------
-        //広告------------------------------------------------------------------------
+        //広告
         //----------------------------------------------------------------------------------
         //登録
         Route::get('adv/reg', [AdminAdvController::class, 'adv_regist'])->name('admin-adv-reg');
@@ -199,7 +206,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
 
         
         //----------------------------------------------------------------------------------
-        //通知------------------------------------------------------------------------
+        //通知
         //----------------------------------------------------------------------------------
         Route::get('notification/search', [AdminNotificationController::class, 'notification'])->name('admin-notification');
         //メール通知
@@ -211,7 +218,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
 
 
         //----------------------------------------------------------------------------------
-        //その他------------------------------------------------------------------------
+        //その他
         //----------------------------------------------------------------------------------
         //メモ検索
         Route::get('another/memo-search', [AdminAnotherController::class, 'memo_search'])->name('admin-memo-search');
