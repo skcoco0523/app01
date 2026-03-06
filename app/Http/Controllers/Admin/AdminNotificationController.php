@@ -58,7 +58,7 @@ class AdminNotificationController extends Controller
     //メール通知
     public function admin_mail_send(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
         $input = $request->all();
         $input['search_name']           = get_proc_data($input,"search_name");
@@ -112,7 +112,7 @@ class AdminNotificationController extends Controller
     //プッシュ通知
     public function admin_push_send(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
         $input = $request->all();
         $input['search_name']           = get_proc_data($input,"search_name");

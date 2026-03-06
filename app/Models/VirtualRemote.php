@@ -17,7 +17,7 @@ class VirtualRemote extends Model
     //仮想リモコン一覧取得
     public static function getVirtualRemoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('virtual_remotes as remote');
@@ -80,7 +80,7 @@ class VirtualRemote extends Model
     //仮想リモコン登録
     public static function createVirtualRemote($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
 
@@ -110,7 +110,7 @@ class VirtualRemote extends Model
     //仮想リモコン削除
     public static function delVirtualRemote($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             //他データはリレーションでカスケード削除
             make_error_log($error_log,"delete_id=".$data['id']);
@@ -129,7 +129,7 @@ class VirtualRemote extends Model
     //仮想リモコン変更
     public static function chgVirtualRemote($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
 

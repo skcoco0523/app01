@@ -36,7 +36,7 @@ class PushNotification
 {
     public static function push_send($send_info, $user_id = null, $admin_flag = false)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "========================start========================");
         make_error_log($error_log, "user_id: ".$user_id. "  admin_flag: ".$admin_flag);
 

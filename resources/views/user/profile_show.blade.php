@@ -5,7 +5,7 @@
     <div class="card-header">{{ __('Profile') }}</div>
 
     <div class="card-body">
-        <form method="POST" action="{{ route('profile-change') }}">
+        <form method="POST" action="{{ route('profile.change') }}">
             @csrf
             <input type="hidden"  name="id" value="{{ $profile->id }}">
             <div class="row mb-3">
@@ -31,8 +31,8 @@
                     <script>
                         const params = {
                             //「&」が「%amp;」に変換されてしまう問題を回避するため、{!!" "!!}
-                            //url: "{{ route('friendlist-show', ['friend_code' => $profile->friend_code, 'table' => 'search']) }}",
-                            url: "{!! route('friendlist-show', ['friend_code' => $profile->friend_code, 'table' => 'search']) !!}",
+                            //url: "{{ route('friend.show', ['friend_code' => $profile->friend_code, 'table' => 'search']) }}",
+                            url: "{!! route('friend.show', ['friend_code' => $profile->friend_code, 'table' => 'search']) !!}",
                             
                             
                         }

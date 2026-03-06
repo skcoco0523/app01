@@ -76,7 +76,7 @@ class AdminAnotherController extends Controller
     //メモ追加
     public function memo_reg(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $msg=null;
 
@@ -115,7 +115,7 @@ class AdminAnotherController extends Controller
     //メモ削除
     public function memo_del(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $input['id']               = get_proc_data($input, "id");
         $msg=null;
@@ -147,7 +147,7 @@ class AdminAnotherController extends Controller
     //メモ更新
     public function memo_chg(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $input['id']                = get_proc_data($input, "id");
         $input['title']             = get_proc_data($input, "title");

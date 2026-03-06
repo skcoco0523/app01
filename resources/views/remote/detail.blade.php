@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote-show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.show') }}'"></i>
     <div class="container py-4">
         <div class="remote-header d-flex flex-column align-items-end mb-3">
             
@@ -30,7 +30,7 @@
                 <div id="EditArea" style="display: none;">
                         
                     <?// 編集フォーム?>
-                    <form id="remoteNameChangeForm" method="POST" action="{{ route('remote-chg') }}">
+                    <form id="remoteNameChangeForm" method="POST" action="{{ route('remote.change') }}">
                         @csrf
                         <?// 変更権限がある場合のみ入力許可?>
                         <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
@@ -42,14 +42,14 @@
                     </form>
 
                     <?// 削除フォーム?>
-                    <form id="remoteDeleteForm" method="POST" action="{{ route('remote-del') }}">
+                    <form id="remoteDeleteForm" method="POST" action="{{ route('remote.delete') }}">
                         @csrf
                         <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
                         <input type="hidden" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
                     </form>
 
                     <?// 共有解除フォーム?>
-                    <form id="remoteUnShareForm" method="POST" action="{{ route('remote-unshare') }}">
+                    <form id="remoteUnShareForm" method="POST" action="{{ route('remote.unshare') }}">
                         @csrf
                         <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
                         <input type="hidden" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">

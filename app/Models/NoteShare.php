@@ -17,7 +17,7 @@ class NoteShare extends Model
     //共有されているメモ一覧取得
     public static function getSharedNoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('note_shares as note_share');
@@ -86,7 +86,7 @@ class NoteShare extends Model
     //共有しているメモ一覧取得
     public static function getSharingNoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('note_shares as note_share');
@@ -157,7 +157,7 @@ class NoteShare extends Model
     //共有メモ登録
     public static function createShareNote($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $error_code = 0;
@@ -184,7 +184,7 @@ class NoteShare extends Model
     //共有メモ削除
     public static function delShareNote($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             //他データはリレーションでカスケード削除
             make_error_log($error_log,"delete_id=".$data['id']);
@@ -203,7 +203,7 @@ class NoteShare extends Model
     //共有メモ変更
     public static function chgShareNote($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
 

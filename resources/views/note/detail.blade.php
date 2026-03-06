@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('note-show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('note.show') }}'"></i>
     <div class="container py-4">
         <div class="note-header d-flex flex-column mb-2">
             
@@ -95,7 +95,7 @@
                     </div>
 
                     <?// 編集フォーム?>
-                    <form id="noteChangeForm" method="POST" action="{{ route('note-chg') }}">
+                    <form id="noteChangeForm" method="POST" action="{{ route('note.change') }}">
                         @csrf
                         <?// 変更権限がある場合のみ入力許可?>
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
@@ -128,25 +128,25 @@
                     </form>
 
                     <?// 削除フォーム?>
-                    <form id="noteDeleteForm" method="POST" action="{{ route('note-del') }}">
+                    <form id="noteDeleteForm" method="POST" action="{{ route('note.delete') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                     </form>
 
                     <?// 共有解除フォーム?>
-                    <form id="noteUnShareForm" method="POST" action="{{ route('note-unshare') }}">
+                    <form id="noteUnShareForm" method="POST" action="{{ route('note.unshare') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                     </form>
 
                     <?// ロックフォーム?>
-                    <form id="noteLockForm" method="POST" action="{{ route('note-chg') }}">
+                    <form id="noteLockForm" method="POST" action="{{ route('note.change') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                         <input type="hidden" name="edit_lock_flag" value=1>
                     </form>
                     <?// ロック解除フォーム?>
-                    <form id="noteUnlockForm" method="POST" action="{{ route('note-chg') }}">
+                    <form id="noteUnlockForm" method="POST" action="{{ route('note.change') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                         <input type="hidden" name="edit_lock_flag" value=0>

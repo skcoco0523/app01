@@ -115,7 +115,7 @@ class MqttListener extends Command
 
     //デバイス起動時の初回アクセス
     public function mqtt_device_access($mac_addr){
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
         make_error_log($error_log,"mac_addr:".$mac_addr);
@@ -137,7 +137,7 @@ class MqttListener extends Command
                 $send_info = new \stdClass();
                 $send_info->title = "デバイス接続通知";
                 $send_info->body = "[".$device->name. "]が接続されました。";
-                $send_info->url = route('iotdevice-show-detail', ['id' => $device->id]);
+                $send_info->url = route('iotdevice.detail', ['id' => $device->id]);
                 push_send($send_info, $device->admin_user_id);
             }
 
@@ -174,7 +174,7 @@ class MqttListener extends Command
 
     //赤外線信号スタンバイ通知
     public function mqtt_ir_receive_standby($mac_addr){
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
         make_error_log($error_log,"----------------end-----------------");
@@ -182,7 +182,7 @@ class MqttListener extends Command
 
     //赤外線信号受信通知
     public function mqtt_ir_received($mac_addr, $data){
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
         make_error_log($error_log,"----------------end-----------------");

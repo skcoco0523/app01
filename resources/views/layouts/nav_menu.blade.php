@@ -24,7 +24,7 @@
             </a>
             --}}
             <div class="border-right"></div>
-            <a href="{{ route('friendlist-show') }}" class="flex-sm-fill text-sm-center nav-link p-2 d-flex flex-column align-items-center" href="#">
+            <a href="{{ route('friend.show') }}" class="flex-sm-fill text-sm-center nav-link p-2 d-flex flex-column align-items-center" href="#">
                 <img src="{{ asset('img/icon/friend.png') }}" alt="アイコン" class="icon-top">
                 <span style="font-size: 0.75rem;">フレンド</span>
             </a>

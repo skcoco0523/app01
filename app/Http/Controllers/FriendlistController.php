@@ -34,7 +34,7 @@ class FriendlistController extends Controller
                     $message = ['message' => 'ユーザーが見つかりませんでした。',
                                 'type' => 'error',
                                 'sec' => '2000'];
-                    return redirect()->route('friendlist-show')->with($message);
+                    return redirect()->route('friend.show')->with($message);
                     */
                     // ビューを直接表示する場合もメッセージをセッションに保存
                     session()->flash('message', 'ユーザーが見つかりませんでした。');
@@ -54,7 +54,7 @@ class FriendlistController extends Controller
 
         //dd($friendlist,$search_user);
         //if($friendlist || $search_user){
-            return view('friendlist.show', compact('friendlist', 'input', 'msg'));
+            return view('friend.show', compact('friendlist', 'input', 'msg'));
         //}else{
             //return redirect()->route('home')->with('error', 'エラーが発生しました');
         //}
@@ -77,7 +77,7 @@ class FriendlistController extends Controller
         if(!isset($friend_profile) || $friend_profile->friend_status!="accepted"){
             // フレンドリストにリダイレクト\
             $message = ['message' => 'フレンド以外のデータは閲覧できません。', 'type' => 'error', 'sec' => '2000'];
-            return redirect()->route('friendlist-show')->with($message);
+            return redirect()->route('friend.show')->with($message);
         }
 
         //フレンド承認済みで相手の公開制限無し
@@ -87,7 +87,7 @@ class FriendlistController extends Controller
         //dd($friend_profile);
         $msg = null;
         if($friend_profile){
-            return view('friendlist.detail', compact('friend_profile', 'input', 'msg'));
+            return view('friend.detail', compact('friend_profile', 'input', 'msg'));
         }else{
             return redirect()->route('home')->with('error', 'エラーが発生しました');
         }
@@ -109,7 +109,7 @@ class FriendlistController extends Controller
             $send_info = new \stdClass();
             $send_info->title = "フレンド申請";
             $send_info->body = $user_prf->name. "からフレンド申請が届きました";
-            $send_info->url = route('friendlist-show', ['table' => 'request']);
+            $send_info->url = route('friend.show', ['table' => 'request']);
 
             push_send($send_info, $friend_id);
         }else{
@@ -118,7 +118,7 @@ class FriendlistController extends Controller
         
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
         
-        return redirect()->route('friendlist-show')->with($message);
+        return redirect()->route('friend.show')->with($message);
     }
     //フレンド申請承諾
     public function accept(Request $request)
@@ -136,7 +136,7 @@ class FriendlistController extends Controller
             $send_info = new \stdClass();
             $send_info->title = "フレンド申請";
             $send_info->body =  $user_prf->name. "からフレンド申請が承諾されました";
-            $send_info->url = route('friendlist-show', ['table' => 'pending']);
+            $send_info->url = route('friend.show', ['table' => 'pending']);
 
             push_send($send_info, $friend_id);
         }else{
@@ -145,7 +145,7 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
         
-        return redirect()->route('friendlist-show')->with($message);
+        return redirect()->route('friend.show')->with($message);
     }
     //フレンド申請拒否
     public function decline(Request $request)
@@ -158,7 +158,7 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
 
-        return redirect()->route('friendlist-show')->with($message);
+        return redirect()->route('friend.show')->with($message);
     }
     //フレンド申請キャンセル
     public function cancel(Request $request)
@@ -174,6 +174,6 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
 
-        return redirect()->route('friendlist-show')->with($message);
+        return redirect()->route('friend.show')->with($message);
     }
 }

@@ -30,7 +30,7 @@ class HomeController extends Controller
     {
         //ランキング
         $test = "";
-        return view('home', compact('test'));
+        return view('user.home', compact('test'));
 
     }
     public function dashboard()

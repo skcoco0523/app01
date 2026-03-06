@@ -28,9 +28,9 @@ class SmartRemoteController extends Controller
     }
 
     //スマートリモコン一覧ページ
-    public function remote_show(Request $request)
+    public function show(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -50,15 +50,15 @@ class SmartRemoteController extends Controller
     
         $msg = null;
         //if($iotdevice){
-            return view('remote_show', compact('iotdevice_list','virtual_remote_list', 'msg'));
+            return view('remote.show', compact('iotdevice_list','virtual_remote_list', 'msg'));
         //}else{
             //return redirect()->route('home')->with('error', '該当の曲が存在しません');
         //}
     }
     //スマートリモコン詳細ページ
-    public function remote_show_detail(Request $request)
+    public function detail(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -82,7 +82,7 @@ class SmartRemoteController extends Controller
             //dd($virtual_remote);
 
             $msg = null;
-            return view('remote_show_detail', compact('virtual_remote', "r_sig", 'msg'));
+            return view('remote.detail', compact('virtual_remote', "r_sig", 'msg'));
 
         }else{
             //使用不可のため強制リダイレクト
@@ -91,9 +91,9 @@ class SmartRemoteController extends Controller
     }
 
     //スマートリモコン登録
-    public function remote_reg(Request $request)
+    public function create(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -150,13 +150,13 @@ class SmartRemoteController extends Controller
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('remote-show', ['test' => 'test'])->with($message);
+        return redirect()->route('remote.show', ['test' => 'test'])->with($message);
 
     }
     //スマートリモコン変更
-    public function remote_chg(Request $request)
+    public function change(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -191,13 +191,13 @@ class SmartRemoteController extends Controller
         $input['id']    = get_proc_data($input,"search_remote_id");
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
 
-        return redirect()->route('remote-show-detail', ['input' => $input, 'msg' => $msg])->with($message);
+        return redirect()->route('remote.detail', ['input' => $input, 'msg' => $msg])->with($message);
 
     }
     //スマートリモコン削除
-    public function remote_del(Request $request)
+    public function delete(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -227,13 +227,13 @@ class SmartRemoteController extends Controller
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('remote-show')->with($message);
+        return redirect()->route('remote.show')->with($message);
 
     }
     //スマートリモコン共有解除
-    public function remote_unshare(Request $request)
+    public function unshare(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -257,7 +257,7 @@ class SmartRemoteController extends Controller
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('remote-show')->with($message);
+        return redirect()->route('remote.show')->with($message);
 
     }
 

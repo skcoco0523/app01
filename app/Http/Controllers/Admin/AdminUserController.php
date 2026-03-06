@@ -139,7 +139,7 @@ class AdminUserController extends Controller
                 $send_info = new \stdClass();
                 $send_info->title = "ご質問への回答があります";
                 $send_info->body = $input['reply'];
-                $send_info->url = route('request-show');
+                $send_info->url = route('request.show');
                 
                 push_send($send_info, $ret['user_id']);
             }

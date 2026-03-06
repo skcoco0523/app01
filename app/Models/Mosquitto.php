@@ -22,7 +22,7 @@ class Mosquitto extends Model
     //外部deviceにMQTTでメッセージ送信
     public static function publishMQTT($mac_addr, $command, $data = null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         /*$type
         ir_signal:赤外線信号送信命令

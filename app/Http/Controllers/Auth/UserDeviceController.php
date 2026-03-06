@@ -10,7 +10,7 @@ class UserDeviceController extends Controller
 {
     public function device_update(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"------------start-----------");
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',

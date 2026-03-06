@@ -18,7 +18,7 @@ class UserRequest extends Model
     //ユーザーリクエスト情報取得
     public static function getRequestList($disp_cnt=null,$pageing=false,$page=1,$keyword=null) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $sql_cmd = DB::table('user_requests');
             if($keyword){
@@ -75,7 +75,7 @@ class UserRequest extends Model
     //ユーザーリクエスト情報登録
     public static function createRequest($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $error_code = 0;
@@ -102,7 +102,7 @@ class UserRequest extends Model
     //ユーザーリクエスト情報変更
     public static function chgRequeste($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             

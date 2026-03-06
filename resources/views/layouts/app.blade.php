@@ -57,7 +57,7 @@
         //JS用ルーティングの定義
         const loginUrl                      = "{{ route('login') }}";
         const checkDevicesUrl               = "{{ route('devices-check') }}";
-        const iotDeviceDetailUrl            = "{{ route('iotdevice-show-detail') }}";
+        const iotDeviceDetailUrl            = "{{ route('iotdevice.detail') }}";
         // APIエンドポイントのURLを定義
         const api_login                     = `{{ url('/api/login') }}`;
         const getAdvertisementUrl           = `{{ url('/api/adv/get') }}`;
@@ -188,8 +188,8 @@
                                     @if (Auth::user()->admin_flag)
                                         <a class="dropdown-item" href="{{ route('admin-home') }}">{{ __('Admin') }}</a>
                                     @endif
-                                        <a class="dropdown-item" href="{{ route('profile-show') }}">{{ __('Profile') }}</a>
-                                        <a class="dropdown-item" href="{{ route('request-show') }}">{{ __('Request') }}</a>
+                                        <a class="dropdown-item" href="{{ route('profile.show') }}">{{ __('Profile') }}</a>
+                                        <a class="dropdown-item" href="{{ route('request.show') }}">{{ __('Request') }}</a>
                                         <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                             {{ __('Logout') }}
                                         </a>

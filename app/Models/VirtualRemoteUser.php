@@ -19,7 +19,7 @@ class VirtualRemoteUser extends Model
     //仮想リモコン一覧取得
     public static function getVirtualRemoteUserList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('virtual_remote_users as remote_u');
@@ -88,7 +88,7 @@ class VirtualRemoteUser extends Model
     //ユーザー別仮想リモコン登録
     public static function createVirtualRemoteUser($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
 
@@ -118,7 +118,7 @@ class VirtualRemoteUser extends Model
     //ユーザー別仮想リモコン削除
     public static function delVirtualRemoteUser($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             //他データはリレーションでカスケード削除
             make_error_log($error_log,"delete_id=".$data['id']);
@@ -137,7 +137,7 @@ class VirtualRemoteUser extends Model
     //ユーザー別仮想リモコン変更
     public static function chgVirtualRemoteUser($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
 

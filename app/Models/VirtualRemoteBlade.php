@@ -17,7 +17,7 @@ class VirtualRemoteBlade extends Model
     //リモコンデザイン取得
     public static function getVirtualRemoteBladeList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('virtual_remote_blades as blade');
@@ -82,7 +82,7 @@ class VirtualRemoteBlade extends Model
     //リモコンデザイン登録
     public static function createVirtualRemoteBlade($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
 
@@ -110,7 +110,7 @@ class VirtualRemoteBlade extends Model
     //リモコンデザイン変更
     public static function chgVirtualRemoteBlade($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
 
@@ -154,7 +154,7 @@ class VirtualRemoteBlade extends Model
     //リモコンデザイン削除
     public static function delVirtualRemoteBlade($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"delete_id=".$data['id']);
             $user_id = Auth::id();

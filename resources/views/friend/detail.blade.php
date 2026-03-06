@@ -1,17 +1,17 @@
 @extends('layouts.app')
  
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('friendlist-show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('friend.show') }}'"></i>
     <div class="text-center ">
         <p class="card-text">フレンド：{{ $friend_profile->name }}</p>
     </div>
 
     <div class="d-flex overflow-auto contents_box">
         <ul class="nav nav-pills flex-nowrap">
-            <li class="nav-item nav-item-red" onclick="window.location='{{ route('friend-show') }}?friend_id={{ $friend_profile->id }}&table=1'">
+            <li class="nav-item nav-item-red" onclick="window.location='{{ route('friend.detail') }}?friend_id={{ $friend_profile->id }}&table=1'">
                 <a class="nav-link nav-link-red {{ $input['table']=='1' ? 'active' : '' }}">1</a>
             </li>
-            <li class="nav-item nav-item-red" onclick="window.location='{{ route('friend-show') }}?friend_id={{ $friend_profile->id }}&table=2'">
+            <li class="nav-item nav-item-red" onclick="window.location='{{ route('friend.detail') }}?friend_id={{ $friend_profile->id }}&table=2'">
                 <a class="nav-link nav-link-red {{ $input['table']=='2' ? 'active' : '' }}">2</a>
             </li>
         </ul>

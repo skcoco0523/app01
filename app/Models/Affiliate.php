@@ -14,7 +14,7 @@ class Affiliate extends Model
     //作成
     public static function createAffiliate($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
             make_error_log($error_log,"aff_link=".$data['aff_link']);
@@ -59,7 +59,7 @@ class Affiliate extends Model
     //変更
     public static function chgAffiliate($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
             make_error_log($error_log,"aff_link=".$data['aff_link']);
@@ -112,7 +112,7 @@ class Affiliate extends Model
     //削除
     public static function delAffiliate($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             //他データはリレーションでカスケード削除
             make_error_log($error_log,"delete_aff_id=".$data['aff_id']);

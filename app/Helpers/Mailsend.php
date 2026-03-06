@@ -37,7 +37,7 @@ class MailContent extends Mailable
 //メール送信関数　テンプレート内データ,送信先
 if (! function_exists('mail_send')) {
     function mail_send($send_info, $mess, $mail=null, $admin_flag = false){
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "========================start========================");
         make_error_log($error_log, "mail: ".$mail. "  admin_flag: ".$admin_flag);
         if ($mess) {
@@ -73,7 +73,7 @@ if (! function_exists('mail_send')) {
 if (! function_exists('get_MailMessage')) {
     function get_MailMessage($send_info, $tmpl)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         //app01\vendor\laravel\framework\src\Illuminate\Notifications\Messages\MailMessage.php
         switch($tmpl){
             //==============================================================================================
@@ -117,7 +117,7 @@ if (! function_exists('get_MailMessage')) {
                 ->line(Lang::get('この度は会員のご登録ありがとうございます。'))
                 ->line(Lang::get('本メールは登録された時点で送信される自動配信メールです。'))
                 ->line(Lang::get('メールが不要の場合は、配信停止設定をお願いいたします。'))
-                ->action(Lang::get('配信設定はこちらから'), url(route('profile-show')))
+                ->action(Lang::get('配信設定はこちらから'), url(route('profile.show')))
                 ->line(Lang::get('************************************'))
                 ->line(Lang::get('問い合わせ先:skcoco.05.23@gmail.com'))
                 ->line(Lang::get('************************************'));

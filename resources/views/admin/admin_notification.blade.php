@@ -62,7 +62,7 @@
             </div>
             <div class="col-12 col-md-6">
                 <label for="inputname" class="form-label">URL「route(XXXXX)」</label>
-                <input type="text" name="route" class="form-control" placeholder="profile-show" value="{{$input['route'] ?? ''}}">
+                <input type="text" name="route" class="form-control" placeholder="profile.show" value="{{$input['route'] ?? ''}}">
             </div>
 
             <div class="col-12 col-md-12">

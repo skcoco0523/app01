@@ -29,9 +29,9 @@ class IotDeviceController extends Controller
     }
 
     //IoTデバイス詳細ページ
-    public function iotdevice_show_detail(Request $request)
+    public function detail(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         $input['admin_flag']    = false;
@@ -50,7 +50,7 @@ class IotDeviceController extends Controller
             //受信テスト
             //Mosquitto::sendMqttMessage($iotdevice->mac_addr, $let['type'], $let['mess']);
             $msg = null;
-            return view('iotdevice_show_detail', compact('iotdevice', 'msg'));
+            return view('iotdevice.detail', compact('iotdevice', 'msg'));
 
         }else{
             //デバイス未登録のIDのため強制リダイレクト
@@ -59,9 +59,9 @@ class IotDeviceController extends Controller
     }
 
     //IoTデバイス登録
-    public function iotdevice_reg(Request $request)
+    public function create(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -126,12 +126,12 @@ class IotDeviceController extends Controller
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('remote-show')->with($message);
+        return redirect()->route('remote.show')->with($message);
     }
     //IoTデバイス変更
-    public function iotdevice_chg(Request $request)
+    public function change(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -166,14 +166,14 @@ class IotDeviceController extends Controller
         $input['id']    = $input['iotdevice_id'];
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
 
-        return redirect()->route('iotdevice-show-detail', ['id' => $input['iotdevice_id']])->with($message);
+        return redirect()->route('iotdevice.detail', ['id' => $input['iotdevice_id']])->with($message);
 
     }
     
     //IoTデバイス削除
-    public function iotdevice_del(Request $request)
+    public function delete(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -200,9 +200,8 @@ class IotDeviceController extends Controller
         }               
 
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
-        make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('remote-show')->with($message);
+        return redirect()->route('remote.show')->with($message);
 
     }
 

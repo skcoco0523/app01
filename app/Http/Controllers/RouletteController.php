@@ -16,7 +16,7 @@ class RouletteController extends Controller
         //$this->middleware('auth');
     }
     //ルーレットページ
-    public function roulette_show(Request $request)
+    public function show(Request $request)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -29,7 +29,7 @@ class RouletteController extends Controller
         $msg = "";
         //$user_request = UserRequest::getRequest_list(10,true,$input['page'],['login_id' => $user_id]);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
             
-        return view('roulette_show', compact('input', 'msg'));
+        return view('roulette.show', compact('input', 'msg'));
 
     }
 

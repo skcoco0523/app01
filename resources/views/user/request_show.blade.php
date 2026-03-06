@@ -5,7 +5,7 @@
     <div class="card-header">{{ __('Request') }}</div>
 
     <div class="card-body">
-        <form method="POST" action="{{ route('request-send') }}">
+        <form method="POST" action="{{ route('request.send') }}">
             @csrf
             <div class="row mb-3">
                 <label for="type" class="col-md-4 col-form-label text-md-end">種別</label>
