@@ -24,7 +24,6 @@ use App\Http\Controllers\RouletteController;
 use App\Http\Controllers\SmartRemoteController;
 use App\Http\Controllers\IotDeviceController;
 use App\Http\Controllers\NoteController;
-use App\Http\Controllers\HouseBookController;
 
 
 Auth::routes();
@@ -135,16 +134,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //メモ共有　API経由で実施
     //メモ共有解除
     Route::post('note/unshare', [NoteController::class, 'unshare'])->name('note.unshare');
-
-    //-------------------------------------------------------------------------------------------------------
-    //家計簿
-    //-------------------------------------------------------------------------------------------------------
-    Route::get('house-book/show', [HouseBookController::class, 'index'])->name('house.book.show');
-    Route::get('house-book/create', [HouseBookController::class, 'create'])->name('house.book.create');
-    Route::post('house-book/store', [HouseBookController::class, 'store'])->name('house.book.store');
-    Route::get('house-book/edit/{id}', [HouseBookController::class, 'edit'])->name('house.book.edit');
-    Route::post('house-book/update', [HouseBookController::class, 'update'])->name('house.book.update');
-    Route::post('house-book/delete', [HouseBookController::class, 'destroy'])->name('house.book.delete');
 
 });
 
