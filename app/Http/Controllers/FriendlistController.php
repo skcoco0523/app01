@@ -12,7 +12,7 @@ use App\Models\User;
 class FriendlistController extends Controller
 {
     //フレンドリスト表示
-    public function show(Request $request)
+    public function index(Request $request)
     {
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -30,16 +30,10 @@ class FriendlistController extends Controller
                 $search_user = Friendlist::findByFriendCode($input['friend_code'],Auth::id());
                 if(!$search_user){
                     //ユーザー検索で一致しなかった場合は場合はリダイレクトする
-                    /*
                     $message = ['message' => 'ユーザーが見つかりませんでした。',
                                 'type' => 'error',
                                 'sec' => '2000'];
-                    return redirect()->route('friend.show')->with($message);
-                    */
-                    // ビューを直接表示する場合もメッセージをセッションに保存
-                    session()->flash('message', 'ユーザーが見つかりませんでした。');
-                    session()->flash('type', 'error');
-                    session()->flash('sec', '2000');
+                    return redirect()->route('friend.index')->with($message);
                 }else{
                     $friendlist['search'][]= $search_user;
                 }
@@ -60,7 +54,7 @@ class FriendlistController extends Controller
         //}
     }    
     //フレンド詳細表示
-    public function detail(Request $request)
+    public function show(Request $request, $id)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -72,12 +66,12 @@ class FriendlistController extends Controller
 
         //ユーザー検索
         //dd($input);
-        $friend_profile = User::getProfile($input['friend_id']);
+        $friend_profile = User::getProfile($id);
         //公開フラグ確認
         if(!isset($friend_profile) || $friend_profile->friend_status!="accepted"){
             // フレンドリストにリダイレクト\
             $message = ['message' => 'フレンド以外のデータは閲覧できません。', 'type' => 'error', 'sec' => '2000'];
-            return redirect()->route('friend.show')->with($message);
+            return redirect()->route('friend.index')->with($message);
         }
 
         //フレンド承認済みで相手の公開制限無し
@@ -93,7 +87,7 @@ class FriendlistController extends Controller
         }
     }
     //フレンド申請
-    public function request(Request $request)
+    public function store(Request $request)
     {
         $user_id = Auth::id();
         $friend_id =  (int) $request->user_id;
@@ -109,7 +103,7 @@ class FriendlistController extends Controller
             $send_info = new \stdClass();
             $send_info->title = "フレンド申請";
             $send_info->body = $user_prf->name. "からフレンド申請が届きました";
-            $send_info->url = route('friend.show', ['table' => 'request']);
+            $send_info->url = route('friend.index', ['table' => 'request']);
 
             push_send($send_info, $friend_id);
         }else{
@@ -118,7 +112,7 @@ class FriendlistController extends Controller
         
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
         
-        return redirect()->route('friend.show')->with($message);
+        return redirect()->route('friend.index')->with($message);
     }
     //フレンド申請承諾
     public function accept(Request $request)
@@ -136,7 +130,7 @@ class FriendlistController extends Controller
             $send_info = new \stdClass();
             $send_info->title = "フレンド申請";
             $send_info->body =  $user_prf->name. "からフレンド申請が承諾されました";
-            $send_info->url = route('friend.show', ['table' => 'pending']);
+            $send_info->url = route('friend.index', ['table' => 'pending']);
 
             push_send($send_info, $friend_id);
         }else{
@@ -145,7 +139,7 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
         
-        return redirect()->route('friend.show')->with($message);
+        return redirect()->route('friend.index')->with($message);
     }
     //フレンド申請拒否
     public function decline(Request $request)
@@ -158,7 +152,7 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
 
-        return redirect()->route('friend.show')->with($message);
+        return redirect()->route('friend.index')->with($message);
     }
     //フレンド申請キャンセル
     public function cancel(Request $request)
@@ -174,6 +168,6 @@ class FriendlistController extends Controller
 
         $message = ['message' => $msg, 'type' => 'friend', 'sec' => '2000'];
 
-        return redirect()->route('friend.show')->with($message);
+        return redirect()->route('friend.index')->with($message);
     }
 }

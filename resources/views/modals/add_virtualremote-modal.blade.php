@@ -4,7 +4,7 @@
     <div class="notification-modal" onclick="event.stopPropagation()">
         <div class="modal-content">
             <!-- 新規プレイリスト作成フォーム -->
-            <form action="{{ route('remote.create') }}" method="POST">
+            <form action="{{ route('remote.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="check_flag" value="false" >
                 <div class="modal-header">

@@ -1,7 +1,7 @@
 
 {{-- IoTデバイス情報更新処理 --}}
 
-<form id="iotdevices_chg_form" method="POST" action="{{ route('admin-iotdevice-chg') }}">
+<form id="iotdevices_chg_form" method="POST" action="{{ route('admin.iotdevice.update') }}">
     @csrf
     <div class="row g-3 align-items-stretch mb-3">
         {{--検索条件--}}
@@ -97,7 +97,7 @@
                         <input type="button" value="編集" class="btn btn-primary edit-btn">
                     </td>
                     <td class="fw-light">
-                        <form method="POST" action="{{ route('admin-iotdevice-del') }}">
+                        <form method="POST" action="{{ route('admin.iotdevice.destroy') }}">
                             @csrf
                             {{--検索条件--}}
                             <input type="hidden" name="search_addr" value="{{$input['search_addr'] ?? ''}}">

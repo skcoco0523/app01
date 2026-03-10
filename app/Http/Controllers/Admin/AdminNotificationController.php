@@ -19,7 +19,7 @@ class AdminNotificationController extends Controller
     }
 
     //通知メニュー
-    public function notification(Request $request)
+    public function index(Request $request)
     {
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -106,7 +106,7 @@ class AdminNotificationController extends Controller
             //make_error_log($error_log, "Error Message: " . $e->getMessage());
         }
 
-        return redirect()->route('admin-notification', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.notification.index', ['input' => $input, 'msg' => $msg]);
 
     }
     //プッシュ通知
@@ -160,7 +160,7 @@ class AdminNotificationController extends Controller
             make_error_log($error_log, "Error Message: " . $e->getMessage());
         }
 
-        return redirect()->route('admin-notification', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.notification.index', ['input' => $input, 'msg' => $msg]);
 
     }
     

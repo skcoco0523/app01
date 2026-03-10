@@ -1,6 +1,10 @@
 <?php
 // app/Helpers/CustomFunctions.php
 
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+
+
 //エラーログ
 if (! function_exists('make_error_log')) {
     /**
@@ -52,6 +56,12 @@ if (! function_exists('make_error_log')) {
             $log = \Illuminate\Support\Facades\Log::build([
                 'driver' => 'single',
                 'path' => $file_path,
+                // 「local.DEBUG: 」をなくしメッセージのみを出力するフォーマッターを指定
+                'formatter' => \Monolog\Formatter\LineFormatter::class,
+                'formatter_with' => [
+                    'format' => "%message%\n", // 日付や local.DEBUG を除外し、メッセージと改行のみにする
+                    'allowInlineLineBreaks' => true,
+                ],
             ]);
 
             $log->debug($prm);
@@ -64,7 +74,7 @@ if (! function_exists('make_error_log')) {
 }
 
 //リクエストからデータ取得
-if (! function_exists('get_input')) {
+if (! function_exists('get_proc_data')) {
     /**
      * Custom function to make error log.
      *

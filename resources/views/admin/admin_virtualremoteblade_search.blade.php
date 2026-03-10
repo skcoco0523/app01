@@ -1,6 +1,6 @@
 
-{{-- IoTデバイス情報更新処理 --}}
-<form id="remoteblade_chg_form" method="POST" action="{{ route('admin-virtualremote-blade-chg') }}">
+{{-- 仮想リモートブレード情報更新処理 --}}
+<form id="remoteblade_chg_form" method="POST" action="{{ route('admin.virtualremote.blade.update') }}">
     @csrf
     <div class="row g-3 align-items-stretch mb-3">
         {{--検索条件--}}
@@ -92,7 +92,7 @@
                         <input type="button" value="編集" class="btn btn-primary edit-btn">
                     </td>
                     <td class="fw-light">
-                        <form method="POST" action="{{ route('admin-virtualremote-blade-del') }}">
+                        <form method="POST" action="{{ route('admin.virtualremote.blade.destroy') }}">
                             @csrf
                             {{--検索条件--}}
                             <input type="hidden" name="search_kind" value="{{$input['search_kind'] ?? ''}}">
@@ -162,7 +162,7 @@
         //i}
 
         // プレビュー表示用のURLを生成
-        const url = `{{ route('admin-virtualremote-blade-preview') }}?remoteblade_id=${remotebladeId}`;
+        const url = `{{ route('admin.virtualremote.blade.preview') }}?remoteblade_id=${remotebladeId}`;
         console.log(url);
         
         // 新しいウィンドウを開く

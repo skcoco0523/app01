@@ -17,7 +17,7 @@ class RequestController extends Controller
         $this->middleware('auth');
     }
     //ユーザーリクエスト
-    public function show(Request $request)
+    public function index(Request $request)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -51,7 +51,7 @@ class RequestController extends Controller
 
         //htmlで必須としているけど念のため
         if($ret['error_code'] == 3) $msg = "メッセージは必須情報です。";
-        if($msg) return redirect()->route('request.show')->with($msg);
+        if($msg) return redirect()->route('request.index')->with($msg);
 
 
         if($ret['error_code'] == 0){        
@@ -60,12 +60,12 @@ class RequestController extends Controller
             $message = ['message' => '送信しました。',
                         'type' => 'send',
                         'sec' => '2000'];
-            return redirect()->route('request.show')->with($message);
+            return redirect()->route('request.index')->with($message);
         }else{
             $message = ['message' => '送信に失敗しました。',
                         'type' => 'error',
                         'sec' => '2000'];
-            return redirect()->route('request.show')->with($message);
+            return redirect()->route('request.index')->with($message);
         }
     }
 

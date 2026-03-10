@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Auth;
 
+
 class VirtualRemoteUser extends Model
 {
     use HasFactory;
@@ -134,6 +135,7 @@ class VirtualRemoteUser extends Model
         }
     }
 
+    /*
     //ユーザー別仮想リモコン変更
     public static function chgVirtualRemoteUser($data) 
     {
@@ -186,6 +188,8 @@ class VirtualRemoteUser extends Model
             return ['error_code' => -1];   //更新失敗
         }
     }
+
+    */
 
 }
 

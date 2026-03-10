@@ -1,25 +1,25 @@
 @if(isset($tab2))
     {{---------------- デバイスメニュー ------------------}}
     @if($tab1 == "iotdevice")
-        @if($tab2 == "reg")          @include('admin.admin_iotdevice_reg') @endif
+        @if($tab2 == "create")          @include('admin.admin_iotdevice_create') @endif
         @if($tab2 == "search")       @include('admin.admin_iotdevice_search') @endif
     @endif
 
     {{---------------- リモコンメニュー ------------------}}
     @if($tab1 == "virtualremote-blade")
-        @if($tab2 == "reg")             @include('admin.admin_virtualremoteblade_reg') @endif
+        @if($tab2 == "create")             @include('admin.admin_virtualremoteblade_create') @endif
         @if($tab2 == "search")          @include('admin.admin_virtualremoteblade_search') @endif
     @endif
 
     {{---------------- ユーザーメニュー ------------------}}
     @if($tab1 == "user")
         @if($tab2 == "search")          @include('admin.admin_user_search') @endif
-        @if($tab2 == "repuest")         @include('admin.admin_request_search') @endif
+        @if($tab2 == "request")         @include('admin.admin_request_search') @endif
     @endif
     
     {{---------------- 広告メニュー ------------------}}
     @if($tab1 == "adv")
-        @if($tab2 == "reg")             @include('admin.admin_adv_reg') @endif
+        @if($tab2 == "create")             @include('admin.admin_adv_create') @endif
         @if($tab2 == "search")          @include('admin.admin_adv_search') @endif
     @endif
 

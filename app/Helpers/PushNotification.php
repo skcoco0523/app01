@@ -14,7 +14,7 @@ use App\Models\UserLog;
     $send_info = new \stdClass();
     $send_info->title = "新規ユーザー登録";
     $send_info->body = "ユーザー名：".$request->name."\n現在ユーザー数:". $now_user_cnt;
-    $send_info->url = route('admin-user-search');
+    $send_info->url = route('admin.user.index');
     
     push_send($send_info, null, true); //管理者全員へ送信
     push_send($send_info, $user_id); //特定ユーザーへ送信

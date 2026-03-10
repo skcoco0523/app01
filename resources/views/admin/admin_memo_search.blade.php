@@ -1,5 +1,5 @@
 {{-- メモ登録処理 --}}
-<form id="memo_reg_form" method="POST" action="{{ route('admin-memo-reg') }}">
+<form id="memo_create_form" method="POST" action="{{ route('admin.memo.create') }}">
     @csrf
     {{--検索条件--}}
     <input type="hidden" name="search_title" value="{{$input['search_title'] ?? ''}}">
@@ -21,7 +21,7 @@
     
 </form>
 {{-- メモ編集処理 --}}
-<form id="memo_chg_form" method="POST" action="{{ route('admin-memo-chg') }}">
+<form id="memo_change_form" method="POST" action="{{ route('admin.memo.update') }}">
     @csrf
     {{--検索条件--}}
     <input type="hidden" name="search_title" value="{{$input['search_title'] ?? ''}}">
@@ -78,7 +78,7 @@
                         <input type="button" value="編集" class="btn btn-primary edit-btn">
                     </td>
                     <td class="fw-light">
-                        <form method="POST" action="{{ route('admin-memo-del') }}">
+                        <form method="POST" action="{{ route('admin.memo.destroy') }}">
                             @csrf
                             {{--検索条件--}}
                             <input type="hidden" name="search_title" value="{{$input['search_title'] ?? ''}}">
@@ -100,7 +100,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
 
-        const chg_form = document.getElementById('memo_chg_form');
+        const chg_form = document.getElementById('memo_change_form');
         //更新フォームを非表示
         chg_form.style.display = 'none';
 
@@ -110,7 +110,7 @@
             button.addEventListener('click', function () {
                 
             
-                const reg_form = document.getElementById('memo_reg_form');
+                const reg_form = document.getElementById('memo_create_form');
                 //登録フォームを非表示
                 reg_form.style.display = 'none';
 

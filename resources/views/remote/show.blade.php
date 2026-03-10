@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location.href='{{ route('home') }}'"></i>
     <div class="container py-4">
         <h1 class="mb-4">スマートリモコン管理</h1>
 
@@ -43,7 +43,7 @@
                                 <col style="width: 80%">
                             </colgroup>
                             @foreach ($iotdevice_list as $key => $detail)
-                                <tr class="table-row" onclick="window.location='{{ route('iotdevice.detail') }}?id={{ $detail->id }}'">
+                                <tr class="table-row" onclick="window.location.href='{{ route('iotdevice.show', ['id' => $detail->id]) }}'">
                                     <td class="icon-55 d-flex justify-content-center">
                                         {{--画像参照を切り替える--}}
                                         @if(isset($detail->icon_class))
@@ -104,7 +104,7 @@
                                     <col style="width: 80%">
                                 </colgroup>
                                 @foreach ($virtual_remote_list as $key => $detail)
-                                    <tr class="table-row" onclick="window.location='{{ route('remote.detail') }}?id={{ $detail->id }}'">
+                                    <tr class="table-row" onclick="window.location.href='{{ route('remote.show', ['id' => $detail->id]) }}'">
                                         <td class="icon-55 d-flex justify-content-center align-items-center">
                                             {{--画像参照を切り替える--}}
                                             @if(isset($detail->icon_class))

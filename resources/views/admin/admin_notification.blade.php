@@ -1,7 +1,7 @@
 
 {{-- メール通知処理 --}}
 @if($input['send_type'] == 'mail' && count($user_list) > 0)
-    <form id="mail-send_form" method="POST" action="{{ route('admin-mail-send') }}">
+    <form id="mail-send_form" method="POST" action="{{ route('admin.mail.send') }}">
         @csrf
         {{--検索条件--}}
         <input type="hidden" name="search_name" value="{{$input['search_name'] ?? ''}}">
@@ -38,7 +38,7 @@
 
 {{-- プッシュ通知処理 --}}
 @if($input['send_type'] == 'push' && count($user_list) > 0)
-    <form id="push-send_form" method="POST" action="{{ route('admin-push-send') }}">
+    <form id="push-send_form" method="POST" action="{{ route('admin.push.send') }}">
         @csrf
         {{--検索条件--}}
         <input type="hidden" name="search_name" value="{{$input['search_name'] ?? ''}}">

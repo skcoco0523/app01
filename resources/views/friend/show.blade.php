@@ -15,7 +15,7 @@
 @endphp
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
+    <i class="fa-solid fa-angles-left" data-href="{{ route('home') }}" onclick="window.location.href = this.dataset.href;"></i>
 
     <div class="d-flex overflow-auto contents_box">
         <ul class="nav nav-pills flex-nowrap">
@@ -40,7 +40,7 @@
 
     <h3>{{$tab_name[$input['table']]}}</h3>
     @if($input['table']=="search")
-        <form action="{{ route('friend.show') }}" method="GET">
+        <form action="{{ route('friend.index') }}" method="GET">
             <div class="input-group mb-3">
                 <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="search" name="friend_code" class="form-control" placeholder="ユーザーID">
@@ -103,10 +103,10 @@
 <script>
 
     function redirectToFavoriteListShow(table) {
-        window.location.href = "{{ route('friend.show') }}?table=" + table;
+        window.location.href = "{{ route('friend.index') }}?table=" + table;
     }
     function redirectToFriendShow(friend_id) {
-        window.location.href = "{{ route('friend.detail') }}?friend_id=" + friend_id;
+        window.location.href = friendUrlBase + "/" + friend_id;
     }
 
     function friend_reqest(friend_id,route,method){

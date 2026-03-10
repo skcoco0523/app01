@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location.href = '{{ route('remote.index') }}'"></i>
     <div class="container py-4">
         <div class="remote-header d-flex flex-column mb-3">
                 
@@ -36,7 +36,7 @@
                                     @foreach($iotdevice->child_devices as $child)
                                         <li class="child-device">
                                             <small class="text-muted" style="cursor: pointer;" 
-                                            onclick="window.location.href='{{ route('iotdevice.detail', ['id' => $child->id]) }}'">
+                                            onclick="window.location.href='{{ route('iotdevice.show', ['id' => $child->id]) }}'">
                                                 {{ $child->type_name ?? '' }}:{{ $child->name ?? '' }}<i class="fa-solid fa-gear"></i>
                                             </small>
                                         </li>
@@ -48,7 +48,7 @@
                     @else
                         <div class="parent-device text-center mb-3">
                             <small class="text-muted" style="cursor: pointer;" 
-                                onclick="window.location.href='{{ route('iotdevice.detail', ['id' => $iotdevice->parent_device->id]) }}'">
+                                onclick="window.location.href='{{ route('iotdevice.show', ['id' => $iotdevice->parent_device->id]) }}'">
                                 {{ $iotdevice->parent_device->name }}<i class="fa-solid fa-gear"></i>
                             </small>
                         </div>
@@ -59,12 +59,12 @@
 
                 <div id="EditArea" class="mx-auto w-75 overflow-hidden" style="display: none;">
                     <?// 編集モード（最初は非表示）?>
-                    <form id="iotdevicesNameChangeForm" method="POST" action="{{ route('iotdevice.change') }}">
+                    <form id="iotdevicesNameUpdateForm" method="POST" action="{{ route('iotdevice.update') }}">
                         @csrf
                         <input type="hidden" name="iotdevice_id" value="{{ $iotdevice->id ?? '' }}">
                         <input type="text" class="form-control form-control-sm me-2" name="iotdevice_name" value="{{ $iotdevice->name ?? '' }}" >
                     </form>
-                    <form id="iotdevicesDeleteForm" method="POST" action="{{ route('iotdevice.delete') }}">
+                    <form id="iotdevicesDestroyForm" method="POST" action="{{ route('iotdevice.destroy') }}">
                         @csrf
                         <input type="hidden" name="iotdevice_id" value="{{ $iotdevice->id ?? '' }}">
                     </form>
@@ -73,7 +73,7 @@
                     <div class="d-flex justify-content-center align-items-center flex-wrap gap-2">
                         <button type="button" class="btn btn-primary btn-sm"
                                 onclick="openModal('common-modal',{
-                                form_id: 'iotdevicesNameChangeForm',
+                                form_id: 'iotdevicesNameUpdateForm',
                                 title: 'デバイス名変更' ,mess: 'このデバイス名を変更しますか？',
                                 cancel_btn: 'キャンセル',confirm_btn: '変更', user_chk: false,//チェック時にのみ実行可能
                             });">
@@ -81,7 +81,7 @@
                         </button>
                         <button type="button" class="btn btn-danger btn-sm"
                                 onclick="openModal('common-modal',{
-                                form_id: 'iotdevicesDeleteForm',
+                                form_id: 'iotdevicesDestroyForm',
                                 title: 'デバイス削除' ,mess: 'このデバイス削除しますか？',
                                 cancel_btn: 'キャンセル',confirm_btn: '削除', user_chk: true,//チェック時にのみ実行可能
                             });">

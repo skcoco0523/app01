@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.index') }}'"></i>
     <div class="container py-4">
         <div class="remote-header d-flex flex-column align-items-end mb-3">
             
@@ -30,10 +30,11 @@
                 <div id="EditArea" style="display: none;">
                         
                     <?// 編集フォーム?>
-                    <form id="remoteNameChangeForm" method="POST" action="{{ route('remote.change') }}">
+                    <form id="remoteNameUpdateForm" method="POST" action="{{ route('remote.update') }}">
                         @csrf
                         <?// 変更権限がある場合のみ入力許可?>
                         <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
+                        <input type="hidden" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
                         @if($virtual_remote->admin_flag ?? false)
                             <input type="text" class="form-control form-control-sm me-2" name="remote_name" value="{{ $virtual_remote->name ?? '' }}" >
                         @else
@@ -42,7 +43,7 @@
                     </form>
 
                     <?// 削除フォーム?>
-                    <form id="remoteDeleteForm" method="POST" action="{{ route('remote.delete') }}">
+                    <form id="remoteDestroyForm" method="POST" action="{{ route('remote.destroy') }}">
                         @csrf
                         <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
                         <input type="hidden" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
@@ -60,7 +61,7 @@
                         @if($virtual_remote->admin_flag ?? false)
                             <button type="button" class="btn btn-primary btn-sm"
                                 onclick="openModal('common-modal',{
-                                    form_id: 'remoteNameChangeForm',title: 'リモコン名変更' ,mess: 'このリモコン名を変更しますか？',
+                                    form_id: 'remoteNameUpdateForm',title: 'リモコン名変更' ,mess: 'このリモコン名を変更しますか？',
                                     cancel_btn: 'キャンセル',confirm_btn: '変更', user_chk: false,//チェック不要
                                 });">
                                 <i class="fa-solid fa-pen"></i>
@@ -72,7 +73,7 @@
                             <?// 所有者のみ削除可能?>
                             <button type="button" class="btn btn-danger btn-sm" 
                                 onclick="openModal('common-modal',{
-                                    form_id: 'remoteDeleteForm',title: 'リモコン削除' ,mess: 'このリモコンを削除しますか？',
+                                    form_id: 'remoteDestroyForm',title: 'リモコン削除' ,mess: 'このリモコンを削除しますか？',
                                     cancel_btn: 'キャンセル',confirm_btn: '削除', user_chk: true,//チェック時にのみ実行可能
                                 });">
                                 <i class="fa-solid fa-trash"></i>

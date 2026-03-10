@@ -30,10 +30,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('push', function(event) {
     try {
         const data = event.data ? event.data.json() : {};
+        // アイコンパスをservice workerのスコープに基づいて相対パスで生成
+        const iconPath = data.icon || (self.registration.scope + 'img/icon/home_icon_192_192.png');
 
         self.registration.showNotification(data.title || '通知', {
             body: data.body || '',
-            icon: data.icon || '/img/icon/home_icon_192_192.png',
+            icon: iconPath,
             data: data.url || '/',
             actions: [
                 {

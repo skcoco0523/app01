@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('note.show') }}'"></i>
+    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('note.index') }}'"></i>
     <div class="container py-4">
         <div class="note-header d-flex flex-column mb-2">
             
@@ -36,7 +36,7 @@
                         @if(($note->owner_flag || $note->admin_flag ?? false) && $note->edit_lock_flag == false)
                             <button type="button" class="btn btn-primary btn-sm"
                                 onclick="openModal('common-modal',{
-                                    form_id: 'noteChangeForm',title: 'メモ変更' ,mess: 'このメモを変更しますか？',
+                                    form_id: 'noteUpdateForm',title: 'メモ変更' ,mess: 'このメモを変更しますか？',
                                     cancel_btn: 'キャンセル',confirm_btn: '変更', user_chk: false,//チェック不要
                                 });">
                                 <i class="fa-solid fa-pen"></i>
@@ -76,7 +76,7 @@
                             <?// 所有者のみ削除可能?>
                             <button type="button" class="btn btn-danger btn-sm" 
                                 onclick="openModal('common-modal',{
-                                    form_id: 'noteDeleteForm',title: 'メモ削除' ,mess: 'このメモを削除しますか？',
+                                    form_id: 'noteDestroyForm',title: 'メモ削除' ,mess: 'このメモを削除しますか？',
                                     cancel_btn: 'キャンセル',confirm_btn: '削除', user_chk: true,//チェック時にのみ実行可能
                                 });">
                                 <i class="fa-solid fa-trash"></i>
@@ -95,7 +95,7 @@
                     </div>
 
                     <?// 編集フォーム?>
-                    <form id="noteChangeForm" method="POST" action="{{ route('note.change') }}">
+                    <form id="noteUpdateForm" method="POST" action="{{ route('note.update') }}">
                         @csrf
                         <?// 変更権限がある場合のみ入力許可?>
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
@@ -128,7 +128,7 @@
                     </form>
 
                     <?// 削除フォーム?>
-                    <form id="noteDeleteForm" method="POST" action="{{ route('note.delete') }}">
+                    <form id="noteDestroyForm" method="POST" action="{{ route('note.destroy') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                     </form>
@@ -140,13 +140,13 @@
                     </form>
 
                     <?// ロックフォーム?>
-                    <form id="noteLockForm" method="POST" action="{{ route('note.change') }}">
+                    <form id="noteLockForm" method="POST" action="{{ route('note.update') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                         <input type="hidden" name="edit_lock_flag" value=1>
                     </form>
                     <?// ロック解除フォーム?>
-                    <form id="noteUnlockForm" method="POST" action="{{ route('note.change') }}">
+                    <form id="noteUnlockForm" method="POST" action="{{ route('note.update') }}">
                         @csrf
                         <input type="hidden" name="id" value="{{ $note->id ?? '' }}">
                         <input type="hidden" name="edit_lock_flag" value=0>

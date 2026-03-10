@@ -1,5 +1,5 @@
 {{--検索--}}
-<form method="GET" action="{{ route('admin-notification') }}">
+<form method="GET" action="{{ route('admin.notification.index') }}">
 
     {{ $input['send_type'] == 'mail' ? 'メール' : 'プッシュ' }}通知対象
         <input type="hidden" name="send_type" value="{{$input['send_type'] ?? ''}}">

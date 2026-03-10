@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         case "1": //スマートロック
                             //施錠、開錠の設定はデバイス設定で行う
                             processMess += '<p>スマートロックの設定は<br>デバイス設定で行ってください。';
-                            processMess +=      '<a href="' + iotDeviceDetailUrl + '?id=' + selectedOption.value + '" class="btn btn-link">';
+                            processMess +=      '<a href="' + iotDeviceUrlBase + '/' + selectedOption.value + '" class="btn btn-link">';
                             processMess +=          'デバイス設定<i class="fa fa-cog"></i>';
                             processMess +=      '</a>';
                             processMess += '</p>';

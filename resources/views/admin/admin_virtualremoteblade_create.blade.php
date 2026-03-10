@@ -1,6 +1,6 @@
 
 {{-- IoTデバイス登録処理 --}}
-<form id="mus_reg_form" method="POST" action="{{ route('admin-virtualremote-blade-reg') }}">
+<form id="mus_reg_form" method="POST" action="{{ route('admin.virtualremote.blade.store') }}">
     @csrf
     <div class="row g-3 align-items-stretch mb-3">
         <div class="col-6 col-md-4">

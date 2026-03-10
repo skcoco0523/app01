@@ -1,5 +1,5 @@
 {{--検索--}}
-<form method="GET" action="{{ route('admin-adv-search') }}">
+<form method="GET" action="{{ route('admin.adv.index') }}">
 
     検索条件
     <div class="row g-3 align-items-end">

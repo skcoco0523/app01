@@ -1,5 +1,6 @@
 #除外するファイル
 /.phpunit.cache
+/.aiexclude
 /node_modules
 #/public/build
 /public/hot

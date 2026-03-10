@@ -70,7 +70,7 @@ class UserController extends Controller
         }
     }
     //プロフィール情報変更
-    public function profile_change(Request $request)
+    public function profile_update(Request $request)
     {
         $this->middleware('auth');
 
