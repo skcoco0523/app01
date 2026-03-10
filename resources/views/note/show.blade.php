@@ -58,7 +58,7 @@
                             </colgroup>
                             @foreach ($my_note_list as $key => $detail)
                                 <tr class="table-row note-item" data-color="{{ $detail->color_num }}">
-                                    <td class="" style="background-color: {{ $detail->color_code }};" onclick="window.location='{{ route('note-show-detail') }}?id={{ $detail->id }}'">
+                                    <td class="" style="background-color: {{ $detail->color_code }};" onclick="window.location='{{ route('note.show', ['id' => $detail->id]) }}'">
                                         {{ $detail->title }}<br>
                                         <small class="text-muted">{{ $detail->content }}</small>
                                     </td>
@@ -113,7 +113,7 @@
                             </colgroup>
                             @foreach ($share_note_list as $key => $detail)
                                 <tr class="table-row note-item" data-color="{{ $detail->color_num }}">
-                                    <td class="" style="background-color: {{ $detail->color_code }};" onclick="window.location='{{ route('note-show-detail') }}?id={{ $detail->id }}&share_flag=1'">
+                                    <td class="" style="background-color: {{ $detail->color_code }};" onclick="window.location='{{ route('note.show', ['id' => $detail->id]) }}?share_flag=1'">
                                         {{ $detail->title }}<br>
                                         <small class="text-muted">{{ $detail->content }}</small>
                                     </td>

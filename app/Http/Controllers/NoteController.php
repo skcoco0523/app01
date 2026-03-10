@@ -23,9 +23,9 @@ class NoteController extends Controller
     }
 
     //メモ一覧ページ
-    public function note_show(Request $request)
+    public function index(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         $input['admin_flag']    = false;
@@ -51,20 +51,20 @@ class NoteController extends Controller
 
         $msg = null;
         //if($my_note_list){
-            return view('note_show', compact('my_note_list', 'share_note_list', 'my_note_counts', 'share_note_counts', 'msg'));
+            return view('note.show', compact('my_note_list', 'share_note_list', 'my_note_counts', 'share_note_counts', 'msg'));
         //}else{
             //return redirect()->route('home')->with('error', '該当の曲が存在しません');
         //}
     }
     //メモ詳細ページ
-    public function note_show_detail(Request $request)
+    public function show(Request $request, $id)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
         $input['admin_flag']        = false;
-        $input['search_note_id']    = get_proc_data($input,"id");
+        $input['search_note_id']    = $id;
         $input['share_flag']        = get_proc_data($input,"share_flag");
 
         if($input['share_flag']){
@@ -76,7 +76,7 @@ class NoteController extends Controller
         if ($note !== null) {
             //dd($note);
             $msg = null;
-            return view('note_show_detail', compact('note', 'input', 'msg'));
+            return view('note.detail', compact('note', 'input', 'msg'));
 
         }else{
             //使用不可のため強制リダイレクト
@@ -85,9 +85,9 @@ class NoteController extends Controller
     }
 
     //メモ登録
-    public function note_reg(Request $request)
+    public function store(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -115,13 +115,18 @@ class NoteController extends Controller
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
-        return redirect()->route('note-show', ['test' => 'test'])->with($message);
+        // メモ作成成功時は詳細ページへ、失敗時は一覧ページへ
+        if($ret['error_code']==0){
+            return redirect()->route('note.show', ['id' => $ret['id']])->with($message);
+        }else{
+            return redirect()->route('note.index')->with($message);
+        }
 
     }
     //メモ変更
-    public function note_chg(Request $request)
+    public function update(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -145,13 +150,13 @@ class NoteController extends Controller
         //リダイレクトでGETの許容オーバーを防ぐため、内容はクリアしておく
         $input['content'] = null; //内容は不要なのでクリア
 
-        return redirect()->route('note-show-detail', ['input' => $input, 'msg' => $msg])->with($message);
+        return redirect()->route('note.show', ['id' => $input['id']])->with($message);
 
     }
     //メモ削除
-    public function note_del(Request $request)
+    public function destroy(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -175,16 +180,16 @@ class NoteController extends Controller
 
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
 
-        return redirect()->route('note-show')->with($message);
+        return redirect()->route('note.index')->with($message);
 
     }
     //メモ共有      APIで処理
     //メモ共有解除  APIで処理
 
     //メモ共有解除　共有された側のユーザーからの操作で削除する
-    public function note_unshare(Request $request)
+    public function unshare(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();  
 
@@ -203,6 +208,6 @@ class NoteController extends Controller
             $msg = "共有されている場合のみ削除可能です。";  $type = "error";
         }   
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
-        return redirect()->route('note-show')->with($message);
+        return redirect()->route('note.index')->with($message);
     }
 }

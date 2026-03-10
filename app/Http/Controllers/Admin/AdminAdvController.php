@@ -20,7 +20,7 @@ class AdminAdvController extends Controller
         View::share('type_list', ['top', 'banner', 'footer', 'in_contents', 'popup']);           //必要があれば追加する
     }
     //追加ページ
-    public function adv_regist(Request $request)
+    public function create(Request $request)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -34,7 +34,7 @@ class AdminAdvController extends Controller
         return view('admin.admin_home', compact('advertisement', 'input', 'msg'));
     }
     //追加処理
-    public function adv_reg(Request $request)
+    public function store(Request $request)
     {
         $input = $request->all();
         $msg=null;
@@ -47,6 +47,7 @@ class AdminAdvController extends Controller
             //広告登録成功
             if($adv_ret['error_code'] == 0){
                 $adv_id=$adv_ret['id']; //追加した広告ID
+                $msg = "広告情報を登録しました。";
 
             //広告登録失敗 
             }else{
@@ -66,11 +67,11 @@ class AdminAdvController extends Controller
             if($aff_ret['error_code']==-1)    $msg = "アフィリエイト情報の登録に失敗しました。";
         }
 
-        return redirect()->route('admin-adv-reg', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.adv.create', ['input' => $input, 'msg' => $msg]);
 
     }
     //検索
-    public function adv_search(Request $request)
+    public function index(Request $request)
     {
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
@@ -87,7 +88,7 @@ class AdminAdvController extends Controller
         return view('admin.admin_home', compact('advertisement', 'input', 'msg'));
     }
     //削除
-    public function adv_del(Request $request)
+    public function destroy(Request $request)
     {
         $input = $request->all();
         $msg=null;
@@ -109,10 +110,10 @@ class AdminAdvController extends Controller
         }
 
 
-        return redirect()->route('admin-adv-search', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.adv.index', ['input' => $input, 'msg' => $msg]);
     }
     //変更
-    public function adv_chg(Request $request)
+    public function update(Request $request)
     {
         //$input = $request->only(['id', 'alb_name', 'art_id', 'art_name', 'release_date', 'aff_id', 'aff_link', 'keyword']);
         $input = $request->all();
@@ -125,7 +126,7 @@ class AdminAdvController extends Controller
             if($aff_ret['error_code']==1)     $msg = "アフィリエイトリンクを入力してください。";
             if($aff_ret['error_code']==2)     $msg = "アフィリエイトリンクが不正です。(URLと画像情報が必要)";
             if($aff_ret['error_code']==-1)    $msg = "アフィリエイト情報の変更に失敗しました。";
-            if($msg!==null) return redirect()->route('admin-adv-search', ['input' => $input, 'msg' => $msg]);
+            if($msg!==null) return redirect()->route('admin.adv.index', ['input' => $input, 'msg' => $msg]);
 
         }
         
@@ -142,6 +143,6 @@ class AdminAdvController extends Controller
             if($adv_ret['error_code']==-1)    $msg = "広告情報の更新に失敗しました。";
         }
         
-        return redirect()->route('admin-adv-search', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.adv.index', ['input' => $input, 'msg' => $msg]);
     }
 }

@@ -1,5 +1,5 @@
-{{-- アルバム登録処理 --}}
-<form id="adv_reg_form" method="POST" action="{{ route('admin-adv-reg') }}">
+{{-- 広告登録処理 --}}
+<form id="adv_reg_form" method="POST" action="{{ route('admin.adv.store') }}">
     @csrf
 
     <div class="row g-3 align-items-stretch mb-3">

@@ -1,6 +1,6 @@
 
-{{-- アルバム情報更新処理 --}}
-    <form id="adv_chg_form" method="POST" action="{{ route('admin-adv-chg') }}">
+{{-- 広告情報更新処理 --}}
+    <form id="adv_change_form" method="POST" action="{{ route('admin.adv.update') }}">
         @csrf
         {{--検索条件--}}
         <input type="hidden" name="search_name"         value="{{$input['search_name'] ?? ''}}">
@@ -182,7 +182,7 @@
                         <input type="button" value="編集" class="btn btn-primary edit-btn">
                     </td>
                     <td class="fw-light">
-                        <form method="POST" action="{{ route('admin-adv-del') }}">
+                        <form method="POST" action="{{ route('admin.adv.destroy') }}">
                             @csrf
                             {{--検索条件--}}
                             <input type="hidden" name="search_name" value="{{$input['search_name'] ?? ''}}">
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var affiliateLinkInput = document.getElementById('affiliate-link');
     var affiliatePreview = document.getElementById('affiliate-preview');
 
-    const form = document.getElementById('adv_chg_form');
+    const form = document.getElementById('adv_change_form');
     //更新フォームを非表示
     form.style.display = 'none';
 

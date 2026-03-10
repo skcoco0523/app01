@@ -15,7 +15,7 @@
 @endphp
 
 @section('content')
-    <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('home') }}'"></i>
+    <i class="fa-solid fa-angles-left" data-href="{{ route('home') }}" onclick="window.location.href = this.dataset.href;"></i>
 
     <div class="d-flex overflow-auto contents_box">
         <ul class="nav nav-pills flex-nowrap">
@@ -40,7 +40,7 @@
 
     <h3>{{$tab_name[$input['table']]}}</h3>
     @if($input['table']=="search")
-        <form action="{{ route('friendlist-show') }}" method="GET">
+        <form action="{{ route('friend.index') }}" method="GET">
             <div class="input-group mb-3">
                 <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="search" name="friend_code" class="form-control" placeholder="ユーザーID">
@@ -64,23 +64,23 @@
                     <td>{{ $friend->name }}</td>
                 @endif
                     <td>
-                        @if ($status == 'pending')
-                            <a class="btn btn-gray" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'cancel')">キャンセル</a>
+                        @if ($status == 'pending')<?//承認待ち?>
+                            <a class="btn btn-gray" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.cancel') }}', 'cancel')">キャンセル</a>
                             
-                        @elseif ($status == 'request')
+                        @elseif ($status == 'request')<?//未承認?>
                             <div class="button-group">
-                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
-                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-decline') }}', 'decline')">拒否</a>
+                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.accept') }}', 'accept')">承諾</a>
+                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.decline') }}', 'decline')">拒否</a>
                             </div>
-                        @elseif ($status == 'declined')
+                        @elseif ($status == 'declined')<?//申請拒否?>
                             <div class="button-group">
-                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-accept') }}', 'accept')">承諾</a>
-                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'del')">削除</a>
+                                <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.accept') }}', 'accept')">承諾</a>
+                                <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.cancel') }}', 'del')">削除</a>
                             </div>
-                        @elseif ($status == 'accepted')
-                            <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-cancel') }}', 'del')">削除</a>
+                        @elseif ($status == 'accepted')<?//フレンド?>
+                            <a class="btn btn-red" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.cancel') }}', 'del')">削除</a>
                         @else
-                            <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend-request') }}', 'request')">申請</a>
+                            <a class="btn btn-blue" onclick="friend_reqest({{ $friend->id }}, '{{ route('friend.request') }}', 'request')">申請</a>
                         @endif
                     </td>
                 </tr>
@@ -103,10 +103,10 @@
 <script>
 
     function redirectToFavoriteListShow(table) {
-        window.location.href = "{{ route('friendlist-show') }}?table=" + table;
+        window.location.href = "{{ route('friend.index') }}?table=" + table;
     }
     function redirectToFriendShow(friend_id) {
-        window.location.href = "{{ route('friend-show') }}?friend_id=" + friend_id;
+        window.location.href = friendUrlBase + "/" + friend_id;
     }
 
     function friend_reqest(friend_id,route,method){

@@ -31,7 +31,7 @@ class ApiSmartRemoteController extends Controller
     //使用可能リモコンデザイン取得
     public function api_remote_blade_get(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         
         $input['search_kind']           = get_proc_data($input,"search_kind");
@@ -63,7 +63,7 @@ class ApiSmartRemoteController extends Controller
     //所有iotデバイス検索
     public function api_iot_devices_get(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         
         $input['admin_flag']        = false;

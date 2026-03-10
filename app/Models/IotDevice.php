@@ -18,8 +18,7 @@ class IotDevice extends Model
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
-        $error_log = __FUNCTION__.".log";
-        make_error_log($error_log,"-------start-------");
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $sql_cmd = DB::table('iot_devices as dev');
             $sql_cmd = $sql_cmd->leftJoin('users', 'dev.admin_user_id', '=', 'users.id');
@@ -30,9 +29,6 @@ class IotDevice extends Model
 
                     if (isset($keyword['search_addr'])) 
                         $sql_cmd = $sql_cmd->where('dev.mac_addr', 'like', '%'. $keyword['search_addr']. '%');
-
-                    if (isset($keyword['mac_addr'])) 
-                        $sql_cmd = $sql_cmd->where('dev.mac_addr', $keyword['mac_addr']);
 
                     if (isset($keyword['search_owner_id'])) 
                         $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_owner_id']);
@@ -127,7 +123,7 @@ class IotDevice extends Model
     //IoTデバイス登録
     public static function createIotDevice($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
         try {
 
@@ -168,7 +164,7 @@ class IotDevice extends Model
     //IoTデバイス変更
     public static function chgIotDevice($data) 
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"-------start-------");
 
@@ -218,7 +214,7 @@ class IotDevice extends Model
     //IoTデバイス削除
     public static function delIotDevice($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             make_error_log($error_log,"delete_id=".$data['id']);
             $user_id = Auth::id();

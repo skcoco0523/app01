@@ -131,7 +131,7 @@ class Advertisement extends Model
     //作成
     public static function createAdv($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
 
         //データチェック
@@ -169,7 +169,7 @@ class Advertisement extends Model
     //更新
     public static function chgAdv($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-------start-------");
 
         //データチェック
@@ -241,7 +241,7 @@ class Advertisement extends Model
     //削除
     public static function delAdv($data)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             
             Advertisement::where('id', $data['id'])->delete();

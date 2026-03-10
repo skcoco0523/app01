@@ -63,14 +63,14 @@ class UserController extends Controller
         $msg = null;
         //dd($profile);
         if($profile){
-            return view('auth/profile_show', compact('profile', 'msg'));
+            return view('user.profile_show', compact('profile', 'msg'));
         }else{
             $message = ['message' => 'プロフィール情報の取得に失敗しました。','type' => '','sec' => '2000'];
             return redirect()->route('home')->with($message);
         }
     }
     //プロフィール情報変更
-    public function profile_change(Request $request)
+    public function profile_update(Request $request)
     {
         $this->middleware('auth');
 
@@ -81,11 +81,11 @@ class UserController extends Controller
         $msg = null;
         if($ret['error_code'] == 0){     
             $message = ['message' => 'プロフィール情報を更新しました。', 'type' => 'profile', 'sec' => '2000'];
-            return redirect()->route('profile-show')->with($message);
+            return redirect()->route('profile.show')->with($message);
             
         }elseif($ret['error_code'] == -2){     
             $message = ['message' => 'メールアドレスが既に使用されています。', 'type' => 'error', 'sec' => '2000'];
-            return redirect()->route('profile-show')->with($message);
+            return redirect()->route('profile.show')->with($message);
             
         }else{
             $message = ['message' => 'プロフィール情報の更新に失敗しました。', 'type' => 'error', 'sec' => '2000'];

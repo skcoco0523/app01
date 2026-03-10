@@ -13,6 +13,8 @@ use Illuminate\Support\Str; // Str::uuid() を使うために必要
 class AdminAnotherController extends Controller
 {
     
+    private $memo_dir_path;
+    
     public function __construct()
     {
         $this->middleware('auth');
@@ -23,7 +25,7 @@ class AdminAnotherController extends Controller
     }
 
     //メモ一覧ページ
-    public function memo_search(Request $request)
+    public function index(Request $request)
     {
 
         if($request->input('input')!==null)     $input = request('input');
@@ -74,9 +76,9 @@ class AdminAnotherController extends Controller
     }
 
     //メモ追加
-    public function memo_reg(Request $request)
+    public function store(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $msg=null;
 
@@ -108,14 +110,14 @@ class AdminAnotherController extends Controller
             // \Log::error('メモ登録エラー: ' . $e->getMessage() . ' - Data: ' . json_encode($memo_data));
         }
 
-        return redirect()->route('admin-memo-search', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.memo.index', ['input' => $input, 'msg' => $msg]);
 
     }
 
     //メモ削除
-    public function memo_del(Request $request)
+    public function destroy(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $input['id']               = get_proc_data($input, "id");
         $msg=null;
@@ -140,14 +142,14 @@ class AdminAnotherController extends Controller
             // \Log::error('メモ登録エラー: ' . $e->getMessage() . ' - Data: ' . json_encode($memo_data));
         }
 
-        return redirect()->route('admin-memo-search', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.memo.index', ['input' => $input, 'msg' => $msg]);
 
     }
 
     //メモ更新
-    public function memo_chg(Request $request)
+    public function update(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input = $request->all();
         $input['id']                = get_proc_data($input, "id");
         $input['title']             = get_proc_data($input, "title");
@@ -186,7 +188,7 @@ class AdminAnotherController extends Controller
         // 更新成功後、入力フォームをクリアするために、$input の title と content を空にする
         $input['title'] = '';
         $input['content'] = '';
-        return redirect()->route('admin-memo-search', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.memo.index', ['input' => $input, 'msg' => $msg]);
 
     }
 

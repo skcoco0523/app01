@@ -1,6 +1,6 @@
 
-{{-- アーティスト情報更新処理 --}}
-<form id="user_chg_form" method="POST" action="{{ route('admin-request-chg') }}">
+{{-- ユーザーリクエスト情報更新処理 --}}
+<form id="user_chg_form" method="POST" action="{{ route('admin.user.request.update') }}">
     @csrf
     {{--検索条件--}}
     <input type="hidden" name="search_type"     value="{{$input['search_type'] ?? ''}}">

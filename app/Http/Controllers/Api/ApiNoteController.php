@@ -31,7 +31,7 @@ class ApiNoteController extends Controller
     
     public function api_note_manage(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input                  = $request->all(); 
         $type = $request->route('type');
         make_error_log($error_log,"type:".$type);
@@ -64,7 +64,7 @@ class ApiNoteController extends Controller
                 $send_info = new \stdClass();
                 $send_info->title = "メモが共有されました";
                 $send_info->body = "共有者：".Auth::user()->name."\nメモ:". $note->title;
-                $send_info->url = route('note-show-detail', ['id' => $note->id, 'share_flag' => 1]);
+                $send_info->url = route('note.detail', ['id' => $note->id, 'share_flag' => 1]);
                 
                 push_send($send_info, $friend_id);
 

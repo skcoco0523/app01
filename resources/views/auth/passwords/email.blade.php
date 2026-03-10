@@ -10,8 +10,8 @@
                 {{ session('status') }}
             </div>
         @endif
-        {{--route('password.email')  ->  route('password-reset')--}}
-        <form method="POST" action="{{ route('password-reset') }}">
+        {{--route('password.email')  ->  route('password.reset')--}}
+        <form method="POST" action="{{ route('password.reset') }}">
             @csrf
 
             <div class="row mb-3">

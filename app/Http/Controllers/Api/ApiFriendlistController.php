@@ -31,7 +31,7 @@ class ApiFriendlistController extends Controller
     // フレンドリスト取得 (共有メモの共有者取得)
     public function api_friendlist_get(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input                      = $request->all();
         $note_share_status          = get_proc_data($input,"note_share_status");
         

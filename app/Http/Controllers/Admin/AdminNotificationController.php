@@ -19,7 +19,7 @@ class AdminNotificationController extends Controller
     }
 
     //通知メニュー
-    public function notification(Request $request)
+    public function index(Request $request)
     {
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
@@ -58,7 +58,7 @@ class AdminNotificationController extends Controller
     //メール通知
     public function admin_mail_send(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
         $input = $request->all();
         $input['search_name']           = get_proc_data($input,"search_name");
@@ -106,13 +106,13 @@ class AdminNotificationController extends Controller
             //make_error_log($error_log, "Error Message: " . $e->getMessage());
         }
 
-        return redirect()->route('admin-notification', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.notification.index', ['input' => $input, 'msg' => $msg]);
 
     }
     //プッシュ通知
     public function admin_push_send(Request $request)
     {
-        $error_log = __FUNCTION__.".log";
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
         $input = $request->all();
         $input['search_name']           = get_proc_data($input,"search_name");
@@ -160,7 +160,7 @@ class AdminNotificationController extends Controller
             make_error_log($error_log, "Error Message: " . $e->getMessage());
         }
 
-        return redirect()->route('admin-notification', ['input' => $input, 'msg' => $msg]);
+        return redirect()->route('admin.notification.index', ['input' => $input, 'msg' => $msg]);
 
     }
     
