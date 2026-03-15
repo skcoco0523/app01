@@ -13,7 +13,9 @@
         {{---------------- ユーザーメニュー ------------------}}
         @if($tab1 == "user")
             @if($tab2 == "search")          @include('admin.admin_user_search_left')                    @endif
-            @if($tab2 == "repuest")         @include('admin.admin_request_search_left')                 @endif
+            @if($tab2 == "request")
+                @if($tab3 == "search")      @include('admin.admin_request_search_left')                 @endif
+            @endif
         @endif     
 
         {{---------------- 広告メニュー ------------------}}
@@ -28,7 +30,9 @@
 
         {{---------------- その他メニュー ------------------}}
         @if($tab1 == "another")
-            @if($tab2 == "memo-search")     @include('admin.admin_memo_search_left')                    @endif
+            @if($tab2 == "memo")
+                @if($tab3 == "search")      @include('admin.admin_memo_search_left')                    @endif
+            @endif
         @endif
         
     @endif

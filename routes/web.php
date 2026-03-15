@@ -153,10 +153,10 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //ユーザー
         //----------------------------------------------------------------------------------
         //一覧
-        Route::get('user', [AdminUserController::class, 'index'])->name('admin.user.index');
+        Route::get('user/search', [AdminUserController::class, 'index'])->name('admin.user.index');
         Route::post('user/update', [AdminUserController::class, 'update'])->name('admin.user.update');
         //依頼・要望
-        Route::get('user/request', [AdminRequestController::class, 'index'])->name('admin.user.request.index');
+        Route::get('user/request/search', [AdminRequestController::class, 'index'])->name('admin.user.request.index');
         Route::post('user/request/update', [AdminRequestController::class, 'update'])->name('admin.user.request.update');
         //----------------------------------------------------------------------------------
 
@@ -165,7 +165,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //IoTデバイス
         //----------------------------------------------------------------------------------
         //デバイス一覧
-        Route::get('iotdevice', [AdminIotDeviceController::class, 'index'])->name('admin.iotdevice.index');
+        Route::get('iotdevice/search', [AdminIotDeviceController::class, 'index'])->name('admin.iotdevice.index');
         //デバイス登録
         //Route::get('iotdevice/create', [AdminIotDeviceController::class, 'create'])->name('admin.iotdevice.create');
         //Route::post('iotdevice/store', [AdminIotDeviceController::class, 'store'])->name('admin.iotdevice.store');
@@ -180,7 +180,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //リモコン
         //----------------------------------------------------------------------------------
         //リモコンデザイン一覧
-        Route::get('virtualremote-blade', [AdminSmartRemoteController::class, 'index'])->name('admin.virtualremote.blade.index');
+        Route::get('virtualremote-blade/search', [AdminSmartRemoteController::class, 'index'])->name('admin.virtualremote.blade.index');
         //リモコンデザイン登録
         Route::get('virtualremote-blade/create', [AdminSmartRemoteController::class, 'create'])->name('admin.virtualremote.blade.create');
         Route::post('virtualremote-blade/store', [AdminSmartRemoteController::class, 'store'])->name('admin.virtualremote.blade.store');
@@ -197,7 +197,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //広告
         //----------------------------------------------------------------------------------
         //検索
-        Route::get('adv', [AdminAdvController::class, 'index'])->name('admin.adv.index');
+        Route::get('adv/search', [AdminAdvController::class, 'index'])->name('admin.adv.index');
         //登録
         Route::get('adv/create', [AdminAdvController::class, 'create'])->name('admin.adv.create');
         Route::post('adv/store', [AdminAdvController::class, 'store'])->name('admin.adv.store');
@@ -224,13 +224,13 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //その他
         //----------------------------------------------------------------------------------
         //メモ検索
-        Route::get('another/memo-search', [AdminAnotherController::class, 'index'])->name('admin.memo.index');
+        Route::get('another/memo/search', [AdminAnotherController::class, 'index'])->name('admin.memo.index');
         //検索>登録
-        Route::post('another/memo-search/store', [AdminAnotherController::class, 'store'])->name('admin.memo.store');
+        Route::post('another/memo/search/store', [AdminAnotherController::class, 'store'])->name('admin.memo.store');
         //検索>変更
-        Route::post('another/memo-search/update', [AdminAnotherController::class, 'update'])->name('admin.memo.update');
+        Route::post('another/memo/search/update', [AdminAnotherController::class, 'update'])->name('admin.memo.update');
         //検索>削除
-        Route::post('another/memo-search/destroy', [AdminAnotherController::class, 'destroy'])->name('admin.memo.destroy');
+        Route::post('another/memo/search/destroy', [AdminAnotherController::class, 'destroy'])->name('admin.memo.destroy');
         //----------------------------------------------------------------------------------
     });
 });

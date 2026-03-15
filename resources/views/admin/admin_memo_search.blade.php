@@ -1,5 +1,5 @@
 {{-- メモ登録処理 --}}
-<form id="memo_create_form" method="POST" action="{{ route('admin.memo.create') }}">
+<form id="memo_create_form" method="POST" action="{{ route('admin.memo.store') }}">
     @csrf
     {{--検索条件--}}
     <input type="hidden" name="search_title" value="{{$input['search_title'] ?? ''}}">

@@ -2,7 +2,6 @@
     @if(isset($tab1))
         @if($tab1 == "iotdevice")
             デバイス
-            {{--<li><a href="{{ route('admin.iotdevice.create') }}">               新規登録</a></li>--}}
             <li><a href="{{ route('admin.iotdevice.index') }}">            検索/変更/削除</a></li>
         @endif
 

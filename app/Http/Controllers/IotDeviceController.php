@@ -82,49 +82,48 @@ class IotDeviceController extends Controller
             $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
             make_error_log($error_log,"msg:".$msg);
             return redirect()->route('remote.index')->with($message);
-
-        }else{
-            if($input['pincode'] != null && $input['name'] != null && $user_id != null){
-                //$input = $request->all();
-                //$iotdevice = IotDevice::getIotDeviceList(1,false,null,["pincode" => $input['pincode'], "admin_user_id" => null])->first();  //仮登録デバイス検索
-                $input['final_register_flag']        = true;
-                $iotdevice = IotDevice::getIotDeviceList(1,false,null,$input)->first();  //仮登録デバイス検索
-
-                //if ($iotdevice !== null && $iotdevice->isNotEmpty()) {    コレクションではなくオブジェクトのため
-                if ($iotdevice !== null) {
-                    //デイバス登録処理
-                    //$data = array("id" => $iotdevice->id, "name" => $input['name'], "admin_user_id" => $user_id, "pincode" => null);
-                    $data = array("id" => $iotdevice->id, "admin_user_id" => $user_id, "pincode" => null);
-                    $ret = IotDevice::chgIotDevice($data);
-
-                    if($ret['error_code'] == 0){
-                        Mosquitto::publishMQTT($iotdevice->mac_addr, "final_regist"); //登録完了通知
-                        $type = "device_add";
-                        $msg = "デバイスを登録しました。";
-                    }else{
-                        $msg = "デバイスの登録に失敗しました。";
-                    }
-                    session()->forget(['iotdevice_error_count']);   //エラー回数リセット
-                }else{
-                    // セッションにエラーカウントを保存
-                    $errorCount = session()->get('iotdevice_error_count', 0) + 1;
-                    session()->put('iotdevice_error_count', $errorCount);
-
-                    if ($errorCount >= 10) {
-                        UserLog::create_user_log(Auth::id(),"dev_reg_lock");
-                        User::chgProfile(["id" => $user_id ,"dev_reg_lock" => 1]);
-                        session()->forget(['iotdevice_error_count']);   //エラー回数リセット
-                        $msg = "デバイスが見つかりませんでした。\n10回連続で失敗したため、ロックがかかりました。";
-
-                    }else {
-                        $msg = "該当のデバイスが存在しません。\nあと" . (10 - $errorCount) . "回でロックされます。";   
-                           
-                    }
-                }
-            }else{
-                $msg = "必要な情報が不足しています。";
-            }
         }
+        if($input['pincode'] != null && $input['name'] != null && $user_id != null){
+            //$input = $request->all();
+            //$iotdevice = IotDevice::getIotDeviceList(1,false,null,["pincode" => $input['pincode'], "admin_user_id" => null])->first();  //仮登録デバイス検索
+            $input['final_register_flag']        = true;
+            $iotdevice = IotDevice::getIotDeviceList(1,false,null,$input)->first();  //仮登録デバイス検索
+
+            //if ($iotdevice !== null && $iotdevice->isNotEmpty()) {    コレクションではなくオブジェクトのため
+            if ($iotdevice !== null) {
+                //デイバス登録処理
+                //$data = array("id" => $iotdevice->id, "name" => $input['name'], "admin_user_id" => $user_id, "pincode" => null);
+                $data = array("id" => $iotdevice->id, "admin_user_id" => $user_id, "pincode" => null);
+                $ret = IotDevice::chgIotDevice($data);
+
+                if($ret['error_code'] == 0){
+                    Mosquitto::publishMQTT($iotdevice->mac_addr, "final_regist"); //登録完了通知
+                    $type = "device_add";
+                    $msg = "デバイスを登録しました。";
+                }else{
+                    $msg = "デバイスの登録に失敗しました。";
+                }
+                session()->forget(['iotdevice_error_count']);   //エラー回数リセット
+            }else{
+                // セッションにエラーカウントを保存
+                $errorCount = session()->get('iotdevice_error_count', 0) + 1;
+                session()->put('iotdevice_error_count', $errorCount);
+
+                if ($errorCount >= 10) {
+                    UserLog::create_user_log(Auth::id(),"dev_reg_lock");
+                    User::chgProfile(["id" => $user_id ,"dev_reg_lock" => 1]);
+                    session()->forget(['iotdevice_error_count']);   //エラー回数リセット
+                    $msg = "デバイスが見つかりませんでした。\n10回連続で失敗したため、ロックがかかりました。";
+
+                }else {
+                    $msg = "該当のデバイスが存在しません。\nあと" . (10 - $errorCount) . "回でロックされます。";   
+                        
+                }
+            }
+        }else{
+            $msg = "必要な情報が不足しています。";
+        }
+        
         $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
         make_error_log($error_log,"msg:".$msg);
 
@@ -134,9 +133,6 @@ class IotDeviceController extends Controller
         }else{
             return redirect()->route('remote.index')->with($message);
         }
-
-
-        
     }
     //IoTデバイス変更
     public function update(Request $request)
