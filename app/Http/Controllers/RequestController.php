@@ -11,62 +11,42 @@ use App\Models\UserRequest;
 
 class RequestController extends Controller
 {
-    
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
     //ユーザーリクエスト
     public function index(Request $request)
     {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         //リダイレクトの場合、inputを取得
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
 
-        $input['type']              = get_proc_data($input,"type");
-        $input['message']           = get_proc_data($input,"message");
+        //データチェック
+        $input['user_id']           = Auth::id();
         $input['page']              = get_proc_data($input,"page");
-        $user_id = Auth::id();
-        if($user_id){
-            $user_request = UserRequest::getRequestList(10,true,$input['page'],['login_id' => $user_id]);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
-            $msg = request('msg');
 
-            return view('user.request_show', compact('user_request', 'input', 'msg'));
-        }else{
-            return redirect()->route('home')->with('error', '再度ログインしてください。');
-        }
+        $user_request = UserRequest::getRequestList(10,true,$input['page'],$input);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
+        return view('user.request_show', compact('user_request', 'input'));
     }
     //リクエスト送信
     public function send(Request $request)
     {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log,"-----start-----");
         $input = $request->all();
         
         //データチェック
         $input['user_id']           = Auth::id();
         $input['type']              = get_proc_data($input,"type");
         $input['message']           = get_proc_data($input,"message");
+        make_error_log($error_log,"user_id:".$input['user_id']. "    type:".$input['type']. "    message:".$input['message']);
 
         $ret = UserRequest::createRequest($input);
-        $msg = null;;
+        make_error_log($error_log,"error_code:".$ret['error_code']);
 
-        //htmlで必須としているけど念のため
-        if($ret['error_code'] == 3) $msg = "メッセージは必須情報です。";
-        if($msg) return redirect()->route('request.index')->with($msg);
-
-
-        if($ret['error_code'] == 0){        
-            //$profile = Auth::user();
-            //dd($profile);
-            $message = ['message' => '送信しました。',
-                        'type' => 'send',
-                        'sec' => '2000'];
-            return redirect()->route('request.index')->with($message);
-        }else{
-            $message = ['message' => '送信に失敗しました。',
-                        'type' => 'error',
-                        'sec' => '2000'];
-            return redirect()->route('request.index')->with($message);
+        $message = make_message('送信に失敗しました。', 'error');
+        if($ret['error_code'] == 0){       
+            $message = make_message('送信しました。', 'send'); 
         }
+        return redirect()->route('request.index')->with($message);
     }
 
     

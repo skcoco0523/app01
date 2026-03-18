@@ -18,7 +18,6 @@ class Note extends Model
     public static function getNoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('notes as note');
             if($keyword){

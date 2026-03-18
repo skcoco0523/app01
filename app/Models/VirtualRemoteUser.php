@@ -21,7 +21,6 @@ class VirtualRemoteUser extends Model
     public static function getVirtualRemoteUserList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('virtual_remote_users as remote_u');
             $sql_cmd = $sql_cmd->leftJoin('virtual_remotes as remote', 'remote_u.remote_id', '=', 'remote.id');

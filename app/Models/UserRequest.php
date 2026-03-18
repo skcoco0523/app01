@@ -43,8 +43,8 @@ class UserRequest extends Model
                     
                 //ユーザーによる検索
                 }else{
-                    if (get_proc_data($keyword,"login_id")){
-                        $sql_cmd = $sql_cmd->where('user_id',$keyword['login_id']);
+                    if (get_proc_data($keyword,"user_id")){
+                        $sql_cmd = $sql_cmd->where('user_id',$keyword['user_id']);
                     }
                 }
             }

@@ -9,12 +9,6 @@ use App\Models\User;
 
 class RouletteController extends Controller
 {
-    
-    public function __construct()
-    {
-        //ゲストも仕様可能
-        //$this->middleware('auth');
-    }
     //ルーレットページ
     public function show(Request $request)
     {
