@@ -143,10 +143,10 @@ class NoteController extends Controller
         $note = Note::getNoteList(1,true,false,$input)->first();  //1件
         
         //所有者のみ削除可能
+        $message = make_message('削除に失敗しました。', 'error');
         if($note){
             $ret = Note::delNote(['id'=>$note->id]);
             make_error_log($error_log,"error_code:".$ret['error_code']);
-            $message = make_message('削除に失敗しました。', 'error');
             if($ret['error_code']==0){
                 $message = make_message('削除しました。', 'note_del');
             }
