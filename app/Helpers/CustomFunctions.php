@@ -56,10 +56,11 @@ if (! function_exists('make_error_log')) {
             $log = \Illuminate\Support\Facades\Log::build([
                 'driver' => 'single',
                 'path' => $file_path,
-                // 「local.DEBUG: 」をなくしメッセージのみを出力するフォーマッターを指定
+                // 「local.DEBUG: 」をなくしメッセージを出力するフォーマッターを指定
                 'formatter' => \Monolog\Formatter\LineFormatter::class,
                 'formatter_with' => [
-                    'format' => "%message%\n", // 日付や local.DEBUG を除外し、メッセージと改行のみにする
+                    'format' => "[%datetime%] %message%\n", // 日付を含め、local.DEBUG 等を除外した形式にする
+                    'dateFormat' => 'Y-m-d H:i:s', // 日時フォーマットを指定
                     'allowInlineLineBreaks' => true,
                 ],
             ]);
