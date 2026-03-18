@@ -11,17 +11,6 @@ use App\Models\NoteShare;
 
 class NoteController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        //ユーザーのみ
-        $this->middleware('auth');
-    }
-
     //メモ一覧ページ
     public function index(Request $request)
     {
@@ -49,12 +38,8 @@ class NoteController extends Controller
         //$my_note_select_color       = $my_note_list->first()->color_num ?? 0;
         //$share_note_select_color    = $share_note_list->first()->color_num ?? 0;
 
-        $msg = null;
-        //if($my_note_list){
-            return view('note.show', compact('my_note_list', 'share_note_list', 'my_note_counts', 'share_note_counts', 'msg'));
-        //}else{
-            //return redirect()->route('home')->with('error', '該当の曲が存在しません');
-        //}
+        return view('note.show', compact('my_note_list', 'share_note_list', 'my_note_counts', 'share_note_counts'));
+
     }
     //メモ詳細ページ
     public function show(Request $request, $id)
@@ -74,13 +59,10 @@ class NoteController extends Controller
         }
 
         if ($note !== null) {
-            //dd($note);
-            $msg = null;
-            return view('note.detail', compact('note', 'input', 'msg'));
-
+            return view('note.detail', compact('note', 'input'));
         }else{
-            //使用不可のため強制リダイレクト
-            return redirect()->route('home');
+            $message = make_message('対象メモが存在しません。', 'error'); 
+            return redirect()->route('note.index')->with($message);
         }
     }
 
@@ -100,20 +82,15 @@ class NoteController extends Controller
         //$input['edit_lock_flag'] = $edit_lock_flag;
         $input['edit_lock_flag']    = false;   //初期値は編集不可ロックをかけない
 
-        make_error_log($error_log,"user_id:".$user_id);
-        make_error_log($error_log,"title:".$input['title']. "    color_num:".$input['color_num']);
+        make_error_log($error_log,"user_id:".$input['user_id']. "    title:".$input['title']. "    color_num:".$input['color_num']);
 
         $ret = Note::createNote($input);
+        make_error_log($error_log,"error_code:".$ret['error_code']);
 
-        $msg = null;
+        $message = make_message('メモの追加に失敗しました。', 'error');
         if($ret['error_code']==0){
-            $msg = "メモを追加しました。";          $type = "note_add";
-        }else{
-            $msg = "メモの追加に失敗しました。";    $type = "error";
-        }                        
-
-        $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
-        make_error_log($error_log,"msg:".$msg);
+            $message = make_message('メモを追加しました。', 'note_add');
+        }                      
 
         // メモ作成成功時は詳細ページへ、失敗時は一覧ページへ
         if($ret['error_code']==0){
@@ -127,6 +104,7 @@ class NoteController extends Controller
     public function update(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -139,14 +117,12 @@ class NoteController extends Controller
 
         //$ret = Note::chgNote(['id'=>$input['id'], 'title'=>$input['title'], 'content'=>$input['content'], 'color_num'=>$input['color_num']]);
         $ret = Note::chgNote($input);
+        make_error_log($error_log,"error_code:".$ret['error_code']);
 
-        if($ret['error_code']==0){          $msg = "更新しました。";            $type = "note_chg"; }
-        else if($ret['error_code']==-2){    $msg = "更新権限がありません。";    $type = "error"; }
-        else if($ret['error_code']==-3){    $msg = "更新ロック状態です。";      $type = "error"; }
-        else{                               $msg = "更新に失敗しました。";      $type = "error"; }
-
-        $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
-
+        $message = make_message('更新に失敗しました。', 'error');
+        if($ret['error_code']==0){
+            $message = make_message('更新しました。', 'note_chg');
+        }
         //リダイレクトでGETの許容オーバーを防ぐため、内容はクリアしておく
         $input['content'] = null; //内容は不要なのでクリア
 
@@ -157,6 +133,7 @@ class NoteController extends Controller
     public function destroy(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
@@ -165,21 +142,15 @@ class NoteController extends Controller
 
         $note = Note::getNoteList(1,true,false,$input)->first();  //1件
         
-        //dd($note,$input);
         //所有者のみ削除可能
         if($note){
             $ret = Note::delNote(['id'=>$note->id]);
+            make_error_log($error_log,"error_code:".$ret['error_code']);
+            $message = make_message('削除に失敗しました。', 'error');
             if($ret['error_code']==0){
-                $msg = "削除しました。";        $type = "note_del";
-            }else{
-                $msg = "削除に失敗しました。";  $type = "error";
-            }    
-        }else{
-            $msg = "所有者のみ削除可能です。";  $type = "error";
-        }               
-
-        $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
-
+                $message = make_message('削除しました。', 'note_del');
+            }
+        }
         return redirect()->route('note.index')->with($message);
 
     }
@@ -190,24 +161,23 @@ class NoteController extends Controller
     public function unshare(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log,"-----start-----");
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();  
 
         $input['search_note_id']    = get_proc_data($input,"note_id");
+        make_error_log($error_log,"search_note_id:".$input['search_note_id']);
         $sharing_note               = NoteShare::getSharedNoteList(null,false,null,$input)->first();  
         $input['id']                = $sharing_note->note_share_id;
 
+        $message = make_message('削除に失敗しました。', 'error');
         if($sharing_note->user_id == Auth::id()){
             $ret = NoteShare::delShareNote($input);
+            make_error_log($error_log,"error_code:".$ret['error_code']);
             if($ret['error_code']==0){
-                $msg = "削除しました。";        $type = "note_del";
-            }else{
-                $msg = "削除に失敗しました。";  $type = "error";
-            }    
-        }else{
-            $msg = "共有されている場合のみ削除可能です。";  $type = "error";
-        }   
-        $message = ['message' => $msg, 'type' => $type, 'sec' => '2000'];
+                $message = make_message('削除しました。', 'note_del');
+            }
+        }
         return redirect()->route('note.index')->with($message);
     }
 }

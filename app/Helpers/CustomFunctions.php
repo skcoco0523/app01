@@ -95,6 +95,18 @@ if (! function_exists('get_proc_data')) {
     }
 }
 
+//フラッシュメッセージ用データ作成
+if (!function_exists('make_message')) {
+    function make_message($msg, $type = "error", $sec = "2000")
+    {
+        return [
+            'message' => $msg,
+            'type' => $type,
+            'sec' => $sec
+        ];
+    }
+}
+
 //画像情報付与 aff_idに対して、画像格納を合わせて返す 20240122 kanno
 if (! function_exists('setAffData')) {
     function setAffData($obj) {

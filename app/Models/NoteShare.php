@@ -18,7 +18,6 @@ class NoteShare extends Model
     public static function getSharedNoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('note_shares as note_share');
             $sql_cmd = $sql_cmd->leftJoin('notes as note', 'note_share.note_id', '=', 'note.id');
@@ -87,7 +86,6 @@ class NoteShare extends Model
     public static function getSharingNoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log,"-------start-------");
         try {
             $sql_cmd = DB::table('note_shares as note_share');
             $sql_cmd = $sql_cmd->leftJoin('notes as note', 'note_share.note_id', '=', 'note.id');
@@ -189,7 +187,7 @@ class NoteShare extends Model
             //他データはリレーションでカスケード削除
             make_error_log($error_log,"delete_id=".$data['id']);
             $note = NoteShare::where('id', $data['id'])->first();
-            self::where('id', $data['id'])->delete();
+            self::where('id', $note->id)->delete();
 
             make_error_log($error_log,"success");
             return ['id' => null, 'error_code' => 0];   //削除成功
