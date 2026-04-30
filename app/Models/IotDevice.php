@@ -13,7 +13,7 @@ use App\Models\IotDeviceSignal;
 class IotDevice extends Model
 {
     use HasFactory;
-    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'ver', 'pincode'];     //一括代入の許可
+    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'ver', 'pincode', 'admin_user_id', 'voice_print', 'voice_auth_score'];     //一括代入の許可
 
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -193,6 +193,15 @@ class IotDevice extends Model
             if (isset($data['name']) && $device->name != $data['name'])
                 $updateData['name'] = $data['name']; 
 
+            if (array_key_exists('voice_print', $data) && $device->voice_print != $data['voice_print'])
+                $updateData['voice_print'] = $data['voice_print']; 
+
+            if (array_key_exists('voice_print', $data) && $device->voice_print != $data['voice_print'])
+                $updateData['voice_print'] = $data['voice_print']; 
+
+            if (array_key_exists('voice_auth_score', $data) && $device->voice_auth_score != $data['voice_auth_score'])
+                $updateData['voice_auth_score'] = $data['voice_auth_score']; 
+
             //NULL更新を許容
             if (array_key_exists('pincode', $data) && $device->pincode != $data['pincode'])
                 $updateData['pincode'] = $data['pincode']; 
@@ -208,6 +217,7 @@ class IotDevice extends Model
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
+            make_error_log($error_log, "Data: " . print_r($data, true));
             return ['error_code' => -1];   //更新失敗
         }
     }

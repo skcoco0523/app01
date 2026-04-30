@@ -19,3 +19,6 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Add MIME Type for WebAssembly
+AddType application/wasm .wasm

@@ -121,6 +121,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //スマートリモコン削除
     Route::post('iotdevice/destroy', [IotDeviceController::class, 'destroy'])->name('iotdevice.destroy');
 
+    //音声登録
+    Route::post('iotdevice/voice-print', [IotDeviceController::class, 'set_voice_print'])->name('iotdevice.set_voice_print');
+    //音声スコアチェック
+    Route::post('iotdevice/voice-score-check', [IotDeviceController::class, 'voice_score_check'])->name('iotdevice.voice_score_check');
+
     //-------------------------------------------------------------------------------------------------------
     //メモ
     //-------------------------------------------------------------------------------------------------------

@@ -17,6 +17,11 @@ use App\Models\Mosquitto;
 
 class IotDeviceController extends Controller
 {
+    /**
+     * Voice match score threshold.
+     */
+    private const VOICE_MATCH_THRESHOLD = 80;
+
     //IoTデバイス詳細ページ
     public function show(Request $request, $id)
     {
@@ -112,17 +117,19 @@ class IotDeviceController extends Controller
         $input['admin_flag']        = false;
         $input['iotdevice_id']      = get_proc_data($input,"iotdevice_id");
         $input['iotdevice_name']    = get_proc_data($input,"iotdevice_name");
+        $input['voice_auth_score']  = get_proc_data($input,"voice_auth_score");
+        
         //テーブル：virtual_remotesのid
         $input['search_admin_uid']  = Auth::id();
         $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']);
+        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']." voice_auth_score:".$input['voice_auth_score']);
 
         $iotdevice = IotDevice::getIotDeviceList(1,false,false,$input)->first();
 
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
             if($input['iotdevice_name']){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name']]);
+                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name'], 'voice_auth_score'=>$input['voice_auth_score']]);
                 make_error_log($error_log,"error_code:".$ret['error_code']);
                 if($ret['error_code']==0){
                     $jdata = json_encode(["device_name" => $input['iotdevice_name']]);
@@ -165,5 +172,290 @@ class IotDeviceController extends Controller
         }
         return redirect()->route('remote.index')->with($message);            
     }
-}
 
+    //音声テスト
+    public function voice_score_check(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-----start-----");
+
+        try {
+            $user_id = Auth::id();
+            $input = $request->all();
+            $voice_features_json = $request->input('voice_features');
+            
+            $input['iotdevice_id'] = get_proc_data($input, "iotdevice_id");
+            $input['search_id'] = $input['iotdevice_id']; 
+            $input['search_admin_uid'] = $user_id;
+
+            if ($input['iotdevice_id'] && $voice_features_json) {
+                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
+                
+                if ($iotdevice && $iotdevice->voice_print) {
+                    // 1. テスト音声をJSONから配列へ
+                    $test_features = json_decode($voice_features_json, true);
+
+                    // 2. DB内の登録済み指紋（最大3つ）を取得
+                    $stored_voice_data = json_decode($iotdevice->voice_print, true);
+                    if (!isset($stored_voice_data['prints']) || !is_array($stored_voice_data['prints'])) {
+                        throw new \Exception("Stored voice print data is malformed.");
+                    }
+                    
+                    // 3. テスト音声をスケーリング
+                    $test_print_arr = explode(',', $this->prepareFingerprintForDevice($test_features));
+
+                    // 4. 登録されている複数の指紋とそれぞれ比較し、MAXスコアを取得する
+                    $max_score = 0;
+                    
+                    foreach ($stored_voice_data['prints'] as $stored_print_str) {
+                        $stored_print_arr = explode(',', $stored_print_str);
+                        
+                        if (count($stored_print_arr) === count($test_print_arr)) {
+                            $best_sub_score = 0;
+                            $count = count($stored_print_arr);
+
+                            // 100要素中の±10（約10%）のズレを許容する
+                            // JS側のトリミングで位置はほぼ合っていますが、これで「念押し」します
+                            for ($offset = -2; $offset <= 2; $offset++) {
+                                $dotProduct = 0;
+                                $normA = 0;
+                                $normB = 0;
+                                
+                                for ($i = 0; $i < $count; $i++) {
+                                    $j = $i + $offset;
+                                    // 枠外にズレた場合は計算から除外
+                                    if ($j < 0 || $j >= $count) continue;
+
+                                    $a = (int)$stored_print_arr[$i];
+                                    $b = (int)$test_print_arr[$j];
+                                    $dotProduct += $a * $b;
+                                    $normA += $a * $a;
+                                    $normB += $b * $b;
+                                }
+
+                                if ($normA > 0 && $normB > 0) {
+                                    $current_sim = ($dotProduct / (sqrt($normA) * sqrt($normB))) * 100;
+                                    if ($current_sim > $best_sub_score) {
+                                        $best_sub_score = $current_sim;
+                                    }
+                                }
+                            }
+                            
+                            // 3つの登録データの中で最も高いスコアを採用
+                            if ($best_sub_score > $max_score) {
+                                $max_score = $best_sub_score;
+                            }
+                        }
+                    }
+                    
+                    $score = round($max_score, 2);
+                    // ------------------------------------
+
+                    make_error_log($error_log, "Match Score: " . $score . "%");
+                    
+                    // 80%以上を合格とする（閾値は運用に合わせて調整してください）
+                    $type = ($score >= $iotdevice->voice_auth_score) ? 'voice_test_ok' : 'voice_test_ng';
+                    $message = make_message("判定結果: " . $score . "% 一致しました。", $type);
+                    
+                    return redirect()->route('iotdevice.show', ['id' => $iotdevice->id])->with($message);
+                
+                }
+            }
+            
+            return redirect()->route('iotdevice.show', ['id' => $input['iotdevice_id'] ?? 0])->with(make_message('テストに失敗しました（データ不整合または未登録）。', 'error'));
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error: " . $e->getMessage());
+            return redirect()->route('iotdevice.show');
+        }
+    }
+
+    //音声指紋登録
+    /**
+     * Registers a voice print for an IoT device by averaging multiple samples.
+     *
+     * @param Request $request
+     */
+    public function set_voice_print(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log,"-----start-----");
+        
+        // $message の初期化（catch等での未定義エラー防止）
+        $message = make_message('処理を開始できませんでした。', 'error');
+
+        try {
+            $user_id = Auth::id();
+            $input = $request->all();
+            
+            // ファイルではなくJSから送られてきたJSON文字列（特徴量リストの配列）を取得
+            $voice_features_json = $request->input('voice_features_list');
+
+            // 音声削除（クリア）処理
+            if (isset($input['clear_voice']) && $input['clear_voice'] == '1') {
+                $iotdevice_id = get_proc_data($input, "iotdevice_id");
+                $iotdevice = IotDevice::where('id', $iotdevice_id)->where('admin_user_id', $user_id)->first();
+                if ($iotdevice) {
+                    IotDevice::chgIotDevice(['id' => $iotdevice->id, 'voice_print' => null]);
+                    // ESP32側でパースしやすいよう、登録時と同じキー名（voice_prints）で null または 空配列 を送る
+                    $jdata = json_encode(["voice_prints" => []]); 
+                    Mosquitto::publishMQTT($iotdevice->mac_addr, "update_voice_print", $jdata);
+                    return redirect()->route('iotdevice.show', ['id' => $iotdevice->id])->with(make_message('音声データを削除しました。', 'device_del'));
+                } else {
+                    // Device not found or not owned for deletion
+                    return redirect()->route('iotdevice.show', ['id' => $iotdevice_id ?? 0])
+                                     ->with(make_message('音声データの削除に失敗しました。対象デバイスが見つからないか、所有者ではありません。', 'error'));
+                }
+            }
+
+            $input['admin_flag']        = false;
+            $input['iotdevice_id']      = get_proc_data($input, "iotdevice_id");
+            $input['search_id']         = $input['iotdevice_id'];
+            $input['search_admin_uid']  = $user_id;
+
+            if ($input['iotdevice_id'] && $voice_features_json) {
+                make_error_log($error_log, "Processing voice prints for device: " . $input['iotdevice_id']);
+                
+                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
+                if ($iotdevice) {
+                    make_error_log($error_log, "voice_features_json: " . $voice_features_json);
+                    // JSONをデコード（3回分のMFCC配列が含まれる想定）
+                    $prints_list = json_decode($voice_features_json, true);
+
+                    // 配列かつ中身があることを確認
+                    if (is_array($prints_list) && count($prints_list) > 0) {
+                        $normalized_prints = [];
+                        
+                        // 3回分のデータをそれぞれ個別の指紋として変換
+                        foreach ($prints_list as $print) {
+                            if (!is_array($print) || empty($print)) continue;
+                            
+                            // 各データをスケーリングしてカンマ区切り文字列にする
+                            $normalized_str = $this->prepareFingerprintForDevice($print);
+                            if ($normalized_str) {
+                                $normalized_prints[] = $normalized_str;
+                            }
+                        }
+
+                        if (count($normalized_prints) > 0) {
+                            // "prints" という配列キーで3つとも保存する
+                            $voice_print_data = json_encode([
+                                "prints" => $normalized_prints
+                            ]);
+                        } else {
+                            $voice_print_data = null;
+                        }
+                    } else {
+                        $voice_print_data = null;
+                    }
+
+                    make_error_log($error_log,"final_voice_print_str:". ($voice_print_data ? 'SUCCESS' : 'FAILED'));
+
+                    if ($voice_print_data) {
+                        // モデルを使用してDB保存
+                        $ret = IotDevice::chgIotDevice(['id' => $iotdevice->id, 'voice_print' => $voice_print_data]);
+                        make_error_log($error_log, "error_code:". $ret['error_code']);
+
+                        if ($ret['error_code'] == 0) {
+                            // MQTTで指紋データ（カンマ区切り文字列の配列）を送信
+                            $mqtt_print_data = json_decode($voice_print_data, true);
+                            // 'print' ではなく 'prints'（配列）を送信する
+                            $jdata = json_encode(["voice_prints" => $mqtt_print_data['prints']]);
+                            Mosquitto::publishMQTT($iotdevice->mac_addr, "update_voice_print", $jdata);
+                            
+                            $message = make_message('音声指紋を登録しました。', 'device_chg');
+                        } else {
+                            $message = make_message('音声指紋のDB登録に失敗しました。', 'error');
+                        }
+                    } else {
+                        $message = make_message('音声データの解析・平均化に失敗しました。', 'error');
+                    }
+                } else {
+                    $message = make_message('該当するデバイスが見つかりません。', 'error');
+                }
+                
+                return redirect()->route('iotdevice.show', ['id' => $input['iotdevice_id']])->with($message);
+
+            } else {
+                $message = make_message('データが不足しています。', 'error');
+            }
+            return redirect()->route('iotdevice.index')->with($message);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error: " . $e->getMessage());
+            return redirect()->route('iotdevice.index')->with(make_message('システムエラーが発生しました。', 'error'));
+        }
+    }
+
+    // Edge Impulse の特徴量配列（float）をデバイス（ESP32）向けに　0-255 の整数（カンマ区切り文字列）に変換する
+    /**
+     * Converts an array of float features from Edge Impulse to a comma-separated string of 0-255 integers for the device.
+     * Optionally uses provided min/max values for normalization.
+     *
+     * @param array $features
+     * @param float|null $normMin Optional: Minimum value for normalization. If null, calculated from features.
+     * @param float|null $normMax Optional: Maximum value for normalization. If null, calculated from features.
+     */
+    public function prepareFingerprintForDevice($features)
+    {
+        if (!is_array($features) || empty($features)) {
+            return null;
+        }
+
+        // 1. ノイズゲート：絶対値の平均が極めて低い場合（無音）は、全要素0にする
+        $avg_abs = array_sum(array_map('abs', $features)) / count($features);
+        if ($avg_abs < 0.001) { // 閾値は適宜調整。無音を確実に0にする
+            return implode(',', array_fill(0, count($features), 0));
+        }
+
+        // 2. 対称スケーリング
+        $abs_max = 0;
+        foreach ($features as $val) {
+            if (abs($val) > $abs_max) $abs_max = abs($val);
+        }
+
+        if ($abs_max == 0) {
+            return implode(',', array_fill(0, count($features), 0));
+        }
+        
+        // 3. 移動平均（スムージング）をかけて、声の「太い流れ」を抽出する
+        $smoothed = [];
+        $window = 1; // 窓を小さくして言葉の凹凸を残す
+        $count = count($features);
+        for ($i = 0; $i < $count; $i++) {
+            $sum = 0; $div = 0;
+            for ($j = -$window; $j <= $window; $j++) {
+                if (isset($features[$i + $j])) {
+                    $sum += $features[$i + $j]; $div++;
+                }
+            }
+            $smoothed[] = $sum / $div;
+        }
+
+        // 4. Z-Score正規化（データの中心を0、ばらつきを一定に揃える）
+        $count = count($smoothed);
+        $avg = $count > 0 ? array_sum($smoothed) / $count : 0;
+        
+        // 分散と標準偏差の計算
+        $variance = 0;
+        foreach ($smoothed as $val) {
+            $variance += pow($val - $avg, 2);
+        }
+        $std_dev = ($count > 0) ? sqrt($variance / $count) : 0;
+
+        // 5. 正規化の実行と整数化（-128 〜 127 の範囲に収める）
+        $final = array_map(function ($val) use ($avg, $std_dev) {
+            if ($std_dev == 0) return 0;
+            
+            // 平均値を引き標準偏差で割ることで、純粋な「波形の変化パターン」を取り出す
+            // その後、値を25倍（強調係数）して整数化する
+            $z_score = ($val - $avg) / $std_dev;
+            // 係数を 20〜25 に落とすことで、データの「形」が正しく維持されます
+            $intVal = (int)round($z_score * 35);
+            return max(-128, min(127, $intVal));
+        }, $smoothed);
+
+        return implode(',', $final);
+    }
+
+}

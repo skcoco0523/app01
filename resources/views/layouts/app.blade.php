@@ -105,8 +105,24 @@
     <!-- 追加　resources/css,jsで管理　viteでビルドしてアップロード -->
     <!--<link rel="stylesheet" href="{{ asset('/css/style.css') }}">-->
     
+    <!-- 音声分析に edge-impulseを使用する -->
+    <script>
+        var Module = {
+            locateFile: function(path, prefix) {
+                if (path.endsWith('.wasm')) {
+                    return "{{ asset('edge-impulse-standalone.wasm') }}?v={{ filemtime(public_path('edge-impulse-standalone.wasm')) }}";
+                }
+                return prefix + path;
+            },
+            onRuntimeInitialized: function() {
+                console.log('Edge Impulse WASM initialized');
+            }
+        };
+    </script>
+    <script src="{{ asset('js/edge-impulse-standalone.js') }}?v={{ filemtime(public_path('js/edge-impulse-standalone.js')) }}"></script>
+    <script src="{{ asset('js/run-impulse.js') }}?v={{ filemtime(public_path('js/run-impulse.js')) }}"></script>
     <!--デバッグ用-->
-   <link rel="stylesheet" href="{{ asset('css/debug.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/debug.css') }}">
     
     
     <!-- Scripts -->
@@ -122,7 +138,7 @@
     <!-- google広告 -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1093408896428535"
     crossorigin="anonymous"></script>
-
+    
     <style>
         .dropdown-item {
             padding: 0.5rem 1.0rem; /* メニューアイテムのパディングを調整 */
