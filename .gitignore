@@ -1,6 +1,7 @@
 #除外するファイル
 /.phpunit.cache
 /.aiexclude
+/.clineignore
 /node_modules
 #/public/build
 /public/hot

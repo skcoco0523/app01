@@ -4,7 +4,6 @@
     <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.index') }}'"></i>
     <div class="container py-4">
         <div class="remote-header d-flex flex-column align-items-end mb-3">
-            
             <div class="title-text mx-auto w-100 overflow-hidden">
                 <div class="d-grid align-items-center mb-2" style="grid-template-columns: 1fr auto 1fr; gap: 10px;">
                     <?//左側：空白?>
@@ -23,11 +22,11 @@
                 </div>
                 
                 <?//表示モード?>
-                <div id="DisplayArea">
+                <div id="DisplayArea" class="mx-auto w-75 overflow-hidden">
                     
                 </div>
                 <?// 編集モード（最初は非表示）?>
-                <div id="EditArea" style="display: none;">
+                <div id="EditArea" class="mx-auto w-75 overflow-hidden" style="display: none;">
                         
                     <?// 編集フォーム?>
                     <form id="remoteNameUpdateForm" method="POST" action="{{ route('remote.update') }}">

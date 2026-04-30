@@ -407,3 +407,12 @@ function resetUserSelect() {
     document.documentElement.style.userSelect = 'none';
     document.documentElement.style.webkitUserSelect = 'none';
 }
+
+
+// 音声認識や音声処理でAudioContextを共有するための関数
+window.getSharedAudioContext = function() {
+    if (!window.audioContext || window.audioContext.state === 'closed') {
+        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return window.audioContext;
+};

@@ -26,7 +26,10 @@ window.preloadSounds = function preloadSounds(soundList) {
 //定義サウンド：SoundManager.play('roulette');
 //カスタムサウンド：SoundManager.play('',100,50,'square',1);
 window.SoundManager = {
-    audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
+    // app.js の共通関数を呼ぶようにする
+    get audioCtx() {
+        return window.getSharedAudioContext();
+    },
     
     /**
      * 単音を鳴らす
@@ -36,6 +39,9 @@ window.SoundManager = {
      * @param {boolean} short - "ツッ" のような短い音を出す場合は true
      */
     play: function (soundType, selectTone = 0, selectPtime = 0, selectWave = 0, selectShort = 0) {
+        const ctx = this.audioCtx;
+        // 再生直前にコンテキストを強制的にアクティブにする
+        if (ctx.state === 'suspended') { ctx.resume(); }
         let soundFileFlag = false; //音声ファイルを読み込んで再生する場合
         let tone = [[100]];
         let playtime = [0];
@@ -80,9 +86,9 @@ window.SoundManager = {
 
         if (soundFileFlag) {
             if (soundCache[soundType]) {
-                const source = this.audioCtx.createBufferSource();
+                const source = ctx.createBufferSource();
                 source.buffer = soundCache[soundType];
-                source.connect(this.audioCtx.destination);
+                source.connect(ctx.destination);
                 source.start(0);
         
                 // playtime が指定されている場合は指定時間後に停止
@@ -98,19 +104,19 @@ window.SoundManager = {
 
         }else if (Array.isArray(tone)) {
             // tone が 2次元配列の場合（順次再生）
-            let startTime = this.audioCtx.currentTime;
+            let startTime = ctx.currentTime;
 
             tone.forEach((chord, index) => {
-                const gainNode = this.audioCtx.createGain();
+                const gainNode = ctx.createGain();
                 gainNode.gain.setValueAtTime(0.2, startTime);
-                gainNode.connect(this.audioCtx.destination);
+                gainNode.connect(ctx.destination);
 
                 if (!Array.isArray(chord)) {
                     chord = [chord];  // 単一音なら和音の形に変換
                 }
 
                 chord.forEach(frequency => {
-                    const oscillator = this.audioCtx.createOscillator();
+                    const oscillator = ctx.createOscillator();
                     oscillator.type = waveType;
                     oscillator.frequency.setValueAtTime(frequency, startTime);
                     oscillator.connect(gainNode);
@@ -126,13 +132,14 @@ window.SoundManager = {
             });
         }
     },resumeAudioContext: function () {
-        if (this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume().then(() => {
+        const ctx = this.audioCtx;
+        if (ctx.state === 'suspended') {
+            ctx.resume().then(() => {
                 console.log("✅ AudioContext resumed");
-                const buffer = this.audioCtx.createBuffer(1, 1, 22050);
-                const source = this.audioCtx.createBufferSource();
+                const buffer = ctx.createBuffer(1, 1, 22050);
+                const source = ctx.createBufferSource();
                 source.buffer = buffer;
-                source.connect(this.audioCtx.destination);
+                source.connect(ctx.destination);
                 source.start();
                 console.log("🔇 無音再生で初回ラグを回避");
             }).catch(err => console.error("❌ AudioContext resume error:", err));

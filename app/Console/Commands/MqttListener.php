@@ -131,7 +131,10 @@ class MqttListener extends Command
 
             }else{
                 //本登録済み　デバイス接続通知
-                Mosquitto::publishMQTT($mac_addr, "final_regist");
+                $jdata = json_encode([
+                    "voice_print" => (String)$device->voice_print
+                ]);
+                Mosquitto::publishMQTT($mac_addr, "final_regist", $jdata);
 
                 //所有者が確定しているため接続通知
                 $send_info = new \stdClass();
