@@ -126,7 +126,7 @@ class NoteController extends Controller
         //リダイレクトでGETの許容オーバーを防ぐため、内容はクリアしておく
         $input['content'] = null; //内容は不要なのでクリア
 
-        return redirect()->route('note.show', ['id' => $input['id']])->with($message);
+        return redirect()->route('note.show', ['id' => $input['id'],'share_flag' => $input['share_flag']])->with($message);
 
     }
     //メモ削除
