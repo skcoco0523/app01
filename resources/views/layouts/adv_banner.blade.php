@@ -24,17 +24,40 @@
 
         try {
             // おすすめ上位3つを取得 (ApiAdvController側で3つに絞り込み済み)
-            const advertisement = await get_advertisement(3, "banner");   
+            const advertisement = await get_advertisement(5, "banner");   
             if (advertisement && advertisement.length > 0) {
                 const bannerAdvlInner = document.getElementById('banner-adv-items');
                 bannerAdvlInner.innerHTML = ''; // 既存のスライドをクリア
 
                 advertisement.forEach((ad, index) => {
                     const isActive = index === 0 ? 'active' : ''; // 最初のスライドをアクティブに
+                    
+                    // ポップアップ同様、ad.name や ad.price も取得できている前提の横長デザイン
                     const item = `
                         <div class="carousel-item ${isActive}" data-bs-interval="5000">
-                            <a href="${ad.href}" target="_blank" rel="nofollow" onclick="adv_action(${ad.id}, 'select')">
-                                <img src="${ad.src}" class="d-block w-100" style="max-height: 200px; object-fit: contain; background: #f8f9fa;">
+                            <a href="${ad.href}" target="_blank" rel="nofollow" onclick="adv_action(${ad.id}, 'select')" class="text-decoration-none text-dark">
+                                <div class="d-flex align-items-center bg-white border border-light rounded shadow-sm p-2" style="height: 110px; overflow: hidden;">
+                                    
+                                    <div class="flex-shrink-0 bg-light rounded" style="width: 90px; height: 90px;">
+                                        <img src="${ad.src}" class="w-100 h-100" style="object-fit: contain;">
+                                    </div>
+                                    
+                                    <div class="flex-grow-1 ms-3 overflow-hidden text-start">
+                                        <p class="fw-bold mb-1" style="font-size: 0.8rem; line-height: 1.3; height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all;">
+                                            ${ad.name || '注目のおすすめ商品'}
+                                        </p>
+                                        
+                                        <div class="d-flex align-items-center justify-content-between mt-1">
+                                            <p class="text-danger fw-bold mb-0" style="font-size: 0.9rem;">
+                                                ${ad.price ? Number(ad.price).toLocaleString() + '円' : ''}
+                                            </p>
+                                            <span class="badge bg-danger pt-1 pb-1 px-2" style="font-size: 0.65rem; font-weight: 500;">
+                                                楽天市場で見る
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                </div>
                             </a>
                         </div>
                     `;
