@@ -54,31 +54,33 @@ class ApiAdvController extends Controller
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $input              = $request->all();
-        $disp_cnt           = get_proc_data($input,"disp_cnt"); // 基本は3を想定
+        $disp_cnt           = (int)get_proc_data($input, "disp_cnt", 3); // デフォルト3件
         try {
-            make_error_log($error_log, "-------start-------");
+            make_error_log($error_log, "-------start------- disp_cnt={$disp_cnt}");
             $user = Auth::guard('sanctum')->user();
             make_error_log($error_log, "user_id=" . ($user ? $user->id : 'guest'));
             
-            // 1. カテゴリの選定（異なるカテゴリを最大3つ選ぶ）
+            // 1. カテゴリの選定（異なるカテゴリを最大 disp_cnt 個選ぶ）
             $targetCategoryIds = [];
             
             if ($user) {
-                // (A) 未接触カテゴリを最優先で最大2つ選出
+                // (A) 未接触カテゴリを優先（全体の半分程度を目安に最大選出）
                 $scoredCategoryIds = AdvUserScore::where('user_id', $user->id)->pluck('adv_category_id')->toArray();
+                $unscoredLimit = max(1, (int)($disp_cnt * 0.7)); // 例: 3件なら2件、1件なら1件
+                
                 $unscoredCategoryIds = AdvCategory::where('enable_flag', 1)
                     ->whereNotIn('id', $scoredCategoryIds)
                     ->inRandomOrder()
-                    ->take(2)
+                    ->take($unscoredLimit)
                     ->pluck('id')
                     ->toArray();
                 
                 $targetCategoryIds = $unscoredCategoryIds;
                 make_error_log($error_log, "selected unscored category IDs: " . implode(',', $targetCategoryIds));
 
-                // (B) スコア上位のカテゴリから補充（合計3つになるまで）
-                if (count($targetCategoryIds) < 3) {
-                    $needed = 3 - count($targetCategoryIds);
+                // (B) スコア上位のカテゴリから補充（合計 disp_cnt 個になるまで）
+                if (count($targetCategoryIds) < $disp_cnt) {
+                    $needed = $disp_cnt - count($targetCategoryIds);
                     $topCategoryIds = AdvUserScore::where('user_id', $user->id)
                         ->whereHas('category', function($q) { $q->where('enable_flag', 1); })
                         ->whereNotIn('adv_category_id', $targetCategoryIds)
@@ -98,8 +100,8 @@ class ApiAdvController extends Controller
             }
 
             // (C) それでも足りない場合は全有効カテゴリから補充
-            if (count($targetCategoryIds) < 3) {
-                $needed = 3 - count($targetCategoryIds);
+            if (count($targetCategoryIds) < $disp_cnt) {
+                $needed = $disp_cnt - count($targetCategoryIds);
                 $extraIds = AdvCategory::where('enable_flag', 1)
                     ->whereNotIn('id', $targetCategoryIds)
                     ->inRandomOrder()
@@ -139,7 +141,7 @@ class ApiAdvController extends Controller
                     }
                 }
                 
-                if (count($result) >= 3) break; // 3件たまれば終了
+                if (count($result) >= $disp_cnt) break; // disp_cnt 件たまれば終了
             }
 
             make_error_log($error_log, "returning " . count($result) . " items from different categories");
