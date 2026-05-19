@@ -20,6 +20,58 @@ import './advertisement.js';            //広告情報
 //==========================================================================================
 // グローバルに公開
 window.getOS = getOS;
+
+/**
+ * 共通設定を取得する(キャッシュ対応)
+ * @param {number} limitMinutes キャッシュ保持時間(分) デフォルト3分
+ */
+window.getCommonConfig = async function(limitMinutes = 30) {
+    const cacheKey = 'common_config_data';
+    const timeKey = 'common_config_timestamp';
+    const versionKey = 'common_config_version';
+    
+    const cachedData = localStorage.getItem(cacheKey);
+    const cachedTime = localStorage.getItem(timeKey);
+    const cachedVersion = localStorage.getItem(versionKey);
+    const now = new Date().getTime();
+
+    // キャッシュが時間内かチェック
+    const isWithinTime = cachedData && cachedTime && (now - cachedTime < (limitMinutes * 60 * 1000));
+
+    try {
+        // バージョン確認のために必ずFetchを実行
+        const response = await fetch(baseUrlPath + '/api/adv/config');
+        if (response.ok) {
+            const data = await response.json();
+            const serverVersion = data._version !== undefined ? data._version.toString() : '0';
+
+            // バージョンが異なる、またはキャッシュが期限切れの場合に更新
+            if (cachedVersion !== serverVersion || !isWithinTime) {
+                console.log(`Config Updated. Version: ${cachedVersion} -> ${serverVersion}, Expired: ${!isWithinTime}`);
+                localStorage.setItem(cacheKey, JSON.stringify(data));
+                localStorage.setItem(versionKey, serverVersion);
+                localStorage.setItem(timeKey, now.toString());
+                return data;
+            }
+            
+            // バージョンが同じで時間内ならキャッシュを返す
+            return JSON.parse(cachedData);
+        }
+    } catch (e) {
+        console.error('Failed to fetch common config, using cache if available:', e);
+    }
+
+    return cachedData ? JSON.parse(cachedData) : null;
+};
+
+
+// 音声認識や音声処理でAudioContextを共有するための関数
+window.getSharedAudioContext = function() {
+    if (!window.audioContext || window.audioContext.state === 'closed') {
+        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return window.audioContext;
+};
 //==========================================================================================
 
 /**
@@ -407,12 +459,3 @@ function resetUserSelect() {
     document.documentElement.style.userSelect = 'none';
     document.documentElement.style.webkitUserSelect = 'none';
 }
-
-
-// 音声認識や音声処理でAudioContextを共有するための関数
-window.getSharedAudioContext = function() {
-    if (!window.audioContext || window.audioContext.state === 'closed') {
-        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return window.audioContext;
-};

@@ -52,6 +52,7 @@
             'items' => [
                 ['url' => route('admin.adv.create'), 'label' => '新規登録'],
                 ['url' => route('admin.adv.index'), 'label' => '検索/変更/削除'],
+                ['url' => route('admin.adv.config'), 'label' => '広告設定'],
             ]
         ],
         'notification' => [
@@ -106,6 +107,8 @@
     }elseif ($tab1 == 'adv' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_adv_search_left';
         $view_right_file    = 'admin.admin_adv_search';
+    }elseif ($tab1 == 'adv' && $tab2 == 'config' && $tab3 == '') {
+        $view_right_file    = 'admin.admin_adv_config';
     //=============================================================
     // 通知
     }elseif ($tab1 == 'notification' && $tab2 == 'search' && $tab3 == '') {

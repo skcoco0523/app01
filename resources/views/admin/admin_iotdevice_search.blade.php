@@ -148,13 +148,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const pincode       = cells[4].textContent.trim();
             const name          = cells[7].textContent.trim();
             // フォームの対応するフィールドにデータを設定
-            document.querySelector('input[name="id"]').value            = id;
-            document.querySelector('input[name="mac_addr"]').value      = mac_addr;
-            document.querySelector('input[name="device_ver"]').value    = device_ver;
-            //document.querySelector('select[name="device_type"]').value  = device_type_value;
-            document.querySelector('input[name="device_type"]').value    = device_type;
-            document.querySelector('input[name="pincode"]').value       = pincode;
-            document.querySelector('input[name="name"]').value          = name;
+            form.querySelector('input[name="id"]').value            = id;
+            form.querySelector('input[name="mac_addr"]').value      = mac_addr;
+            form.querySelector('input[name="device_ver"]').value    = device_ver;
+            //form.querySelector('select[name="device_type"]').value  = device_type_value;
+            form.querySelector('input[name="device_type"]').value    = device_type;
+            form.querySelector('input[name="pincode"]').value       = pincode;
+            form.querySelector('input[name="name"]').value          = name;
 
         });
     });

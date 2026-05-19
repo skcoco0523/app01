@@ -126,19 +126,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const reply         = cells[5].innerHTML.replace(/<br\s*\/?>/gi, "\n");
             
             // 種別の選択肢を設定
-            //const type = document.querySelector('select[name="type"]');
+            //const type = form.querySelector('select[name="type"]');
             //type.value = (cells[2].textContent.trim() === '要望') ? '0' : '1';
 
             // ステータスの選択肢を設定
-            const status = document.querySelector('select[name="status"]');
+            const status = form.querySelector('select[name="status"]');
             status.value = (cells[3].textContent.trim() === '未対応') ? '0' : '1';
 
             // フォームの対応するフィールドにデータを設定
-            document.querySelector('input[name="id"]').value        = id;
-            document.querySelector('input[name="name"]').value      = name;
-            document.querySelector('input[name="type"]').value      = type;
-            document.querySelector('textarea[name="message"]').value   = message;
-            document.querySelector('textarea[name="reply"]').value     = reply;
+            form.querySelector('input[name="id"]').value        = id;
+            form.querySelector('input[name="name"]').value      = name;
+            form.querySelector('input[name="type"]').value      = type;
+            form.querySelector('textarea[name="message"]').value   = message;
+            form.querySelector('textarea[name="reply"]').value     = reply;
 
         });
     });
