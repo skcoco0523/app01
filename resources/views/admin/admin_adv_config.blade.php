@@ -35,8 +35,8 @@
                                     <input type="hidden" name="config_name" value="{{ $config->config_name }}">
 
                                     @if($config->type == 'int' || $config->type == 'range')
-                                        <div class="col-4 p-1"><input type="number" inputmode="numeric" min="-999" max="999" name="value1" value="{{ $config->value1 }}" class="form-control form-control-sm"></div>
-                                        <div class="col-4 p-1"><input type="number" inputmode="numeric" min="-999" max="999" name="value2" value="{{ $config->value2 }}" class="form-control form-control-sm"></div>
+                                        <div class="col-4 p-1"><input type="number" inputmode="numeric" min="-99999" max="99999" name="value1" value="{{ $config->value1 }}" class="form-control form-control-sm"></div>
+                                        <div class="col-4 p-1"><input type="number" inputmode="numeric" min="-99999" max="99999" name="value2" value="{{ $config->value2 }}" class="form-control form-control-sm"></div>
                                     @elseif($config->type == 'string')
                                         <div class="col-4 p-1"><input type="text" name="value1" value="{{ $config->value1 }}" class="form-control form-control-sm"></div>
                                         <div class="col-4 p-1"><input type="text" name="value2" value="{{ $config->value2 }}" class="form-control form-control-sm"></div>
