@@ -63,3 +63,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // 広告情報取得
 Route::get('/adv/get', [ApiAdvController::class, 'api_adv_get']);
 Route::post('/adv/click', [ApiAdvController::class, 'api_adv_click']);
+Route::get('/adv/config', [ApiAdvController::class, 'api_adv_config']);

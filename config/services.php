@@ -36,6 +36,13 @@ return [
         'client_secret' =>env('LINE_CHANNEL_SECRET'),
         'redirect'=>env('LINE_REDIRECT'),
     ],
+    //楽天API
+    'rakuten' => [
+        'application_id' => env('RAKUTEN_APPLICATION_ID'),
+        'access_key' => env('RAKUTEN_ACCESS_KEY'),
+        'affiliate_id' => env('RAKUTEN_AFFILIATE_ID'),
+        'origin' => env('RAKUTEN_ORIGIN'),
+    ],
     
 
 ];

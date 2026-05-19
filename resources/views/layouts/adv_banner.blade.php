@@ -15,8 +15,16 @@
 <script>
     // 非同期で広告を取得し、表示する
     async function loadAdvertisements() {
+        // 設定チェック
+        const config = await getCommonConfig(30);
+        if (config && config.adv_show_enable && parseInt(config.adv_show_enable.value1) === 0) {
+            console.log('adv_show_enable is 0. skipping banner...');
+            return;
+        }
+
         try {
-            const advertisement = await get_advertisement(5, "banner");   
+            // おすすめ上位3つを取得 (ApiAdvController側で3つに絞り込み済み)
+            const advertisement = await get_advertisement(3, "banner");   
             if (advertisement && advertisement.length > 0) {
                 const bannerAdvlInner = document.getElementById('banner-adv-items');
                 bannerAdvlInner.innerHTML = ''; // 既存のスライドをクリア
@@ -25,9 +33,8 @@
                     const isActive = index === 0 ? 'active' : ''; // 最初のスライドをアクティブに
                     const item = `
                         <div class="carousel-item ${isActive}" data-bs-interval="5000">
-                            <a href="${ad.href}" rel="nofollow" onclick="adv_click(${ad.id})">
-                                <img src="${ad.src}" class="d-block w-100">
-                                <img border="0" width="1" height="1" src="${ad.tracking_src}">
+                            <a href="${ad.href}" target="_blank" rel="nofollow" onclick="adv_action(${ad.id}, 'select')">
+                                <img src="${ad.src}" class="d-block w-100" style="max-height: 200px; object-fit: contain; background: #f8f9fa;">
                             </a>
                         </div>
                     `;

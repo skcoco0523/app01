@@ -183,29 +183,29 @@ document.addEventListener('DOMContentLoaded', function() {
             //const prefectures   = cells[5].textContent;
 
             // フォームの対応するフィールドにデータを設定
-            document.querySelector('input[name="id"]').value        = id;
-            document.querySelector('input[name="name"]').value      = name;
-            document.querySelector('input[name="email"]').value     = email;
-            document.querySelector('input[name="birthdate"]').value = birthdate;
+            form.querySelector('input[name="id"]').value        = id;
+            form.querySelector('input[name="name"]').value      = name;
+            form.querySelector('input[name="email"]').value     = email;
+            form.querySelector('input[name="birthdate"]').value = birthdate;
             
             //都道府県を設定
-            const prefectures = document.querySelector('select[name="prefectures"]');
+            const prefectures = form.querySelector('select[name="prefectures"]');
             prefectures.value = cells[6].textContent;
             
             // 性別の選択肢を設定
-            const gender = document.querySelector('select[name="gender"]');
+            const gender = form.querySelector('select[name="gender"]');
             gender.value = (cells[7].textContent.trim() === '男性') ? '0' : '1';
 
             // リリースフラグの選択肢を設定
-            const release_flag = document.querySelector('select[name="release_flag"]');
+            const release_flag = form.querySelector('select[name="release_flag"]');
             release_flag.value = (cells[8].textContent.trim() === '許可') ? '0' : '1';
 
             // メールフラグの選択肢を設定
-            const mail_flag = document.querySelector('select[name="mail_flag"]');
+            const mail_flag = form.querySelector('select[name="mail_flag"]');
             mail_flag.value = (cells[9].textContent.trim() === '許可') ? '0' : '1';
 
             // デバイス追加権限の選択肢を設定
-            const dev_reg_lock = document.querySelector('select[name="dev_reg_lock"]');
+            const dev_reg_lock = form.querySelector('select[name="dev_reg_lock"]');
             dev_reg_lock.value = (cells[12].textContent.trim() === '許可') ? '0' : '1';
 
         });

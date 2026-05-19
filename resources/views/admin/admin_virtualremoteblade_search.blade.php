@@ -145,10 +145,10 @@
                 const blade_name    = cells[2].textContent;
                 const test_flag     = cells[3].textContent.trim();
                 // フォームの対応するフィールドにデータを設定
-                document.querySelector('input[name="id"]').value            = id;
-                document.querySelector('select[name="remote_kind"]').value  = remote_kind_value;
-                document.querySelector('input[name="blade_name"]').value    = blade_name;
-                document.querySelector('select[name="test_flag"]').value    = test_flag;
+                form.querySelector('input[name="id"]').value            = id;
+                form.querySelector('select[name="remote_kind"]').value  = remote_kind_value;
+                form.querySelector('input[name="blade_name"]').value    = blade_name;
+                form.querySelector('select[name="test_flag"]').value    = test_flag;
             });
         });
         

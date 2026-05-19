@@ -210,6 +210,9 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         Route::post('adv/update', [AdminAdvController::class, 'update'])->name('admin.adv.update');
         //検索>削除
         Route::post('adv/destroy', [AdminAdvController::class, 'destroy'])->name('admin.adv.destroy');
+        //広告設定
+        Route::get('adv/config', [AdminAdvController::class, 'config'])->name('admin.adv.config');
+        Route::post('adv/config', [AdminAdvController::class, 'config_update'])->name('admin.adv.config.update');
         //----------------------------------------------------------------------------------
 
         
