@@ -1,17 +1,29 @@
 {
   "resources/css/app.css": {
-    "file": "app.BhgNmcYF.css",
+    "file": "app.BFAFx4GB.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "app.BA0b1BKr.js",
+    "file": "app.CtMNLx58.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true
   },
+  "resources/js/games/asymmetry_dungeon/asymmetry_dungeon.js": {
+    "file": "asymmetry_dungeon.DongMBb6.js",
+    "name": "asymmetry_dungeon",
+    "src": "resources/js/games/asymmetry_dungeon/asymmetry_dungeon.js",
+    "isEntry": true
+  },
+  "resources/js/games/twin_facer/twin_facer.js": {
+    "file": "twin_facer.BTwY2fzG.js",
+    "name": "twin_facer",
+    "src": "resources/js/games/twin_facer/twin_facer.js",
+    "isEntry": true
+  },
   "resources/sass/app.scss": {
-    "file": "app.CWED2TWq.css",
+    "file": "app.pXc9c6cI.css",
     "src": "resources/sass/app.scss",
     "isEntry": true
   }

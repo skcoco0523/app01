@@ -39,6 +39,9 @@ export default defineConfig({
                 'resources/sass/app.scss', // Sassファイル
                 'resources/js/app.js',     // JavaScriptファイル
                 'resources/css/app.css',   // CSSファイル
+                //ここからはゲームのエントリーポイントを追加していく
+                'resources/js/games/twin_facer/twin_facer.js',
+                'resources/js/games/asymmetry_dungeon/asymmetry_dungeon.js',
             ],
             refresh: true,
             detectTls: false,

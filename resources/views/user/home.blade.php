@@ -29,6 +29,14 @@
                 <td><img src="{{ asset('img/icon/roulette_icon_64_64.png') }}" alt="アイコン" class="icon-55"></td>
                 <td>ルーレット</td>
             </tr>
+            <tr class="table-row" onclick="window.location.href='{{ route('games.twin_facer') }}'" style="cursor: pointer;">
+                <td><img src="{{ asset('img/icon/twin_facer_icon_512_512.png') }}" alt="アイコン" class="icon-55"></td>
+                <td>ツインフェイサー</td>
+            </tr>
+            <tr class="table-row" onclick="window.location.href='{{ route('games.asymmetry_dungeon') }}'" style="cursor: pointer;">
+                <td><img src="{{ asset('img/icon/asymmetry_dungeon_icon_64_64.png') }}" alt="アイコン" class="icon-55"></td>
+                <td>アシンメトリー・ダンジョン</td>
+            </tr>
         </tbody>
     </table>
 </div>
