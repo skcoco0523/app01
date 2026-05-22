@@ -27,6 +27,7 @@ use App\Http\Controllers\RouletteController;
 use App\Http\Controllers\SmartRemoteController;
 use App\Http\Controllers\IotDeviceController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\GameController;
 
 
 Auth::routes();
@@ -46,6 +47,8 @@ Route::post('password/reset/mailsend', [UserController::class, 'password_reset_m
 
 Route::get('roulette/show', [RouletteController::class, 'show'])->name('roulette.show');
 
+Route::get('games/twin-facer', [GameController::class, 'twinFacer'])->name('games.twin_facer');
+Route::get('games/asymmetry-dungeon', [GameController::class, 'asymmetryDungeon'])->name('games.asymmetry_dungeon');
 
 
 //-------------------------------------------------------------------------------------------------------
