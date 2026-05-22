@@ -31,7 +31,8 @@ export const AssetLoader = {
         const basePath = window.location.pathname.split('/games/')[0];
 
         list.forEach(asset => {
-            const fullPath = `${basePath}/public/${asset.path}`;
+            //const fullPath = `${basePath}/public/${asset.path}`;
+            const fullPath = `${basePath}/${asset.path}`;
 
             switch (asset.type) {
                 case 'spritesheet':
