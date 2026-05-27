@@ -62,6 +62,13 @@
                 ['url' => route('admin.notification.index', ['send_type' => 'push']), 'label' => 'プッシュ通知'],
             ]
         ],
+        'game' => [
+            'title' => 'ゲーム',
+            'items' => [
+                //['url' => route('admin.game.common_setting'), 'label' => '全般設定'],
+                ['url' => route('admin.game.sprite_sheet'), 'label' => 'スプライトシート管理'],
+            ]
+        ],
         'another' => [
             'title' => 'その他',
             'items' => [
@@ -114,6 +121,14 @@
     }elseif ($tab1 == 'notification' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_notification_left';
         $view_right_file    = 'admin.admin_notification';
+    
+    //=============================================================
+    // ゲーム
+    }elseif ($tab1 == 'game' && $tab2 == 'common_setting' && $tab3 == '') {
+        $view_right_file    = 'admin.admin_game_common_setting';
+    }elseif ($tab1 == 'game' && $tab2 == 'sprite-sheet' && $tab3 == 'search') {
+        $view_left_file     = 'admin.admin_game_sprite_sheet_left';
+        $view_right_file    = 'admin.admin_game_sprite_sheet';
     //=============================================================
     // その他（メモ）
     }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {

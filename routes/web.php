@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AdminAdvController;
 use App\Http\Controllers\Admin\AdminIotDeviceController;
 use App\Http\Controllers\Admin\AdminSmartRemoteController;
 use App\Http\Controllers\Admin\AdminNotificationController;
+use App\Http\Controllers\Admin\AdminGameController;
 use App\Http\Controllers\Admin\AdminAnotherController;
 
 //ユーザー
@@ -229,6 +230,17 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         Route::post('notification/push', [AdminNotificationController::class, 'admin_push_send'])->name('admin.push.send');
         //----------------------------------------------------------------------------------
 
+
+
+        //----------------------------------------------------------------------------------
+        //ゲーム
+        //----------------------------------------------------------------------------------
+        //ゲーム設定
+        Route::get('game/common-setting', [AdminGameController::class, 'common_setting'])->name('admin.game.common_setting');
+        Route::post('game/common-setting', [AdminGameController::class, 'common_setting_update'])->name('admin.game.common_setting.update');
+        //スプライトシート管理
+        Route::get('game/sprite-sheet/search', [AdminGameController::class, 'sprite_sheet'])->name('admin.game.sprite_sheet');
+        Route::post('game/sprite-sheet/update', [AdminGameController::class, 'sprite_sheet_update'])->name('admin.game.sprite_sheet.update');
 
 
         //----------------------------------------------------------------------------------

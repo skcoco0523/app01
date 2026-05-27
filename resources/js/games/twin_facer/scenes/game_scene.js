@@ -17,7 +17,10 @@ export default class GameScene extends Phaser.Scene {
         this.SETTINGS = {
             maxHp: 3, timeLimit: 60, enableDoubleJump: true, enemyCount: 10,
             scrollSpeed: 0.4, playerScale: 0.3, hitboxWidth: 40, hitboxHeight: 40,
-            footY: 215, idleToFrontTime: 3000
+            footY: 215, idleToFrontTime: 3000,
+            
+            // 🌟【重要】ここを使用したいキャラクターの識別名にするだけで、アセットやモーションデータが一発で切り替わります
+            playerType: 'player1' 
         };
         this.WORLD_HEIGHT = (this.SETTINGS.enemyCount * 140) + 600;
 
@@ -27,7 +30,6 @@ export default class GameScene extends Phaser.Scene {
         this.lastInputTime = 0; this.lastAttackTime = 0; this.lastComboTime = 0;
         this.autoScrollY = this.WORLD_HEIGHT - 700; this.isScrollStarted = false;
         
-        // 🌟【重要】消えていたライフ（HP）の初期化をここで確実に実行！
         this.hp = this.SETTINGS.maxHp;
     }
 
@@ -53,8 +55,17 @@ export default class GameScene extends Phaser.Scene {
         this.environment = new Environment(this);
         Platforms.generate(this, this.SETTINGS.enemyCount, 140, this.WORLD_HEIGHT);
 
-        // プレイヤーの召喚
-        this.player = new Player(this, 225, this.WORLD_HEIGHT - 60, this.SETTINGS.playerScale, this.SETTINGS.hitboxWidth, this.SETTINGS.hitboxHeight, this.SETTINGS.footY);
+        // 🌟【重要】引数に this.SETTINGS.playerType を追加して、動的ロードに適合させます
+        this.player = new Player(
+            this, 
+            225, 
+            this.WORLD_HEIGHT - 60, 
+            this.SETTINGS.playerType, 
+            this.SETTINGS.playerScale, 
+            this.SETTINGS.hitboxWidth, 
+            this.SETTINGS.hitboxHeight, 
+            this.SETTINGS.footY
+        );
 
         // コントローラーの接続
         InputController.init(this, { mode: 'split', invertSides: false, moveZoneRatio: 0.5 });
