@@ -29,6 +29,12 @@
     @endif
 
 
+    {{---------------- ゲームメニュー ------------------}}
+    @if($tab1 == "game")
+        @if($tab2 == "common_setting")     @include('admin.admin_game_common_setting') @endif
+        @if($tab2 == "sprite-sheet")   @include('admin.admin_game_sprite_sheet') @endif
+    @endif  
+
     {{---------------- その他メニュー ------------------}}
     @if($tab1 == "another")
         @if($tab2 == "memo-search")     @include('admin.admin_memo_search') @endif

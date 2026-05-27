@@ -3,40 +3,51 @@
 // 全ゲームの素材（アセット）を一括管理する中央目録
 const ASSET_MANIFEST = {
     twin_facer: [
+        // 🌟 プレイヤー1用の素材セット
         {
-            key: 'twin_player',
-            type: 'spritesheet',
-            path: 'img/sprite_sheet/twin_player1_1024.png',
-            config: { frameWidth: 256, frameHeight: 256 }
+            key: 'player1_atlas',
+            type: 'atlas',
+            path: 'storage/sprite_sheet/twin_twin_facer_player1.png',
+            atlasPath: 'storage/sprite_sheet/twin_twin_facer_player1_atlas.json'
+        },
+        {
+            key: 'player1_motion',
+            type: 'json',
+            path: 'storage/sprite_sheet/twin_twin_facer_player1_motion.json'
+        },
+
+        // プレイヤー2、3を増やす時は、以下のようにビルドなしでここに追記する
+        {
+            key: 'player2_atlas',
+            type: 'atlas',
+            path: 'storage/sprite_sheet/twin_twin_facer_player2.png',
+            atlasPath: 'storage/sprite_sheet/twin_twin_facer_player2_atlas.json'
+        },
+        {
+            key: 'player2_motion',
+            type: 'json',
+            path: 'storage/sprite_sheet/twin_twin_facer_player2_motion.json'
         }
-        // 💡 今後別のゲームを作ったら、ここに設定を書き足すだけで一発ロードできるようになります
-        // space_shooter: [ { key: 'ship', type: 'image', path: 'img/ship.png' } ]
     ]
 };
 
 export const AssetLoader = {
-    /**
-     * 指定されたゲーム名に必要なアセットを目録から自動で引き抜いてロードする
-     * @param {Phaser.Scene} scene - 実行元のPhaserシーン (this)
-     * @param {string} gameName - 管理コード (例: 'twin_facer')
-     */
     load(scene, gameName) {
         const list = ASSET_MANIFEST[gameName];
-        if (!list) {
-            console.error(`指定されたゲーム名のアセット目録が見つかりません: ${gameName}`);
-            return;
-        }
+        if (!list) return;
 
-        // 共通のベースパスを自動計算
         const basePath = window.location.pathname.split('/games/')[0];
 
         list.forEach(asset => {
-            //const fullPath = `${basePath}/public/${asset.path}`;
             const fullPath = `${basePath}/${asset.path}`;
 
             switch (asset.type) {
-                case 'spritesheet':
-                    scene.load.spritesheet(asset.key, fullPath, asset.config);
+                case 'atlas':
+                    const fullAtlasPath = `${basePath}/${asset.atlasPath}`;
+                    scene.load.atlas(asset.key, fullPath, fullAtlasPath);
+                    break;
+                case 'json':
+                    scene.load.json(asset.key, fullPath);
                     break;
                 case 'image':
                     scene.load.image(asset.key, fullPath);
