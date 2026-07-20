@@ -20,8 +20,8 @@ class AdminIotDeviceController extends Controller
         else                                    $input = $request->all();
         
         $input['admin_flag']            = true;
-        $input['search_addr']           = get_proc_data($input,"search_addr");
-        $input['search_owner_id']       = get_proc_data($input,"search_owner_id");
+        $input['search_mac_addr']       = get_proc_data($input,"search_addr");
+        $input['search_admin_user_id']  = get_proc_data($input,"search_owner_id");
         $input['search_type']           = get_proc_data($input,"search_type");
         $input['search_pincode']        = get_proc_data($input,"search_pincode");
 

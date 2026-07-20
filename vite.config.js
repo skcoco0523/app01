@@ -40,8 +40,7 @@ export default defineConfig({
                 'resources/js/app.js',     // JavaScriptファイル
                 'resources/css/app.css',   // CSSファイル
                 //ここからはゲームのエントリーポイントを追加していく
-                'resources/js/games/twin_facer/twin_facer.js',
-                'resources/js/games/asymmetry_dungeon/asymmetry_dungeon.js',
+                'resources/js/games/game_engine/main.js',
             ],
             refresh: true,
             detectTls: false,

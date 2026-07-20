@@ -85,13 +85,15 @@ if (! function_exists('get_proc_data')) {
      */
     function get_proc_data($input, $key)
     {
-        $value = $input[$key] ?? null;
-        // 値が存在し、かつ空でない場合、その値を返す
-        if (isset($value) && $value !== '') {
-            return $value;
+        if (is_array($input) && array_key_exists($key, $input)) {
+            $value = $input[$key];
+            // 値が存在し、かつ空でない場合、その値を返す
+            if ($value !== '' && $value !== null) {
+                return $value;
+            }
         }
         // 値がnullまたは空の場合はnullを返す
-        return null;        
+        return null;
     }
 }
 

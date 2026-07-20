@@ -29,14 +29,12 @@
                 <td><img src="{{ asset('img/icon/roulette_icon_64_64.png') }}" alt="アイコン" class="icon-55"></td>
                 <td>ルーレット</td>
             </tr>
-            <tr class="table-row" onclick="window.location.href='{{ route('games.twin_facer') }}'" style="cursor: pointer;">
-                <td><img src="{{ asset('img/icon/twin_facer_icon_512_512.png') }}" alt="アイコン" class="icon-55"></td>
-                <td>ツインフェイサー</td>
+            @foreach ($games as $game)
+            <tr class="table-row" onclick="window.location.href='{{ route('games.play', $game->game_key) }}'" style="cursor: pointer;">
+                <td><img src="{{ asset('img/icon/' . $game->game_key . '_icon_128_128.png') }}"  alt="アイコン" class="icon-55"></td>
+                <td>{{ $game->title }}</td>
             </tr>
-            <tr class="table-row" onclick="window.location.href='{{ route('games.asymmetry_dungeon') }}'" style="cursor: pointer;">
-                <td><img src="{{ asset('img/icon/asymmetry_dungeon_icon_64_64.png') }}" alt="アイコン" class="icon-55"></td>
-                <td>アシンメトリー・ダンジョン</td>
-            </tr>
+            @endforeach
         </tbody>
     </table>
 </div>

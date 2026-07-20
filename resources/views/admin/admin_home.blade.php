@@ -1,5 +1,3 @@
-
-<!--<link rel="stylesheet" href="{{ asset('/css/style.css') }}">-->
 @extends('admin.app')
 
 @section('content')
@@ -9,7 +7,7 @@
     $segments = request()->segments();
 
     // `tab` パラメータを取得（クエリパラメータとして）
-    $tab1 = request()->query('tab1');   
+    $tab1 = request()->query('tab1');  
 
     // `tab` パラメータが存在しない場合に URL のセグメントを取得
     if (!$tab1) $tab1 = $segments[1] ?? null;
@@ -65,8 +63,16 @@
         'game' => [
             'title' => 'ゲーム',
             'items' => [
-                //['url' => route('admin.game.common_setting'), 'label' => '全般設定'],
-                ['url' => route('admin.game.sprite_sheet'), 'label' => 'スプライトシート管理'],
+                ['url' => route('admin.game.index'), 'label' => 'ゲーム一覧'],
+                ['label' => '<br><span class="text-muted small fw-bold">【マスターデータ】</span>'],
+                ['url' => route('admin.game.character.index'), 'label' => 'キャラクター管理'],
+                ['url' => route('admin.game.map.index'), 'label' => 'マップ管理'],
+                ['url' => route('admin.game.stage.index'), 'label' => 'ステージ管理'],
+                ['url' => route('admin.game.item.index'), 'label' => '武器・アイテム管理'],
+                ['label' => '<br><span class="text-muted small fw-bold">【デザイナーツール】</span>'],
+                ['url' => route('admin.game.sprite_sheet.index'), 'label' => 'スプライトシート管理'],
+                ['url' => route('admin.game.pixel_parts.index'), 'label' => 'ピクセルパーツ管理'],
+                ['url' => route('admin.game.grid_parts.index'), 'label' => 'グリッドパーツ管理'],
             ]
         ],
         'another' => [
@@ -80,35 +86,25 @@
     $current_menu = $menu_configs[$tab1] ?? null;
 
     //=============================================================
-    // iotデバイスの検索画面
+    // 各画面へのマッピング分岐
     if ($tab1 == 'iotdevice' && $tab2 == 'create' && $tab3 == '') {
         $view_right_file    = 'admin.admin_iotdevice_create';
     }elseif ($tab1 == 'iotdevice' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_iotdevice_search_left';
         $view_right_file    = 'admin.admin_iotdevice_search';
-    //=============================================================
-    // スマートリモコンの検索画面
     }elseif ($tab1 == 'virtualremote-blade' && $tab2 == 'create' && $tab3 == '') {
         $view_right_file    = 'admin.admin_virtualremoteblade_create';
     }elseif ($tab1 == 'virtualremote-blade' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_virtualremoteblade_search_left';
         $view_right_file    = 'admin.admin_virtualremoteblade_search';
-    //=============================================================
-    // ユーザー一覧
     }elseif ($tab1 == 'user' && $tab2 == 'create' && $tab3 == '') {
-        //ユーザーの新規登録はないため、右側は空白のまま
     }elseif ($tab1 == 'user' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_user_search_left';
         $view_right_file    = 'admin.admin_user_search';
-    //=============================================================
-    // ユーザーリクエスト
     }elseif ($tab1 == 'user' && $tab2 == 'request' && $tab3 == 'create') {
-        //ユーザーリクエストの新規登録はないため、右側は空白のまま
     }elseif ($tab1 == 'user' && $tab2 == 'request' && $tab3 == 'search') {
         $view_left_file     = 'admin.admin_request_search_left';
         $view_right_file    = 'admin.admin_request_search';
-    //=============================================================
-    // 広告
     }elseif ($tab1 == 'adv' && $tab2 == 'create' && $tab3 == '') {
         $view_right_file    = 'admin.admin_adv_create';
     }elseif ($tab1 == 'adv' && $tab2 == 'search' && $tab3 == '') {
@@ -116,21 +112,48 @@
         $view_right_file    = 'admin.admin_adv_search';
     }elseif ($tab1 == 'adv' && $tab2 == 'config' && $tab3 == '') {
         $view_right_file    = 'admin.admin_adv_config';
-    //=============================================================
-    // 通知
     }elseif ($tab1 == 'notification' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_notification_left';
         $view_right_file    = 'admin.admin_notification';
     
     //=============================================================
-    // ゲーム
-    }elseif ($tab1 == 'game' && $tab2 == 'common_setting' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_game_common_setting';
-    }elseif ($tab1 == 'game' && $tab2 == 'sprite-sheet' && $tab3 == 'search') {
-        $view_left_file     = 'admin.admin_game_sprite_sheet_left';
-        $view_right_file    = 'admin.admin_game_sprite_sheet';
-    //=============================================================
-    // その他（メモ）
+    // ゲーム関連画面の分岐
+    }elseif ($tab1 == 'game' && $tab2 == 'common' && $tab3 == 'search') {
+        $view_left_file     = 'admin.game.admin_game_list_left';
+        $view_right_file    = 'admin.game.admin_game_list';
+    }elseif ($tab1 == 'game' && $tab2 == 'character' && $tab3 == 'search') {
+        $view_left_file     = 'admin.game.admin_character_left';
+        $view_right_file    = 'admin.game.admin_character';
+    }elseif ($tab1 == 'game' && $tab2 == 'map' && $tab3 == 'search') {
+        $view_left_file     = 'admin.game.admin_map_left';
+        $view_right_file    = 'admin.game.admin_map';
+    }elseif ($tab1 == 'game' && $tab2 == 'stage' && $tab3 == 'search') {
+        $view_left_file     = 'admin.game.admin_stage_left';
+        $view_right_file    = 'admin.game.admin_stage';
+    }elseif ($tab1 == 'game' && $tab2 == 'item' && $tab3 == 'search') {
+        $view_left_file     = 'admin.game.admin_item_left';
+        $view_right_file    = 'admin.game.admin_item';
+        
+    }elseif ($tab1 == 'game' && $tab2 == 'sprite-sheet' && $tab3 == '') {
+        // 🌟【修正】スプライトシート管理 ＝ 純粋な画像倉庫
+        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+        $view_right_file    = 'admin.game.admin_game_sprite_sheet';
+
+    }elseif ($tab1 == 'game' && $tab2 == 'pixel-parts' && $tab3 == '') {
+        // 🌟【新設】ピクセルパーツ管理
+        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+        $view_right_file    = 'admin.game.admin_game_pixel_parts';
+
+    }elseif ($tab1 == 'game' && $tab2 == 'grid-parts' && $tab3 == '') {
+        // 🌟【新設】グリッドパーツ管理
+        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+        $view_right_file    = 'admin.game.admin_game_grid_parts';
+
+    }elseif ($tab1 == 'game' && $tab2 == 'asset' && $tab3 == '') {
+        // 🌟【修正】画像アセット管理 ＝ 職人部屋エディタ本体
+        $view_left_file     = 'admin.game.admin_game_asset_left';
+        $view_right_file    = 'admin.game.admin_game_asset';
+
     }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {
         $view_left_file     = 'admin.admin_memo_search_left';
         $view_right_file    = 'admin.admin_memo_search';
@@ -140,7 +163,6 @@
 
 <div class="container-fluid" style="width: 100%;">
     <div class="row">
-        {{-- メニュー選択したタブによって切り替え --}}
         <div class="col-12 col-md-2">
             <div class="rounded border p-3 mb-2">
                 <div class="menu_section">
@@ -160,7 +182,6 @@
                 @includeIf($view_left_file)
             </div>
         </div>
-        <!--メイン-->
         <div class="col-12 col-md-10">
             <div class="rounded border p-3 mb-2">
                 @includeIf($view_right_file)

@@ -58,7 +58,7 @@
                         </div>
                         <div id="reply-{{$request->id}}" class="reply-content mt-2 d-none">
                             <div class="fw-bold mb-1">回答:</div>
-                            {!! nl2br($request->reply) !!}
+                            {!! nl2br(e($request->reply)) !!}
                         </div>
                     </div>
                     @if($request->status == config('common.request_status.unresolved') && $request->reply == null)

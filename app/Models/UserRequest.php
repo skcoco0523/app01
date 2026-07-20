@@ -32,8 +32,8 @@ class UserRequest extends Model
                     if (get_proc_data($keyword,"search_status")) 
                         $sql_cmd = $sql_cmd->where('user_requests.status', $keyword['search_status']);
 
-                    if (get_proc_data($keyword,"search_mess")) 
-                        $sql_cmd = $sql_cmd->where('user_requests.message', 'like', '%'. $keyword['search_mess']. '%');
+                    if (get_proc_data($keyword,"search_message")) 
+                        $sql_cmd = $sql_cmd->where('user_requests.message', 'like', '%'. $keyword['search_message']. '%');
 
                     if (get_proc_data($keyword,"search_reply")) 
                         $sql_cmd = $sql_cmd->where('user_requests.reply', 'like', '%'. $keyword['search_reply']. '%');
@@ -43,8 +43,8 @@ class UserRequest extends Model
                     
                 //ユーザーによる検索
                 }else{
-                    if (get_proc_data($keyword,"user_id")){
-                        $sql_cmd = $sql_cmd->where('user_id',$keyword['user_id']);
+                    if (get_proc_data($keyword,"search_user_id")){
+                        $sql_cmd = $sql_cmd->where('user_id',$keyword['search_user_id']);
                     }
                 }
             }

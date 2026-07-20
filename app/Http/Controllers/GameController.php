@@ -6,13 +6,9 @@ use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
-    public function twinFacer()
+    public function play($gameKey)
     {
-        return view('games.twin_facer');
-    }
-
-    public function asymmetryDungeon()
-    {
-        return view('games.asymmetry_dungeon');
+        $game = \App\Models\GameList::where('game_key', $gameKey)->firstOrFail();
+        return view('games.play', ['game' => $game, 'gameKey' => $gameKey]);
     }
 }

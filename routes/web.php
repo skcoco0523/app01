@@ -15,6 +15,11 @@ use App\Http\Controllers\Admin\AdminIotDeviceController;
 use App\Http\Controllers\Admin\AdminSmartRemoteController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminGameController;
+use App\Http\Controllers\Admin\AdminGameCharacterController;
+use App\Http\Controllers\Admin\AdminGameMapController;
+use App\Http\Controllers\Admin\AdminGameStageController;
+use App\Http\Controllers\Admin\AdminGameItemController;
+use App\Http\Controllers\Admin\AdminGameAssetController;
 use App\Http\Controllers\Admin\AdminAnotherController;
 
 //ユーザー
@@ -48,8 +53,8 @@ Route::post('password/reset/mailsend', [UserController::class, 'password_reset_m
 
 Route::get('roulette/show', [RouletteController::class, 'show'])->name('roulette.show');
 
-Route::get('games/twin-facer', [GameController::class, 'twinFacer'])->name('games.twin_facer');
-Route::get('games/asymmetry-dungeon', [GameController::class, 'asymmetryDungeon'])->name('games.asymmetry_dungeon');
+// 共通ゲーム基盤（データドリブン用）
+Route::get('play/{gameKey}', [GameController::class, 'play'])->name('games.play');
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -231,16 +236,43 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //----------------------------------------------------------------------------------
 
 
+        //----------------------------------------------------------------------------------
+        //ゲーム（汎用プラットフォーム制御）
+        //----------------------------------------------------------------------------------
+        // ゲーム一覧・基本情報
+        Route::get('game/common/search', [AdminGameController::class, 'game_index'])->name('admin.game.index');
+        Route::post('game/common/update', [AdminGameController::class, 'game_update'])->name('admin.game.update');
+        Route::post('game/common/destroy', [AdminGameController::class, 'game_destroy'])->name('admin.game.destroy');
+        Route::get('game/master/publish/{gameKey}/{type?}/{targetKey?}', [AdminGameController::class, 'publishGame'])->name('admin.game.publish');
 
-        //----------------------------------------------------------------------------------
-        //ゲーム
-        //----------------------------------------------------------------------------------
-        //ゲーム設定
-        Route::get('game/common-setting', [AdminGameController::class, 'common_setting'])->name('admin.game.common_setting');
-        Route::post('game/common-setting', [AdminGameController::class, 'common_setting_update'])->name('admin.game.common_setting.update');
-        //スプライトシート管理
-        Route::get('game/sprite-sheet/search', [AdminGameController::class, 'sprite_sheet'])->name('admin.game.sprite_sheet');
-        Route::post('game/sprite-sheet/update', [AdminGameController::class, 'sprite_sheet_update'])->name('admin.game.sprite_sheet.update');
+        // キャラクター管理・職人部屋
+        Route::get('game/character/search', [AdminGameCharacterController::class, 'character_index'])->name('admin.game.character.index');
+        Route::post('game/character/update', [AdminGameCharacterController::class, 'character_update'])->name('admin.game.character.update');
+        Route::get('game/asset', [AdminGameCharacterController::class, 'asset_index'])->name('admin.game.asset.index');
+        Route::post('game/asset/update', [AdminGameCharacterController::class, 'asset_update'])->name('admin.game.asset.update');
+
+        // マップ管理
+        Route::get('game/map/search', [AdminGameMapController::class, 'map_index'])->name('admin.game.map.index');
+        Route::post('game/map/update', [AdminGameMapController::class, 'map_update'])->name('admin.game.map.update');
+        Route::post('game/map/destroy', [AdminGameMapController::class, 'map_destroy'])->name('admin.game.map.destroy');
+
+        // ステージ管理
+        Route::get('game/stage/search', [AdminGameStageController::class, 'stage_index'])->name('admin.game.stage.index');
+        Route::post('game/stage/update', [AdminGameStageController::class, 'stage_update'])->name('admin.game.stage.update');
+
+        // 武器・アイテム管理
+        Route::get('game/item/search', [AdminGameItemController::class, 'item_index'])->name('admin.game.item.index');
+        Route::post('game/item/update', [AdminGameItemController::class, 'item_update'])->name('admin.game.item.update');
+
+        // スプライトシート管理（画像倉庫・切り出し定義）
+        Route::get('game/sprite-sheet', [AdminGameAssetController::class, 'sprite_sheet_index'])->name('admin.game.sprite_sheet.index');
+        Route::get('game/pixel-parts', [AdminGameAssetController::class, 'pixel_parts_index'])->name('admin.game.pixel_parts.index');
+        Route::get('game/grid-parts', [AdminGameAssetController::class, 'grid_parts_index'])->name('admin.game.grid_parts.index');
+        
+        Route::post('game/sprite-sheet/upload', [AdminGameAssetController::class, 'sprite_sheet_upload'])->name('admin.game.sprite_sheet.upload');
+        Route::post('game/sprite-sheet/update', [AdminGameAssetController::class, 'sprite_sheet_update'])->name('admin.game.sprite_sheet.update');
+        Route::post('game/sprite-sheet/destroy', [AdminGameAssetController::class, 'sprite_sheet_destroy'])->name('admin.game.sprite_sheet.destroy');
+        Route::post('game/sprite-sheet/rename', [AdminGameAssetController::class, 'sprite_sheet_rename'])->name('admin.game.sprite_sheet.rename');
 
 
         //----------------------------------------------------------------------------------
