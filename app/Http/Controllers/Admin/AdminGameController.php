@@ -4,110 +4,71 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
+use App\Models\GameList;
+use App\Models\GamePublisher;
 
 class AdminGameController extends Controller
 {
-    /**
-     * ゲーム全般設定画面
-     */
-    public function common_setting(Request $request)
+    //==================================================================================
+    // ゲーム一覧・基本情報 (game/common/search)
+    //==================================================================================
+    public function game_index(Request $request)
     {
-        return view('admin.admin_home', [
-            'input' => $request->all(),
-        ]);
-    }
-
-    /**
-     * スプライトシート管理画面
-     */
-    public function sprite_sheet(Request $request)
-    {
-        $directory = public_path('storage/sprite_sheet');
-        $allFiles = File::exists($directory) ? File::files($directory) : [];
+        //リダイレクトの場合、inputを取得
+        if($request->input('input')!==null)     $input = request('input');
+        else                                    $input = $request->all();
         
-        // PNG画像ファイルだけを抽出して一覧化
-        $images = [];
-        foreach ($allFiles as $file) {
-            if (strtolower($file->getExtension()) === 'png') {
-                $images[] = $file->getFilename();
-            }
-        }
+        $keyword = [];
+        $keyword['admin_flag']            = true;
+        $games =  GameList::getGameList(99, false, 1, $keyword);
 
-        // 検索フィルタ処理
-        $search = $request->input('search');
-        if (!empty($search)) {
-            $images = array_filter($images, function($filename) use ($search) {
-                return str_contains($filename, $search);
-            });
-        }
-
-        // 現在編集中のターゲットファイル
-        $activeFile = $request->input('file');
-        $atlasContent = '';
-        $motionContent = '';
-
-        if ($activeFile) {
-            $baseName = pathinfo($activeFile, PATHINFO_FILENAME);
-            
-            // _atlas.json と _motion.json のパスを解決
-            $atlasPath = public_path("storage/sprite_sheet/{$baseName}_atlas.json");
-            $motionPath = public_path("storage/sprite_sheet/{$baseName}_motion.json");
-
-            if (File::exists($atlasPath)) {
-                $atlasContent = File::get($atlasPath);
-            }
-            if (File::exists($motionPath)) {
-                $motionContent = File::get($motionPath);
-            }
-        }
-
+        $keyword['search_game_key']       = get_proc_data($input, "game_key");
+        $activeGame =  GameList::getGameList(1, false, 1, $keyword)->first();
         return view('admin.admin_home', [
-            'images' => $images,
-            'activeFile' => $activeFile,
-            'atlasContent' => $atlasContent,
-            'motionContent' => $motionContent,
-            'input' => $request->all(),
+            'games'      => $games,
+            'activeGame' => $activeGame,
+            'input'      => $request->all(),
         ]);
     }
 
-    /**
-     * JSONデータの更新（アトラスとモーションの同時対応）
-     */
-    public function sprite_sheet_update(Request $request)
+    public function game_update(Request $request)
     {
-        $filename = $request->input('filename');
-        $atlasContent = $request->input('atlas_content');
-        $motionContent = $request->input('motion_content');
+        $params = $request->only(['id', 'game_key', 'title', 'description', 'version', 'view_mode', 'orientation']);
+        $params['enable_flag']     = $request->boolean('enable_flag', false);
+        $params['login_user_flag'] = $request->boolean('login_user_flag', false);
+        $params['admin_only_flag'] = $request->boolean('admin_only_flag', false);
 
-        if (!$filename) {
-            return redirect()->back()->with('msg', 'ファイルが選択されていません。');
+        $result = GameList::chgGame($params);
+        if (!$result['success']) {
+            return redirect()->back()->with('msg', $result['msg'])->withInput();
+        }
+        return redirect()->route('admin.game.index', ['game_key' => $result['game']->game_key])->with('msg', $result['msg']);
+    }
+
+    public function game_destroy(Request $request)
+    {
+        $id = $request->input('id');
+        $result = GameList::delGame($id);
+        return redirect()->route('admin.game.index')->with('msg', $result['msg']);
+    }
+
+    //==================================================================================
+    // 静的JSONファイルの一括パブリッシュ
+    //==================================================================================
+    public function publishGame($gameKey, $type = null, $targetKey = null)
+    {
+        // 個別パブリッシュ (スプライトシート)
+        if ($type === 'sprite_sheet' && $targetKey) {
+            $result = GamePublisher::publishSpriteSheet($gameKey, $targetKey);
+            if ($result['success']) {
+                return redirect()->back()->with('msg', "🟢 スプライトシート [{$targetKey}] の定義を個別に反映しました。");
+            }
+            return redirect()->back()->with('msg', "⚠️エラー: " . $result['msg']);
         }
 
-        $baseName = pathinfo($filename, PATHINFO_FILENAME);
-        $atlasPath = public_path("storage/sprite_sheet/{$baseName}_atlas.json");
-        $motionPath = public_path("storage/sprite_sheet/{$baseName}_motion.json");
-
-        try {
-            // アトラスJSON形式のチェック
-            if (!empty($atlasContent) && json_decode($atlasContent) === null) {
-                return redirect()->back()->with('msg', '保存失敗：アトラスJSONの形式が正しくありません。');
-            }
-            // モーションJSON形式のチェック
-            if (!empty($motionContent) && json_decode($motionContent) === null) {
-                return redirect()->back()->with('msg', '保存失敗：モーションJSONの形式が正しくありません。');
-            }
-
-            // ファイルの書き込み
-            if (!empty($atlasContent)) File::put($atlasPath, $atlasContent);
-            if (!empty($motionContent)) File::put($motionPath, $motionContent);
-
-            return redirect()->route('admin.game.sprite_sheet', [
-                'file' => $filename,
-                'mode' => $request->input('mode')
-            ])->with('msg', 'JSON設定を保存しました。');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('msg', 'エラーが発生しました: ' . $e->getMessage());
-        }
+        // 一括パブリッシュ (GamePublisher モデルに集約)
+        $result = GamePublisher::publishAll($gameKey);
+        
+        return redirect()->back()->with('msg', $result['success'] ? "🟢 " . $result['msg'] : "⚠️ " . $result['msg']);
     }
 }

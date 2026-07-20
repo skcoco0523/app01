@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Home;
-use App\Models\Ranking;
-use App\Models\Recommend;
-use App\Models\CustomCategory;
+use App\Models\GameList;
+
 
 class HomeController extends Controller
 {
@@ -28,9 +27,12 @@ class HomeController extends Controller
      */
     public function index()
     {
-        //ランキング
-        $test = "";
-        return view('user.home', compact('test'));
+        //利用可能ゲーム
+        $keyword = [];
+        $keyword['search_dummy'] = true;
+        $games = GameList::getGameList(99, false, 1, $keyword);
+
+        return view('user.home', compact('games'));
 
     }
     public function dashboard()

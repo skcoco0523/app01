@@ -25,18 +25,17 @@ class MqttListener extends Command
         $error_log = "subscribeMQTT.log";
         make_error_log($error_log,"--------setup start---------");
 
-        $server   = env('MQTT_BROKER_HOST', 'localhost');
-        $port     = env('MQTT_BROKER_PORT', 8883); // AWS IoTは通常8883
-        $clientId = env('MQTT_CLIENT_ID', 'laravel_mqtt_listener');
-        $clientId .= "-listener"; // リスナー用にクライアントIDを変更
-        
+        $server   = config('services.mqtt.host');
+        $port     = (int) config('services.mqtt.port');
+        $clientId = config('services.mqtt.client_id') . '-listener';
+
         // AWS IoT Core接続用の設定を作成
         $settings = (new ConnectionSettings())
             ->setConnectTimeout(10)
             ->setUseTls(true)
-            ->setTlsCertificateAuthorityFile(storage_path(env('MQTT_CERT_CA')))
-            ->setTlsClientCertificateFile(storage_path(env('MQTT_CERT_CRT')))
-            ->setTlsClientCertificateKeyFile(storage_path(env('MQTT_CERT_KEY')));
+            ->setTlsCertificateAuthorityFile(storage_path(config('services.mqtt.cert_ca')))
+            ->setTlsClientCertificateFile(storage_path(config('services.mqtt.cert_crt')))
+            ->setTlsClientCertificateKeyFile(storage_path(config('services.mqtt.cert_key')));
             
         make_error_log($error_log,"server:".$server."  port:".$port."  clientId:".$clientId);
         try {

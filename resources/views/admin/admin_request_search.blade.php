@@ -88,10 +88,10 @@
                     <td class="fw-light">{{$request->name}}</td>
                     <td class="fw-light">{{$request->type == '0' ? '要望' : '問い合わせ' }}</td>
                     <td class="fw-light">{{$request->status == '0' ? '未対応' : '対応済' }}</td>
-                    <td class="fw-light">{!! nl2br($request->message) !!}</td>
-                    <td class="fw-light">{!! nl2br($request->reply) !!}</td>
-                    <td class="fw-light">{!! str_replace(' ', '<br>', $request->created_at) !!}</td>
-                    <td class="fw-light">{!! str_replace(' ', '<br>', $request->updated_at) !!}</td>
+                    <td class="fw-light">{!! nl2br(e($request->message)) !!}</td>
+                    <td class="fw-light">{!! nl2br(e($request->reply)) !!}</td>
+                    <td class="fw-light">{!! str_replace(' ', '<br>', e($request->created_at)) !!}</td>
+                    <td class="fw-light">{!! str_replace(' ', '<br>', e($request->updated_at)) !!}</td>
                 </tr>
             @endforeach
             </tbody>

@@ -22,7 +22,7 @@ class AdminRequestController extends Controller
         $input['admin_flag']            = true;
         $input['search_type']           = get_proc_data($input,"search_type");
         $input['search_status']         = get_proc_data($input,"search_status");
-        $input['search_mess']           = get_proc_data($input,"search_mess");
+        $input['search_message']        = get_proc_data($input,"search_mess");
         $input['search_reply']          = get_proc_data($input,"search_reply");
 
         $input['page']                  = get_proc_data($input,"page");

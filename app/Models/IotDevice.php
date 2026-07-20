@@ -27,37 +27,37 @@ class IotDevice extends Model
                 //管理者による検索
                 if(get_proc_data($keyword,"admin_flag")){
 
-                    if (isset($keyword['search_addr'])) 
-                        $sql_cmd = $sql_cmd->where('dev.mac_addr', 'like', '%'. $keyword['search_addr']. '%');
+                    if (get_proc_data($keyword, 'search_mac_addr')) 
+                        $sql_cmd = $sql_cmd->where('dev.mac_addr', 'like', '%'. $keyword['search_mac_addr']. '%');
 
-                    if (isset($keyword['search_owner_id'])) 
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_owner_id']);
+                    if (get_proc_data($keyword, 'search_admin_user_id')) 
+                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
 
-                    if (isset($keyword['search_type'])) 
+                    if (get_proc_data($keyword, 'search_type')) 
                         $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
 
-                    if (isset($keyword['search_ver'])) 
+                    if (get_proc_data($keyword, 'search_ver')) 
                         $sql_cmd = $sql_cmd->where('dev.ver',$keyword['search_ver']);
 
-                    if (isset($keyword['search_pincode'])) 
+                    if (get_proc_data($keyword, 'search_pincode')) 
                         $sql_cmd = $sql_cmd->where('dev.pincode',$keyword['search_pincode']);
 
                 //ユーザーによる検索
                 }else{      
                     //本登録時の仮登録デバイス検索
-                    if(get_proc_data($keyword,"final_register_flag")){  
-                        $sql_cmd = $sql_cmd->where('dev.pincode',$keyword['pincode']);
-                        $sql_cmd = $sql_cmd->where('dev.name',$keyword['name']);
+                    if(get_proc_data($keyword,"search_final_register_flag")){  
+                        $sql_cmd = $sql_cmd->where('dev.pincode',$keyword['search_pincode']);
+                        $sql_cmd = $sql_cmd->where('dev.name',$keyword['search_name']);
                         $sql_cmd = $sql_cmd->whereNull('dev.admin_user_id');
                     }
 
-                    if (isset($keyword['search_admin_uid']))
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_uid']);
+                    if (get_proc_data($keyword, 'search_admin_user_id'))
+                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
                     
-                    if (isset($keyword['search_id'])) 
+                    if (get_proc_data($keyword, 'search_id')) 
                         $sql_cmd = $sql_cmd->where('dev.id',$keyword['search_id']);
 
-                    if (isset($keyword['search_type'])) 
+                    if (get_proc_data($keyword, 'search_type')) 
                         $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
                 }
                 //並び順
@@ -86,7 +86,7 @@ class IotDevice extends Model
             //dd($iotdevice_list);
             foreach($iotdevice_list as $key => $iotdevice){
                 // 関連デバイスは詳細検索時のみ取得
-                if (isset($keyword['search_detail']) && $keyword['search_detail'] === true) {
+                if (get_proc_data($keyword, 'search_detail') === true) {
                     //デバイスの信号
                     $iotdevice->signal_list = IotDeviceSignal::where('device_id', $iotdevice->id)->get();
                     // 親デバイス（Hub）
@@ -134,7 +134,7 @@ class IotDevice extends Model
             if(!isset($data['pincode']))        $error_code = 4;   //データ不足
             
             
-            $keyword = array('admin_flag'=>true,'mac_addr'=>$data['mac_addr']);
+            $keyword = array('admin_flag'=>true,'search_mac_addr'=>$data['mac_addr']);
             $iotdevice_list = IotDevice::getIotDeviceList(1,false,null,$keyword);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
             //dd($iotdevice_list);
             if($error_code){

@@ -43,6 +43,15 @@ return [
         'affiliate_id' => env('RAKUTEN_AFFILIATE_ID'),
         'origin' => env('RAKUTEN_ORIGIN'),
     ],
-    
+    //MQTT (AWS IoT Core)
+    'mqtt' => [
+        'host'      => env('MQTT_BROKER_HOST', 'localhost'),
+        'port'      => env('MQTT_BROKER_PORT', 8883),
+        'client_id' => env('MQTT_CLIENT_ID', 'laravel_mqtt_listener'),
+        'cert_ca'   => env('MQTT_CERT_CA'),
+        'cert_crt'  => env('MQTT_CERT_CRT'),
+        'cert_key'  => env('MQTT_CERT_KEY'),
+    ],
+
 
 ];

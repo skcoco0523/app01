@@ -89,7 +89,7 @@ class RegisterController extends Controller
                 $send_info = new \stdClass();
                 $send_info->title = "不正登録通知";
                 $send_info->body = "ip:". request()->ip()."\nユーザー名：".$data['name']."\nemail：".$data['email'];
-                $send_info->url = route('admin-user-search');
+                $send_info->url = route('admin.user.index');
 
                 push_send($send_info, null, true); //管理者全員へ送信
             }
@@ -146,7 +146,7 @@ class RegisterController extends Controller
         $send_info = new \stdClass();
         $send_info->title = "新規ユーザー登録";
         $send_info->body = "ユーザー名：".$request->name."\n現在ユーザー数:". $now_user_cnt;
-        $send_info->url = route('admin-user-search');
+        $send_info->url = route('admin.user.index');
         
         push_send($send_info, null, true); //管理者全員へ送信
         

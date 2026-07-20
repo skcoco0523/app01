@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ApiAdvController;
 use App\Http\Controllers\Api\ApiSmartRemoteController;
 use App\Http\Controllers\Api\ApiFriendlistController;
 use App\Http\Controllers\Api\ApiNoteController;
+use App\Http\Controllers\Api\ApiGameController; // Added for game data API
 
 /*
 |--------------------------------------------------------------------------
@@ -64,3 +65,14 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/adv/get', [ApiAdvController::class, 'api_adv_get']);
 Route::post('/adv/click', [ApiAdvController::class, 'api_adv_click']);
 Route::get('/adv/config', [ApiAdvController::class, 'api_adv_config']);
+
+// Game Data API (Publicly accessible)
+// These endpoints serve static JSON files published by the admin panel.
+Route::prefix('games/{gameKey}')->group(function () {
+    Route::get('atlas/get', [ApiGameController::class, 'api_game_atlas_get']);
+    Route::get('characters/get', [ApiGameController::class, 'api_game_characters_get']);
+    Route::get('character/get/{characterKey}', [ApiGameController::class, 'api_game_character_get']);
+    Route::get('stages/get', [ApiGameController::class, 'api_game_stages_get']);
+    Route::get('weapons/get', [ApiGameController::class, 'api_game_weapons_get']);
+    Route::get('items/get', [ApiGameController::class, 'api_game_items_get']);
+});
