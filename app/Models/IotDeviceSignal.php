@@ -5,103 +5,113 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-
 use Illuminate\Support\Facades\Auth;
 
 class IotDeviceSignal extends Model
 {
     use HasFactory;
-    protected $fillable = ['device_id', 'category_name', 'signal_name', 'signal_data'];     //一括代入の許可
-    //protected $table = 'iot_device_signals';
 
-    //IoTデバイス信号登録
+    // テーブル名は規約通りなので省略可
+    // protected $table = 'iot_device_signals';
+
+    // クリエイティブな一括代入を許可する属性
+    protected $fillable = [
+        'device_id',
+        'remote_id',
+        'button_num',
+        'category_name',
+        'signal_name',
+        'signal_data'
+    ];
+
+    // timestampsはマイグレーションで定義されていないため無効化
+    public $timestamps = false;
+
+    /**
+     * IoTデバイス信号登録
+     * 
+     * @param array $data
+     * @return array ['success' => bool, 'msg' => string, 'id' => int|null]
+     */
     public static function createIotDeviceSignal($data)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        try {
-            make_error_log($error_log,"-------start-------");
-            
-            $device = IotDeviceSignal::where('device_id', $data['device_id'])->where('user_id', $data['user_id'])->first();
-            if($device){
-                make_error_log($error_log,"error_code:1");
-                return ['id' => null, 'error_code' => 1];   //自身で使用済み
-            }else{
-                $error_code = 0;
-                if(!isset($data['device_id']))      $error_code = 1;   //データ不足
-                if(!isset($data['user_id']))        $error_code = 2;   //データ不足
-                if(!isset($data['device_name']))    $error_code = 3;   //データ不足
-                
-                if($error_code){
-                    make_error_log($error_log,"error_code=".$error_code);
-                    return ['id' => null, 'error_code' => $error_code];
-                }
-                
-                $request = self::create($data);
-                $request_id = $request->id;
-                make_error_log($error_log,"success");
-                make_error_log($error_log,"device_id:".$data['device_id']."   user_id:".$data['user_id']);
+        make_error_log($error_log, "------- start -------");
 
-                return ['id' => $request_id, 'error_code' => $error_code];   //追加成功
+        try {
+            // 必須チェック
+            $required = ['device_id', 'remote_id', 'button_num', 'category_name', 'signal_name', 'signal_data'];
+            foreach ($required as $field) {
+                if (!isset($data[$field])) {
+                    $msg = "Missing required field: {$field}";
+                    make_error_log($error_log, "error: " . $msg);
+                    return ['success' => false, 'msg' => $msg];
+                }
             }
 
+            // 重複チェック (unique制約: device_id, remote_id, button_num)
+            $exists = self::where('device_id', $data['device_id'])
+                ->where('remote_id', $data['remote_id'])
+                ->where('button_num', $data['button_num'])
+                ->first();
+
+            if ($exists) {
+                // 更新するか、エラーにするか。ここでは更新（上書き）とする
+                $exists->update([
+                    'category_name' => $data['category_name'],
+                    'signal_name'   => $data['signal_name'],
+                    'signal_data'   => $data['signal_data'],
+                ]);
+                make_error_log($error_log, "updated existing signal. id: " . $exists->id);
+                return [
+                    'success' => true,
+                    'msg'     => "信号データを更新しました。",
+                    'id'      => $exists->id
+                ];
+            }
+
+            // 新規作成
+            $new_signal = self::create($data);
+            make_error_log($error_log, "created new signal. id: " . $new_signal->id);
+
+            return [
+                'success' => true,
+                'msg'     => "信号データを登録しました。",
+                'id'      => $new_signal->id
+            ];
+
         } catch (\Exception $e) {
-            make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['id' => null, 'error_code' => -1];   //追加失敗
+            $msg = "信号登録中にエラーが発生しました: " . $e->getMessage();
+            make_error_log($error_log, $msg);
+            return ['success' => false, 'msg' => $msg];
         }
-        
     }
-    //IoTデバイス信号変更
-    public static function chgIotDeviceSignal($data) 
+
+    /**
+     * IoTデバイス信号削除
+     * 
+     * @param int $id
+     * @return array
+     */
+    public static function delIotDeviceSignal($id)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "------- start -------");
+
         try {
-            make_error_log($error_log,"-------start-------");
-
-            //登録者チェック
-            $user_id = Auth::id();
-            make_error_log($error_log,"user_id:".$user_id);
-            
-            $device = IotDeviceSignal::where('mac_addr', $data['mac_addr'])->first();
-            if($device){
-                if($user_id == $device->admin_user_id){
-                    make_error_log($error_log,"error_code:1");
-                    return ['id' => null, 'error_code' => 1];   //自身で使用済み
-                }elseif($device->admin_user_id != NULL){
-                    make_error_log($error_log,"error_code:2");
-                    return ['id' => null, 'error_code' => 2];   //他信号にて使用済み
-                }
-                
-                // 更新対象となるカラムと値を連想配列に追加
-                $updateData = [];
-                if (isset($data['mac_addr']) && $device->mac_addr != $data['mac_addr'])
-                    $updateData['mac_addr'] = $data['mac_addr']; 
-                
-                if (isset($data['ver']) && $device->ver != $data['ver'])
-                    $updateData['ver'] = $data['ver']; 
-                
-                if (isset($data['type']) && $device->type != $data['type'])
-                    $updateData['type'] = $data['type']; 
-                
-                if (isset($data['admin_user_id']) && $device->admin_user_id != $data['admin_user_id'])
-                    $updateData['admin_user_id'] = $data['admin_user_id']; 
-
-                make_error_log($error_log,"chg_data=".print_r($updateData,1));
-                if(count($updateData) > 0){
-                    IotDeviceSignal::where('mac_addr', $data['mac_addr'])->update($updateData);
-                    make_error_log($error_log,"success");
-                }
-                
-                return ['mac_addr' => $device->id, 'error_code' => 0];   //更新成功
-
-            } else {
-                return ['id' => null, 'error_code' => -1];   //更新失敗
+            $signal = self::find($id);
+            if (!$signal) {
+                return ['success' => false, 'msg' => "対象の信号が見つかりません。"];
             }
 
+            $signal->delete();
+            make_error_log($error_log, "success. deleted id: " . $id);
+            return ['success' => true, 'msg' => "信号を削除しました。"];
+
         } catch (\Exception $e) {
-            make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['error_code' => -1];   //更新失敗
+            $msg = "信号削除中にエラーが発生しました: " . $e->getMessage();
+            make_error_log($error_log, $msg);
+            return ['success' => false, 'msg' => $msg];
         }
     }
-
 }
-

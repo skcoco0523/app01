@@ -7,12 +7,9 @@ use Illuminate\Console\Command;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\ConnectionSettings;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
-
 use App\Models\Mosquitto; 
 use App\Models\IotDevice; 
+use App\Models\IotDeviceSignal;
 
 
 class MqttListener extends Command
@@ -22,7 +19,10 @@ class MqttListener extends Command
 
     public function handle()
     {
-        $error_log = "subscribeMQTT.log";
+        // OPcacheを無効化して常に最新のファイルを読み込む
+        ini_set('opcache.enable', '0');
+
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"--------setup start---------");
 
         $server   = config('services.mqtt.host');
@@ -71,6 +71,9 @@ class MqttListener extends Command
             $data           = $data['data'] ?? null;
 
             $this->info('topic:'. $topic);
+            $this->info('command:'. $command);
+            //$this->info('data:'. $data);
+            
             //make_error_log($error_log,"mac_addr:".$mac_addr." type:".$type." type_num:".s$type_num." ver:".$ver." uid:".$uid." data:".$data);
             make_error_log($error_log,"mac_addr:".$mac_addr."   device_name:".$device_name."   command:".$command."   ver:".$ver."   data:".$data);
 
@@ -90,6 +93,9 @@ class MqttListener extends Command
         };
 
         // 無限ループで永続的な実行を保証
+        // 起動時点のファイル更新日時を取得　変わっていれば終了し再度起動させる
+        $script_file = __FILE__;
+        $last_modified = filemtime($script_file);
         while (true) {
             try {
                 make_error_log($error_log, 'Connecting to MQTT broker...');
@@ -99,9 +105,39 @@ class MqttListener extends Command
                 make_error_log($error_log, 'Connected to MQTT broker');
 
                 $mqtt->subscribe('device/#', $subscribe_callback, 0);
+                
+                if($mqtt->isConnected()){
+
+                    //管理者宛てに通知
+                    $send_info = new \stdClass();
+                    $send_info->title = "MQTT Listener 再起動通知";
+                    $send_info->body = "MQTT Listenerを再起動しました。";
+                    push_send($send_info, null, true); 
+                }
 
                 while ($mqtt->isConnected()) {
-                    $mqtt->loop(true);
+                    // loop() は内部で無限ループを持つため、1回ごとの受信処理を行う loopOnce() を使用する。
+                    // 最大5秒間メッセージを待機（ブロッキング）し、受信するかタイムアウトすると制御を戻す。
+                    $mqtt->loopOnce(5);
+
+                    // ファイルの更新をチェック
+                    clearstatcache(true, $script_file); 
+                    if (filemtime($script_file) !== $last_modified) {
+                        $this->info("File changed. Exiting...");
+                        make_error_log($error_log, "File changed detected: {$script_file}. Exiting for auto-restart.");
+
+                        // 管理者宛てに通知し処理を強制停止する
+                        try {
+                            $send_info = new \stdClass();
+                            $send_info->title = "MQTT Listener 再起動通知";
+                            $send_info->body = "ファイル更新を検知したため、MQTT Listenerを再起動します。";
+                            push_send($send_info, null, true); 
+                        } catch (\Throwable $e) {
+                            make_error_log($error_log, "Notification failed: " . $e->getMessage());
+                        }
+
+                        exit; // Systemd (Restart=always) がこのプロセスを再起動させます
+                    }
                 }
 
             } catch (\Throwable $e) {
@@ -183,11 +219,41 @@ class MqttListener extends Command
     }
 
     //赤外線信号受信通知
-    public function mqtt_ir_received($mac_addr, $data){
+    public function mqtt_ir_received($mac_addr, $data)
+    {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "---------------start----------------");
+        make_error_log($error_log, "mac_addr:" . $mac_addr);
 
-        make_error_log($error_log,"---------------start----------------");
-        make_error_log($error_log,"----------------end-----------------");
+        // 1. mac_addr からデバイスを特定
+        $device = IotDevice::where('mac_addr', $mac_addr)->first();
+        if (!$device) {
+            make_error_log($error_log, "device not found for mac_addr: " . $mac_addr);
+            return;
+        }
+
+        /* 
+           信号受信時のフロー（暫定）:
+           ESP32が学習モード中に受信した信号を、現在「学習待機中」のリモコンボタンに割り当てる、
+           あるいは一旦デフォルトの「未分類(category_name='unknown')」として保存するなどの処理が必要。
+           ここでは一旦、引数 $data に必要な情報が含まれている前提、
+           あるいはシステム側の「学習中フラグ」を参照する想定。
+        */
+
+        // 仮のデータ構造（ESP32からの $data に remote_id や button_num が含まれない場合を考慮）
+        $insert_data = [
+            'device_id'     => $device->id,
+            'remote_id'     => $data['remote_id'] ?? 0, // 本来は学習中のリモコンID
+            'button_num'    => $data['button_num'] ?? 0,
+            'category_name' => $data['category_name'] ?? '未分類',
+            'signal_name'   => $data['signal_name'] ?? '受信信号_' . date('YmdHis'),
+            'signal_data'   => is_array($data['signal_data']) ? json_encode($data['signal_data']) : ($data['signal_data'] ?? $data),
+        ];
+
+        $ret = IotDeviceSignal::createIotDeviceSignal($insert_data);
+        make_error_log($error_log, "Result: " . $ret['msg']);
+
+        make_error_log($error_log, "----------------end-----------------");
     }
 
 
