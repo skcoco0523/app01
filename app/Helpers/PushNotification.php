@@ -85,11 +85,27 @@ class PushNotification
                     $subscription,
                     json_encode($send_info, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
                 );
-                $reason = $report->getReason();
-                make_error_log($error_log, "Reason: " . $reason);
-                
-                UserLog::create_user_log($id,"push_send",true);
-                
+                // 送信成功の場合
+                if ($report->isSuccess()) {
+                    make_error_log($error_log, "Push notification sent successfully to user_id: " . $id);
+                    UserLog::create_user_log($id,"push_send",true);
+                } else {
+                    $reason = $report->getReason();
+                    make_error_log($error_log, "Push notification failed to send to user_id: " . $id);
+                    make_error_log($error_log, "Reason: " . $reason);
+                    UserLog::create_user_log($id,"push_send",false);
+                    // 購読が失効・解除されている（410 Gone等）場合
+                    if ($report->isSubscriptionExpired()) {
+                        make_error_log($error_log, "Subscription expired or unsubscribed. Cleaning up database for user_id: " . $id);
+                        
+                        // デバイス情報を削除する処理を追加
+                        UserDevice::delUserDevices($id);
+
+                    }
+                }
+
+                    
+                    
             } catch (\Exception $e) {
                 // 例外の詳細をログに出力
                 make_error_log($error_log, "Error Message: " . $e->getMessage());

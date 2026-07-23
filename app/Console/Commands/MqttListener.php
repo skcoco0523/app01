@@ -66,13 +66,15 @@ class MqttListener extends Command
             $mac_addr       = $data['mac_addr'] ?? null;
             $device_name    = $data['device_name'] ?? null;
             $command        = $data['command'] ?? null;
+            //config/common.php で定義されているデバイスタイプを取得
             $type           = $data['type'] ?? null;
             $ver            = $data['ver'] ?? null;
             $data           = $data['data'] ?? null;
 
             $this->info('topic:'. $topic);
             $this->info('command:'. $command);
-            //$this->info('data:'. $data);
+            $this->info('data:'. $data);
+            $this->info('type:'. $type);
             
             //make_error_log($error_log,"mac_addr:".$mac_addr." type:".$type." type_num:".s$type_num." ver:".$ver." uid:".$uid." data:".$data);
             make_error_log($error_log,"mac_addr:".$mac_addr."   device_name:".$device_name."   command:".$command."   ver:".$ver."   data:".$data);
@@ -80,7 +82,7 @@ class MqttListener extends Command
             
             if(config('common.device_info')[$type]){
                 //デバイス起動時の初回アクセス
-                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $device_name, $ver);
+                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $device_name, $type, $ver);
                 //赤外線信号スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
                 //赤外線信号受信通知
@@ -149,12 +151,12 @@ class MqttListener extends Command
     }
 
     //デバイス起動時の初回アクセス
-    public function mqtt_device_access($mac_addr, $device_name, $ver = null){
+    public function mqtt_device_access($mac_addr, $device_name, $type, $ver = null){
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
         make_error_log($error_log,"mac_addr:".$mac_addr);
-        $device = IotDevice::getIotDeviceList(1,false,NULL,['admin_flag' => true, 'search_addr' => $mac_addr])->first();
+        $device = IotDevice::getIotDeviceList(1,false,NULL,['admin_flag' => true, 'search_mac_addr' => $mac_addr])->first();
         if ($device !== null) {
             //登録済みデバイス
             make_error_log($error_log,"device registered...mac_addr:".$device->mac_addr);
@@ -192,17 +194,21 @@ class MqttListener extends Command
             // ユニークなpincodeになるまで繰り返す
             while (IotDevice::where('pincode', $pincode)->exists()) { $pincode = random_int(100000, 999999); }
             make_error_log($error_log,"pincode:".$pincode);
-            //type:99=未設定
-            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => 99, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
-            if($ret['error_code'] == 0){
+            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => $type, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
+            if($ret['success']){
                 //登録成功　piccodeをESPデバイスに送信
                 make_error_log($error_log,"device create success id:".$ret['id']);
                 $jdata = json_encode(["pincode" => (String)$pincode]);
                 Mosquitto::publishMQTT($mac_addr, "temp_regist", $jdata);
                 
+                $send_info = new \stdClass();
+                $send_info->title = "IOTデバイス仮登録通知";
+                $send_info->body = "新しいIOTデバイスが仮登録されました。";
+                push_send($send_info, null, true); 
+                
             }else{
                 //登録失敗
-                make_error_log($error_log,"device create error_code:".$ret['error_code']);
+                make_error_log($error_log,$ret['msg']);
                 return;
 
             }

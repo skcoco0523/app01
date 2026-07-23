@@ -48,11 +48,6 @@ class LoginController extends Controller
         UserLog::create_user_log(Auth::id(),"login");
         //dd($request, $user);
 
-        // ユーザーが認証された後にデバイス情報を登録するためフロントで識別できるようにする
-        //return redirect()->intended($this->redirectPath() . '?login=success');
-        // セッションにログイン成功フラグを保存
-        $request->session()->flash('login_success', true);
-
         // intended でリダイレクト
         return redirect()->intended($this->redirectPath());
     }

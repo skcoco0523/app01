@@ -30,8 +30,8 @@ class IotDevice extends Model
                     if (get_proc_data($keyword, 'search_mac_addr')) 
                         $sql_cmd = $sql_cmd->where('dev.mac_addr', 'like', '%'. $keyword['search_mac_addr']. '%');
 
-                    if (get_proc_data($keyword, 'search_admin_user_id')) 
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
+                    if (get_proc_data($keyword, 'search_admin_uid')) 
+                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_uid']);
 
                     if (get_proc_data($keyword, 'search_type')) 
                         $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
@@ -45,20 +45,24 @@ class IotDevice extends Model
                 //ユーザーによる検索
                 }else{      
                     //本登録時の仮登録デバイス検索
-                    if(get_proc_data($keyword,"search_final_register_flag")){  
+                    if(get_proc_data($keyword,"final_register_flag")){  
                         $sql_cmd = $sql_cmd->where('dev.pincode',$keyword['search_pincode']);
                         $sql_cmd = $sql_cmd->where('dev.name',$keyword['search_name']);
                         $sql_cmd = $sql_cmd->whereNull('dev.admin_user_id');
+
+                    //通常のユーザー検索
+                    }else{
+                        if (get_proc_data($keyword, 'search_admin_uid'))
+                            $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_uid']);
+                        
+                        if (get_proc_data($keyword, 'search_id')) 
+                            $sql_cmd = $sql_cmd->where('dev.id',$keyword['search_id']);
+
+                        if (get_proc_data($keyword, 'search_type')) 
+                            $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
+
                     }
 
-                    if (get_proc_data($keyword, 'search_admin_user_id'))
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
-                    
-                    if (get_proc_data($keyword, 'search_id')) 
-                        $sql_cmd = $sql_cmd->where('dev.id',$keyword['search_id']);
-
-                    if (get_proc_data($keyword, 'search_type')) 
-                        $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
                 }
                 //並び順
                 if(get_proc_data($keyword,"type_asc"))     $sql_cmd = $sql_cmd->orderBy('dev.type',             'asc');
@@ -127,24 +131,20 @@ class IotDevice extends Model
         make_error_log($error_log,"-------start-------");
         try {
 
-            $error_code = 0;
-            if(!isset($data['mac_addr']))       $error_code = 1;   //データ不足
-            if(!isset($data['type']))           $error_code = 2;   //データ不足
-            if(!isset($data['ver']))            $error_code = 3;   //データ不足
-            if(!isset($data['pincode']))        $error_code = 4;   //データ不足
-            
-            
+            $msg = null;
+            if(!isset($data['mac_addr']))       $msg = "mac_addrは必須です";   //データ不足
+            if(!isset($data['type']))           $msg = "typeは必須です";   //データ不足
+            if(!isset($data['ver']))            $msg = "verは必須です";    //データ不足
+            if(!isset($data['pincode']))        $msg = "pincodeは必須です"; //データ不足
+
+            if($msg) return ['success' => false, 'msg' => $msg];
+                   
             $keyword = array('admin_flag'=>true,'search_mac_addr'=>$data['mac_addr']);
             $iotdevice_list = IotDevice::getIotDeviceList(1,false,null,$keyword);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
-            //dd($iotdevice_list);
-            if($error_code){
-                make_error_log($error_log,"error_code=".$error_code);
-                return ['id' => null, 'error_code' => $error_code];
-            }
             //mac_addrのユニーク規制
             if(count($iotdevice_list)!=0) {
-                $error_code = -2;
-                return ['id' => null, 'error_code' => $error_code];
+                $msg = "エラー：mac_addr [{$data['mac_addr']}] は既に登録されています。";
+                if($msg) return ['success' => false, 'msg' => $msg];
             }
 
             //dd($data);
@@ -153,11 +153,11 @@ class IotDevice extends Model
 
             make_error_log($error_log,"success");
             
-            return ['id' => $request_id, 'error_code' => $error_code];   //追加成功
+            return ['success' => true, 'id' => $request_id];   //追加成功
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['id' => null, 'error_code' => -1];   //追加失敗
+            return ['success' => false, 'msg' => "エラーが発生しました。"];   //追加失敗
         }
         
     }
@@ -172,7 +172,7 @@ class IotDevice extends Model
             
             if(!$device){
                 make_error_log($error_log,".not applicable:".$data['mac_addr']);
-                return ['id' => null, 'error_code' => -1];   //更新失敗
+                return ['success' => false, 'id' => null, 'msg' => "デバイスが見つかりません。"];   //更新失敗
             }
             //dd($data);
             
@@ -213,12 +213,12 @@ class IotDevice extends Model
                 make_error_log($error_log,"success");
             }
             
-            return ['id' => $device->id, 'error_code' => 0];   //更新成功
+            return ['success' => true, 'id' => $device->id, 'msg' => "更新しました。"];   //更新成功
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             make_error_log($error_log, "Data: " . print_r($data, true));
-            return ['error_code' => -1];   //更新失敗
+            return ['success' => false, 'id' => null, 'msg' => "更新に失敗しました。"];   //更新失敗
         }
     }
     //IoTデバイス削除
@@ -237,11 +237,11 @@ class IotDevice extends Model
             //}else{//ユーザーによるデバイス削除  
             //}
             make_error_log($error_log,"success");
-            return ['id' => null, 'error_code' => 0];   //削除成功
+            return ['success' => true, 'id' => null, 'msg' => "削除に成功しました。"];   //削除成功
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['id' => null, 'error_code' => -1];   //削除失敗
+            return ['success' => false, 'id' => null, 'msg' => "削除に失敗しました。"];   //削除失敗
 
         }
     }
