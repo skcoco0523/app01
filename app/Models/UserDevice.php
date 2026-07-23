@@ -43,6 +43,11 @@ class UserDevice extends Model
         return UserDevice::where('user_id', $user_id)->first();
     }
 
+    public static function delUserDevices($user_id)
+    {
+        return UserDevice::where('user_id', $user_id)->delete();
+    }
+
     // ユーザーとのリレーション
     public function user()
     {

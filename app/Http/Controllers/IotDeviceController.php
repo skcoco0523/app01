@@ -28,13 +28,14 @@ class IotDeviceController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
-        $input['admin_flag']    = false;
-        $input['id']            = $id;
 
-        $input['search_id']  = $input['id'];
-        $input['search_detail']  = true;
-        $input['search_admin_uid']  = Auth::id();
-        $iotdevice = IotDevice::getIotDeviceList(1,false,false,$input)->first();
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_id'         => $id,
+            'search_detail'     => true,
+            'search_admin_uid'  => Auth::id(),
+        );
+        $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
         
         //対象デバイス所有者チェック
         if ($iotdevice !== null) {       
@@ -58,17 +59,21 @@ class IotDeviceController extends Controller
         else                                    $input = $request->all();
         
         $user_id = Auth::id();
-        $input['name']              = get_proc_data($input,"iotdevice_name");
-        $input['pincode']           = get_proc_data($input,"pincode");
-        make_error_log($error_log,"user_id:".$user_id. " name:".$input['name']. " pincode:".$input['pincode']);
+        $search_name              = get_proc_data($input,"iotdevice_name");
+        $search_pincode              = get_proc_data($input,"pincode");
+        make_error_log($error_log,"user_id:".$user_id. " name:".$search_name. " pincode:".$search_pincode);
 
         if(Auth::user()->dev_reg_lock == 1){
             make_error_log($error_log,"dev_reg_lock");
             $message = make_message('連続で登録に失敗したためロックがかかっています。\n要望・問い合わせにて解除申請してください。', 'error');
         }
-        if($input['pincode'] != null && $input['name'] != null && $user_id != null){
-            $input['final_register_flag']        = true;
-            $iotdevice = IotDevice::getIotDeviceList(1,false,null,$input)->first();  //仮登録デバイス検索
+        if($search_pincode != null && $search_name != null && $user_id != null){
+            $keyword = array(
+                'search_pincode'        => $search_pincode,
+                'search_name'           => $search_name,
+                'final_register_flag'   => true,
+            );
+            $iotdevice = IotDevice::getIotDeviceList(1, false, null, $keyword)->first();  //仮登録デバイス検索
 
             if ($iotdevice !== null) {
                 session()->forget(['iotdevice_error_count']);   //一致するデバイスがあったためエラー回数リセット
@@ -76,13 +81,12 @@ class IotDeviceController extends Controller
                 //$data = array("id" => $iotdevice->id, "name" => $input['name'], "admin_user_id" => $user_id, "pincode" => null);
                 $data = array("id" => $iotdevice->id, "admin_user_id" => $user_id, "pincode" => null);
                 $ret = IotDevice::chgIotDevice($data);
-                make_error_log($error_log,"error_code:".$ret['error_code']);
 
-                if($ret['error_code'] == 0){
+                if($ret['success'] == true){
                     Mosquitto::publishMQTT($iotdevice->mac_addr, "final_regist"); //登録完了通知
                     $message = make_message('デバイスを登録しました。', 'device_add');
                     //成功時はここでリダイレクト
-                    return redirect()->route('remote.show', ['id' => $ret['id']])->with($message);
+                    return redirect()->route('iotdevice.show', ['id' => $ret['id']])->with($message);
                 }else{
                     $message = make_message('デバイスの登録に失敗しました。', 'error');
                 }
@@ -97,7 +101,7 @@ class IotDeviceController extends Controller
                     session()->forget(['iotdevice_error_count']);   //エラー回数リセット
                     $message = make_message('デバイスが見つかりませんでした。\n10回連続で失敗したため、ロックがかかりました。', 'error');
                 }else {
-                    $message = make_message('該当のデバイスが存在しません。\nあと" . (10 - $errorCount) . "回でロックされます。', 'error');
+                    $message = make_message('該当のデバイスが存在しません。\nあと' . (10 - $errorCount) . '回でロックされます。', 'error');
                 }
             }
         }else{
@@ -114,34 +118,34 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $input['admin_flag']        = false;
-        $input['iotdevice_id']      = get_proc_data($input,"iotdevice_id");
-        $input['iotdevice_name']    = get_proc_data($input,"iotdevice_name");
-        $input['voice_auth_score']  = get_proc_data($input,"voice_auth_score");
-        
-        //テーブル：virtual_remotesのid
-        $input['search_admin_uid']  = Auth::id();
-        $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']." voice_auth_score:".$input['voice_auth_score']);
+        $iotdevice_id      = get_proc_data($input,"iotdevice_id");
+        $iotdevice_name    = get_proc_data($input,"iotdevice_name");
+        $voice_auth_score  = get_proc_data($input,"voice_auth_score");
+        make_error_log($error_log,"iotdevice_id:".$iotdevice_id. " iotdevice_name:".$iotdevice_name." voice_auth_score:".$voice_auth_score);
 
-        $iotdevice = IotDevice::getIotDeviceList(1,false,false,$input)->first();
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_id'         => $iotdevice_id,
+            'search_admin_uid'  => Auth::id(),
+        );
+        $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
 
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
-            if($input['iotdevice_name']){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name'], 'voice_auth_score'=>$input['voice_auth_score']]);
-                make_error_log($error_log,"error_code:".$ret['error_code']);
-                if($ret['error_code']==0){
-                    $jdata = json_encode(["device_name" => $input['iotdevice_name']]);
+            if($iotdevice_name){
+                //$ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'voice_auth_score'=>$voice_auth_score]);
+                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$iotdevice_name]);
+                make_error_log($error_log,"msg:".$ret['msg']);
+                if($ret['success'] == true){
+                    $jdata = json_encode(["device_name" => $iotdevice_name]);
                     Mosquitto::publishMQTT($iotdevice->mac_addr, "chg_device_name", $jdata); //情報変更通知
-                    $message = make_message('更新しました。', 'device_chg');
+                    $message = make_message($ret['msg'], 'device_chg');
                 }
             }else{
                 $message = make_message('デバイス名が入力されていません。', 'error');
             }
         }
-        $input['id']    = $input['iotdevice_id'];
-        return redirect()->route('iotdevice.show', ['id' => $input['iotdevice_id']])->with($message);
+        return redirect()->route('iotdevice.show', ['id' => $iotdevice_id])->with($message);
 
     }
     
@@ -153,21 +157,23 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $input['admin_flag']        = false;
-        $input['iotdevice_id']      = get_proc_data($input,"iotdevice_id");
-        $input['search_admin_uid']  = Auth::id();
-        $input['search_id']         = $input['iotdevice_id'];
-        make_error_log($error_log," user_id:".Auth::id()." iotdevice_id:".$input['iotdevice_id']);
+        $iotdevice_id      = get_proc_data($input,"iotdevice_id");
+        make_error_log($error_log," user_id:". Auth::id(). " iotdevice_id:".$iotdevice_id);
 
-        $iotdevice = IotDevice::getIotDeviceList(1,false,false,$input)->first();
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_id'         => $input['iotdevice_id'],
+            'search_admin_uid'  => Auth::id(),
+        );
+        $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
         
         //所有者のみ削除可能
         $message = make_message('削除に失敗しました。', 'error');
         if($iotdevice){
             $ret = IotDevice::delIotDevice(['id'=>$iotdevice->id]);
-            make_error_log($error_log,"error_code:".$ret['error_code']);
-            if($ret['error_code']==0){
-                $message = make_message('削除しました。', 'device_del');
+            make_error_log($error_log,"success:".$ret['success']);
+            if($ret['success'] == true){
+                $message = make_message($ret['msg'], 'device_del');
             } 
         }
         return redirect()->route('remote.index')->with($message);            
@@ -185,11 +191,13 @@ class IotDeviceController extends Controller
             $voice_features_json = $request->input('voice_features');
             
             $input['iotdevice_id'] = get_proc_data($input, "iotdevice_id");
-            $input['search_id'] = $input['iotdevice_id']; 
-            $input['search_admin_uid'] = $user_id;
 
             if ($input['iotdevice_id'] && $voice_features_json) {
-                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
+                $keyword = array(
+                    'search_id'         => $input['iotdevice_id'],
+                    'search_admin_uid'  => $user_id,
+                );
+                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
                 
                 if ($iotdevice && $iotdevice->voice_print) {
                     // 1. テスト音声をJSONから配列へ

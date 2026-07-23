@@ -81,10 +81,13 @@
         
         //configからJSで使用する値を取得
         window.Laravel = {
-            user_id: '{{Auth::id() }}',
+            user_id: '{{(int)Auth::id() }}',
             vapidPublicKey: '{{ config('webpush.vapid.public_key') }}',
-            
-            loginSuccess: @json(session('login_success', false)),   //セッションからログイン成功フラグを取得
+            @auth
+                hasRegisteredDevice: '{{Auth::user()->hasRegisteredDevice() ? true : false}}',
+            @else
+                hasRegisteredDevice: false,
+            @endauth
         };
     </script>
     

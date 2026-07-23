@@ -215,5 +215,21 @@ class User extends Authenticatable implements MustVerifyEmail
         return $friend_code;
     }
 
+    /**
+     * デバイス情報とのリレーション
+     */
+    public function userDevice()
+    {
+        return $this->hasOne(UserDevice::class);
+    }
+
+    /**
+     * デバイス情報が登録されているか
+     */
+    public function hasRegisteredDevice()
+    {
+        return $this->userDevice()->exists();
+    }
+
 
 }

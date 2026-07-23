@@ -64,12 +64,13 @@ class ApiSmartRemoteController extends Controller
     public function api_iot_devices_get(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        $input = $request->all();
-        
-        $input['admin_flag']        = false;
-        $input['search_admin_uid']  = Auth::id();
-        $input['type_asc']          = true;
-        $iotdevice_list = IotDevice::getIotDeviceList(null,false,null,$input);  //全件
+
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_admin_uid'  => Auth::id(),
+            'type_asc'          => true,
+        );
+        $iotdevice_list = IotDevice::getIotDeviceList(null, false, null, $keyword);  //全件
         $iotdevice_list_array = [];
 
         $data = [];
