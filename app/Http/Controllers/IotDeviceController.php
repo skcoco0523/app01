@@ -117,24 +117,28 @@ class IotDeviceController extends Controller
         $input['admin_flag']        = false;
         $input['iotdevice_id']      = get_proc_data($input,"iotdevice_id");
         $input['iotdevice_name']    = get_proc_data($input,"iotdevice_name");
-        $input['voice_auth_score']  = get_proc_data($input,"voice_auth_score");
+        $input['ww_score']          = get_proc_data($input,"ww_score");
         
         //テーブル：virtual_remotesのid
         $input['search_admin_uid']  = Auth::id();
         $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']." voice_auth_score:".$input['voice_auth_score']);
+        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']." ww_score:".$input['ww_score']);
 
         $iotdevice = IotDevice::getIotDeviceList(1,false,false,$input)->first();
 
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
             if($input['iotdevice_name']){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name'], 'voice_auth_score'=>$input['voice_auth_score']]);
-                make_error_log($error_log,"error_code:".$ret['error_code']);
-                if($ret['error_code']==0){
-                    $jdata = json_encode(["device_name" => $input['iotdevice_name']]);
-                    Mosquitto::publishMQTT($iotdevice->mac_addr, "chg_device_name", $jdata); //情報変更通知
-                    $message = make_message('更新しました。', 'device_chg');
+                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name'], 'ww_score'=>$input['ww_score']]);
+                make_error_log($error_log,"success:".$ret['success']);
+                if($ret['success']){
+                    // デバイス名とスコア閾値のみ更新（音声は変更なしのため含めない）
+                    $jdata = json_encode([
+                        "device_name" => $input['iotdevice_name'],
+                        "ww_score" => (int)$input['ww_score']
+                    ]);
+                    Mosquitto::publishMQTT($iotdevice->mac_addr, "update_device", $jdata);
+                    $message = make_message($ret['msg'], 'device_chg');
                 }
             }else{
                 $message = make_message('デバイス名が入力されていません。', 'error');
@@ -174,7 +178,7 @@ class IotDeviceController extends Controller
     }
 
     //音声テスト
-    public function voice_score_check(Request $request)
+    public function ww_score_check(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "-----start-----");
@@ -182,23 +186,31 @@ class IotDeviceController extends Controller
         try {
             $user_id = Auth::id();
             $input = $request->all();
-            $voice_features_json = $request->input('voice_features');
+            $ww_features_json = $request->input('ww_features');
             
             $input['iotdevice_id'] = get_proc_data($input, "iotdevice_id");
             $input['search_id'] = $input['iotdevice_id']; 
             $input['search_admin_uid'] = $user_id;
 
-            if ($input['iotdevice_id'] && $voice_features_json) {
+            if ($input['iotdevice_id'] && $ww_features_json) {
                 $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
                 
-                if ($iotdevice && $iotdevice->voice_print) {
+                if ($iotdevice && $iotdevice->ww_data) {
                     // 1. テスト音声をJSONから配列へ
-                    $test_features = json_decode($voice_features_json, true);
+                    $test_features = json_decode($ww_features_json, true);
 
                     // 2. DB内の登録済み指紋（最大3つ）を取得
-                    $stored_voice_data = json_decode($iotdevice->voice_print, true);
-                    if (!isset($stored_voice_data['prints']) || !is_array($stored_voice_data['prints'])) {
-                        throw new \Exception("Stored voice print data is malformed.");
+                    $stored_ww_data = json_decode($iotdevice->ww_data, true);
+                    // 後方互換性：古い形式(単一文字列)または新しい形式(prints配列)に対応
+                    $prints_to_compare = [];
+                    if (isset($stored_ww_data['prints']) && is_array($stored_ww_data['prints'])) {
+                        $prints_to_compare = $stored_ww_data['prints'];
+                    } elseif (is_string($stored_ww_data)) {
+                        $prints_to_compare = [$stored_ww_data];
+                    }
+
+                    if (empty($prints_to_compare)) {
+                        throw new \Exception("Stored voice print data is empty or malformed.");
                     }
                     
                     // 3. テスト音声をスケーリング
@@ -207,7 +219,7 @@ class IotDeviceController extends Controller
                     // 4. 登録されている複数の指紋とそれぞれ比較し、MAXスコアを取得する
                     $max_score = 0;
                     
-                    foreach ($stored_voice_data['prints'] as $stored_print_str) {
+                    foreach ($prints_to_compare as $stored_print_str) {
                         $stored_print_arr = explode(',', $stored_print_str);
                         
                         if (count($stored_print_arr) === count($test_print_arr)) {
@@ -254,7 +266,7 @@ class IotDeviceController extends Controller
                     make_error_log($error_log, "Match Score: " . $score . "%");
                     
                     // 80%以上を合格とする（閾値は運用に合わせて調整してください）
-                    $type = ($score >= $iotdevice->voice_auth_score) ? 'voice_test_ok' : 'voice_test_ng';
+                    $type = ($score >= $iotdevice->ww_score) ? 'ww_test_ok' : 'ww_test_ng';
                     $message = make_message("判定結果: " . $score . "% 一致しました。", $type);
                     
                     return redirect()->route('iotdevice.show', ['id' => $iotdevice->id])->with($message);
@@ -276,7 +288,7 @@ class IotDeviceController extends Controller
      *
      * @param Request $request
      */
-    public function set_voice_print(Request $request)
+    public function set_ww_data(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log,"-----start-----");
@@ -289,17 +301,17 @@ class IotDeviceController extends Controller
             $input = $request->all();
             
             // ファイルではなくJSから送られてきたJSON文字列（特徴量リストの配列）を取得
-            $voice_features_json = $request->input('voice_features_list');
+            $ww_features_json = $request->input('ww_features_list');
 
             // 音声削除（クリア）処理
             if (isset($input['clear_voice']) && $input['clear_voice'] == '1') {
                 $iotdevice_id = get_proc_data($input, "iotdevice_id");
                 $iotdevice = IotDevice::where('id', $iotdevice_id)->where('admin_user_id', $user_id)->first();
                 if ($iotdevice) {
-                    IotDevice::chgIotDevice(['id' => $iotdevice->id, 'voice_print' => null]);
-                    // ESP32側でパースしやすいよう、登録時と同じキー名（voice_prints）で null または 空配列 を送る
-                    $jdata = json_encode(["voice_prints" => []]); 
-                    Mosquitto::publishMQTT($iotdevice->mac_addr, "update_voice_print", $jdata);
+                    IotDevice::chgIotDevice(['id' => $iotdevice->id, 'ww_data' => null]);
+                    // から配列で更新する
+                    $jdata = json_encode(["ww_datas_b64" => []]); 
+                    Mosquitto::publishMQTT($iotdevice->mac_addr, "update_ww_data", $jdata);
                     return redirect()->route('iotdevice.show', ['id' => $iotdevice->id])->with(make_message('音声データを削除しました。', 'device_del'));
                 } else {
                     // Device not found or not owned for deletion
@@ -313,14 +325,14 @@ class IotDeviceController extends Controller
             $input['search_id']         = $input['iotdevice_id'];
             $input['search_admin_uid']  = $user_id;
 
-            if ($input['iotdevice_id'] && $voice_features_json) {
+            if ($input['iotdevice_id'] && $ww_features_json) {
                 make_error_log($error_log, "Processing voice prints for device: " . $input['iotdevice_id']);
                 
                 $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
                 if ($iotdevice) {
-                    make_error_log($error_log, "voice_features_json: " . $voice_features_json);
+                    make_error_log($error_log, "ww_features_json: " . $ww_features_json);
                     // JSONをデコード（3回分のMFCC配列が含まれる想定）
-                    $prints_list = json_decode($voice_features_json, true);
+                    $prints_list = json_decode($ww_features_json, true);
 
                     // 配列かつ中身があることを確認
                     if (is_array($prints_list) && count($prints_list) > 0) {
@@ -339,29 +351,31 @@ class IotDeviceController extends Controller
 
                         if (count($normalized_prints) > 0) {
                             // "prints" という配列キーで3つとも保存する
-                            $voice_print_data = json_encode([
+                            $ww_data_data = json_encode([
                                 "prints" => $normalized_prints
                             ]);
                         } else {
-                            $voice_print_data = null;
+                            $ww_data_data = null;
                         }
                     } else {
-                        $voice_print_data = null;
+                        $ww_data_data = null;
                     }
 
-                    make_error_log($error_log,"final_voice_print_str:". ($voice_print_data ? 'SUCCESS' : 'FAILED'));
+                    make_error_log($error_log,"final_ww_data_str:". ($ww_data_data ? 'SUCCESS' : 'FAILED'));
 
-                    if ($voice_print_data) {
+                    if ($ww_data_data) {
                         // モデルを使用してDB保存
-                        $ret = IotDevice::chgIotDevice(['id' => $iotdevice->id, 'voice_print' => $voice_print_data]);
+                        $ret = IotDevice::chgIotDevice(['id' => $iotdevice->id, 'ww_data' => $ww_data_data]);
                         make_error_log($error_log, "error_code:". $ret['error_code']);
 
                         if ($ret['error_code'] == 0) {
-                            // MQTTで指紋データ（カンマ区切り文字列の配列）を送信
-                            $mqtt_print_data = json_decode($voice_print_data, true);
-                            // 'print' ではなく 'prints'（配列）を送信する
-                            $jdata = json_encode(["voice_prints" => $mqtt_print_data['prints']]);
-                            Mosquitto::publishMQTT($iotdevice->mac_addr, "update_voice_print", $jdata);
+                            // 音声指紋と現在のスコア閾値のみ更新（名前は変更なしのため含めない）
+                            $b64_prints = IotDevice::getVoicePrintsB64($ww_data_data);
+                            $jdata = json_encode([
+                                "ww_score" => (int)$iotdevice->ww_score,
+                                "ww_datas_b64" => $b64_prints
+                            ]);
+                            Mosquitto::publishMQTT($iotdevice->mac_addr, "update_device", $jdata);
                             
                             $message = make_message('音声指紋を登録しました。', 'device_chg');
                         } else {

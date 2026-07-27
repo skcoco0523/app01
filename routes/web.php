@@ -131,9 +131,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('iotdevice/destroy', [IotDeviceController::class, 'destroy'])->name('iotdevice.destroy');
 
     //音声登録
-    Route::post('iotdevice/voice-print', [IotDeviceController::class, 'set_voice_print'])->name('iotdevice.set_voice_print');
+    Route::post('iotdevice/ww-data', [IotDeviceController::class, 'set_ww_data'])->name('iotdevice.set_ww_data');
     //音声スコアチェック
-    Route::post('iotdevice/voice-score-check', [IotDeviceController::class, 'voice_score_check'])->name('iotdevice.voice_score_check');
+    Route::post('iotdevice/ww-score-check', [IotDeviceController::class, 'ww_score_check'])->name('iotdevice.ww_score_check');
 
     //-------------------------------------------------------------------------------------------------------
     //メモ

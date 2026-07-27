@@ -64,6 +64,8 @@
                     <form id="iotdevicesNameUpdateForm" method="POST" action="{{ route('iotdevice.update') }}">
                         @csrf
                         <input type="hidden" name="iotdevice_id" value="{{ $iotdevice->id ?? '' }}">
+                        
+                        <input type="hidden" name="ww_score" value="{{ $iotdevice->ww_score ?? '' }}">
                         <input type="text" class="form-control form-control-sm me-2" name="iotdevice_name" value="{{ $iotdevice->name ?? '' }}" >
                     </form>
                     <form id="iotdevicesDestroyForm" method="POST" action="{{ route('iotdevice.destroy') }}">
@@ -107,7 +109,7 @@
                     <div class="mt-3 text-center border rounded p-2 bg-light">
                         <p class="mb-1 text-muted">
                             <small>音声キーワード登録</small>
-                            @if($iotdevice->voice_print)
+                            @if($iotdevice->ww_data)
                                 <span class="badge bg-success ms-1">登録済み</span>
                             @else
                                 <span class="badge bg-secondary ms-1">未登録</span>
@@ -126,16 +128,16 @@
                             </div>
                             
                             <div id="voiceActionButtons" class="d-grid gap-2 justify-content-center">
-                                @if($iotdevice->voice_print)
+                                @if($iotdevice->ww_data)
                                     <?// 音声認証スコア（合格ライン）の設定 ?>
                                     <div class="mb-2 text-start border-bottom pb-2">
                                         <label class="form-label small text-muted mb-0">
-                                            認証スコア: <span id="rangeValue" class="fw-bold text-primary">{{ $iotdevice->voice_auth_score ?? 80 }}</span>%
+                                            認証スコア: <span id="rangeValue" class="fw-bold text-primary">{{ $iotdevice->ww_score ?? 80 }}</span>%
                                         </label>
-                                        <input type="range" class="form-range" name="voice_auth_score" 
+                                        <input type="range" class="form-range" name="ww_score" 
                                             form="iotdevicesNameUpdateForm"
                                             min="0" max="100" step="5" 
-                                            value="{{ $iotdevice->voice_auth_score ?? 80 }}"
+                                            value="{{ $iotdevice->ww_score ?? 80 }}"
                                             oninput="document.getElementById('rangeValue').textContent = this.value">
                                         <div class="d-flex justify-content-between text-muted" style="font-size: 0.5rem;">
                                             <span>低(誰でも)</span>
@@ -151,7 +153,7 @@
                                         });">
                                         <i class="fa-solid fa-trash-can"></i> 音声データ削除
                                     </button>
-                                    <form id="voiceClearForm" action="{{ route('iotdevice.set_voice_print') }}" method="POST" style="display: none;">
+                                    <form id="voiceClearForm" action="{{ route('iotdevice.set_ww_data') }}" method="POST" style="display: none;">
                                         @csrf
                                         <input type="hidden" name="iotdevice_id" value="{{ $iotdevice->id }}">
                                         <input type="hidden" name="clear_voice" value="1">
@@ -181,10 +183,10 @@
                             </button>
                         </div>
 
-                        <form id="voiceUploadForm" action="{{ route('iotdevice.set_voice_print') }}" method="POST" style="display: none;">
+                        <form id="voiceUploadForm" action="{{ route('iotdevice.set_ww_data') }}" method="POST" style="display: none;">
                             @csrf
                             <input type="hidden" name="iotdevice_id" value="{{ $iotdevice->id }}">
-                            <input type="hidden" name="voice_features_list" id="voiceFeaturesListInput">
+                            <input type="hidden" name="ww_features_list" id="voiceFeaturesListInput">
                         </form>
                     </div>
 
@@ -362,15 +364,15 @@
             SoundManager.play('select02');
 
             try {
-                // run-impulse.js の get_voice_data を使用
-                const recordedData = await window.get_voice_data(2000);
+                // run-impulse.js の get_ww_data を使用
+                const recordedData = await window.get_ww_data(2000);
                 SoundManager.play('select07');
                 progressArea.classList.add('d-none');
                 statusMsg.textContent = '音声解析中...';
 
-                // run-impulse.js の voice_analyze_execute を使用
+                // run-impulse.js の ww_analyze_execute を使用
                 const classifierInstance = window.getClassifier();
-                const features = await window.voice_analyze_execute(classifierInstance, recordedData);
+                const features = await window.ww_analyze_execute(classifierInstance, recordedData);
                 
                 currentFeatures = features;
                 statusMsg.textContent = '解析完了！';
@@ -410,7 +412,7 @@
             
             const testForm = document.createElement('form');
             testForm.method = 'POST';
-            testForm.action = "{{ route('iotdevice.voice_score_check') }}";
+            testForm.action = "{{ route('iotdevice.ww_score_check') }}";
             
             const csrfInput = document.createElement('input');
             csrfInput.type = 'hidden';
@@ -426,7 +428,7 @@
             
             const featuresInput = document.createElement('input');
             featuresInput.type = 'hidden';
-            featuresInput.name = 'voice_features';
+            featuresInput.name = 'ww_features';
             featuresInput.value = JSON.stringify(features);
             testForm.appendChild(featuresInput);
             

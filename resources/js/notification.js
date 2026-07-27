@@ -54,10 +54,10 @@ window.showNotification = function showNotification(message_org, type, sec) {
         case "mypl_del":    //削除
             notification.innerHTML += `<i class="icon-50 fa-solid fa-list-ul fa-shake red "></i>`;
             break;
-        case "voice_test_ok":    //音声指紋テストOK
+        case "ww_test_ok":    //音声指紋テストOK
             notification.innerHTML += `<i class="icon-50 fa-solid fa-lock-open fa-bounce red "></i>`;
             break;
-        case "voice_test_ng":   //音声指紋テストNG
+        case "ww_test_ng":   //音声指紋テストNG
             notification.innerHTML += `<i class="icon-50 fa-solid fa-lock fa-shake red "></i>`;
             break;
 
