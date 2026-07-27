@@ -182,9 +182,6 @@ class LineLoginController extends Controller
             
         }
 
-        // ユーザーが認証された後にデバイス情報を登録するためフロントで識別できるようにする
-        // セッションにログイン成功フラグを保存
-        $request->session()->flash('login_success', true);
         //return redirect('/home/?login=success');
         return redirect('/');
         

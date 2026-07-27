@@ -22,16 +22,19 @@ class SmartRemoteController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
-        
-        $input['admin_flag']    = false;
-        $input['page']          = get_proc_data($input,"page");
-        //$input['name_asc']      = true;
-
+                
+        $page          = get_proc_data($input,"page");
+        $keyword = array(
+            'admin_flag'        => false,
+        );
         $virtual_remote_list = VirtualRemoteUser::getVirtualRemoteUserList(null,false,null,$input);  //全件
         
-        $input['search_admin_uid']  = Auth::id();
-        $input['type_asc']          = true;
-        $iotdevice_list = IotDevice::getIotDeviceList(5,true,$input['page'],$input);  //5件
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_admin_uid'  => Auth::id(),
+            'type_asc'          => true,
+        );
+        $iotdevice_list = IotDevice::getIotDeviceList(5, true, $page, $keyword);  //5件
 
         return view('remote.show', compact('iotdevice_list','virtual_remote_list'));
     }
@@ -42,9 +45,11 @@ class SmartRemoteController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $input['admin_flag']    = false;
-        $input['search_remote_id']    = $id;
-        $virtual_remote = VirtualRemoteUser::getVirtualRemoteUserList(1,true,false,$input)->first();  //1件
+        $keyword = array(
+            'admin_flag'        => false,
+            'search_remote_id'  => $id,
+        );
+        $virtual_remote = VirtualRemoteUser::getVirtualRemoteUserList(1,true,false,$keyword)->first();  //1件
 
         if ($virtual_remote !== null) {
             $virtual_remote->blade_path = config('common.smart_remote_blade_paht') ."." . substr($virtual_remote->blade_name, 0, -6); 

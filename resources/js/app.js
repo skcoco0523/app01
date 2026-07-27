@@ -146,9 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // URL にログインフラグがある場合にデバイス登録処理を実行
-    if (window.Laravel.loginSuccess && window.Laravel.user_id) {
-        console.log('デバイス登録');
+    // ログイン中かつデバイス未登録の場合にデバイス登録処理を実行
+    if (window.Laravel.user_id > 0 && window.Laravel.hasRegisteredDevice == false) {
+        console.log('デバイス登録(自動)');
         registerDevice();
     }
 });

@@ -30,8 +30,8 @@ class IotDevice extends Model
                     if (get_proc_data($keyword, 'search_mac_addr')) 
                         $sql_cmd = $sql_cmd->where('dev.mac_addr', 'like', '%'. $keyword['search_mac_addr']. '%');
 
-                    if (get_proc_data($keyword, 'search_admin_user_id')) 
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
+                    if (get_proc_data($keyword, 'search_admin_uid')) 
+                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_uid']);
 
                     if (get_proc_data($keyword, 'search_type')) 
                         $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
@@ -45,20 +45,24 @@ class IotDevice extends Model
                 //ユーザーによる検索
                 }else{      
                     //本登録時の仮登録デバイス検索
-                    if(get_proc_data($keyword,"search_final_register_flag")){  
+                    if(get_proc_data($keyword,"final_register_flag")){  
                         $sql_cmd = $sql_cmd->where('dev.pincode',$keyword['search_pincode']);
                         $sql_cmd = $sql_cmd->where('dev.name',$keyword['search_name']);
                         $sql_cmd = $sql_cmd->whereNull('dev.admin_user_id');
+
+                    //通常のユーザー検索
+                    }else{
+                        if (get_proc_data($keyword, 'search_admin_uid'))
+                            $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_uid']);
+                        
+                        if (get_proc_data($keyword, 'search_id')) 
+                            $sql_cmd = $sql_cmd->where('dev.id',$keyword['search_id']);
+
+                        if (get_proc_data($keyword, 'search_type')) 
+                            $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
+
                     }
 
-                    if (get_proc_data($keyword, 'search_admin_user_id'))
-                        $sql_cmd = $sql_cmd->where('dev.admin_user_id',$keyword['search_admin_user_id']);
-                    
-                    if (get_proc_data($keyword, 'search_id')) 
-                        $sql_cmd = $sql_cmd->where('dev.id',$keyword['search_id']);
-
-                    if (get_proc_data($keyword, 'search_type')) 
-                        $sql_cmd = $sql_cmd->where('dev.type',$keyword['search_type']);
                 }
                 //並び順
                 if(get_proc_data($keyword,"type_asc"))     $sql_cmd = $sql_cmd->orderBy('dev.type',             'asc');

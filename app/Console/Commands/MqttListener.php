@@ -67,13 +67,15 @@ class MqttListener extends Command
             $device_name    = $data['device_name'] ?? null;
             $ww_data        = $data['ww_data'] ?? null; // ESP32からの能動的同期用(Base64)
             $command        = $data['command'] ?? null;
+            //config/common.php で定義されているデバイスタイプを取得
             $type           = $data['type'] ?? null;
             $ver            = $data['ver'] ?? null;
             $data           = $data['data'] ?? null;
 
             $this->info('topic:'. $topic);
             $this->info('command:'. $command);
-            //$this->info('data:'. $data);
+            $this->info('data:'. $data);
+            $this->info('type:'. $type);
             
             //make_error_log($error_log,"mac_addr:".$mac_addr." type:".$type." type_num:".s$type_num." ver:".$ver." uid:".$uid." data:".$data);
             make_error_log($error_log,"mac_addr:".$mac_addr."   device_name:".$device_name."   command:".$command."   ver:".$ver."   data:".$data);
