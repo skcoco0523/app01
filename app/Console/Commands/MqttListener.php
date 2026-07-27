@@ -65,6 +65,7 @@ class MqttListener extends Command
 
             $mac_addr       = $data['mac_addr'] ?? null;
             $device_name    = $data['device_name'] ?? null;
+            $ww_data        = $data['ww_data'] ?? null; // ESP32からの能動的同期用(Base64)
             $command        = $data['command'] ?? null;
             //config/common.php で定義されているデバイスタイプを取得
             $type           = $data['type'] ?? null;
@@ -82,7 +83,7 @@ class MqttListener extends Command
             
             if(config('common.device_info')[$type]){
                 //デバイス起動時の初回アクセス
-                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $device_name, $type, $ver);
+                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $device_name, $ver, $ww_data);
                 //赤外線信号スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
                 //赤外線信号受信通知
@@ -151,27 +152,40 @@ class MqttListener extends Command
     }
 
     //デバイス起動時の初回アクセス
-    public function mqtt_device_access($mac_addr, $device_name, $type, $ver = null){
+    public function mqtt_device_access($mac_addr, $device_name, $ver = null, $ww_data = null){
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
         make_error_log($error_log,"mac_addr:".$mac_addr);
         $device = IotDevice::getIotDeviceList(1,false,NULL,['admin_flag' => true, 'search_mac_addr' => $mac_addr])->first();
+        //登録済みデバイス
         if ($device !== null) {
-            //登録済みデバイス
             make_error_log($error_log,"device registered...mac_addr:".$device->mac_addr);
 
+            //仮登録状態　デバイス接続通知　再起動した場合に備えてpiccodeを再送
             if($device->admin_user_id == null){
-                //仮登録済み　デバイス接続通知　再起動した場合に備えてpiccodeを再送
                 $jdata = json_encode(["pincode" => (String)$device->pincode]);
                 Mosquitto::publishMQTT($mac_addr, "temp_regist", $jdata);
 
+            //本登録済み　デバイス接続通知
             }else{
-                //本登録済み　デバイス接続通知
-                $jdata = json_encode([
-                    "voice_print" => (String)$device->voice_print
-                ]);
-                Mosquitto::publishMQTT($mac_addr, "final_regist", $jdata);
+                Mosquitto::publishMQTT($mac_addr, "final_regist");
+                // ESP32側のデバイス名や音声指紋がサーバー側と異なる場合は、サーバー側の情報を送信して同期させる
+                $jdata = [];
+                // デバイス名の同期
+                if ($device_name !== (String)$device->name) {
+                    $jdata["device_name"] = (String)$device->name;
+                }
+                // 音声指紋の同期
+                $server_b64_prints = IotDevice::getVoicePrintsB64($device->ww_data);
+                if (($server_b64_prints[0] ?? null) !== null && $ww_data !== $server_b64_prints[0]) {
+                    $jdata["ww_datas_b64"] = $server_b64_prints;
+                }
+                // 差分があれば更新通知を送り、接続完了を通知
+                if (count($jdata) > 0) {
+                    $jdata["ww_score"] = (int)$device->ww_score;
+                    Mosquitto::publishMQTT($mac_addr, "update_device", json_encode($jdata));
+                }
 
                 //所有者が確定しているため接続通知
                 $send_info = new \stdClass();
@@ -181,8 +195,8 @@ class MqttListener extends Command
                 push_send($send_info, $device->admin_user_id);
             }
 
+        //未登録デバイス
         }else{
-            //未登録デバイス
             make_error_log($error_log,"device not found...creating");
             
             //未登録デバイスは、本登録対象を検索するためデバイス名を必須とする
@@ -194,21 +208,17 @@ class MqttListener extends Command
             // ユニークなpincodeになるまで繰り返す
             while (IotDevice::where('pincode', $pincode)->exists()) { $pincode = random_int(100000, 999999); }
             make_error_log($error_log,"pincode:".$pincode);
-            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => $type, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
+            //type:99=未設定
+            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => 99, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
+            //登録成功　piccodeをESPデバイスに送信
             if($ret['success']){
-                //登録成功　piccodeをESPデバイスに送信
                 make_error_log($error_log,"device create success id:".$ret['id']);
                 $jdata = json_encode(["pincode" => (String)$pincode]);
                 Mosquitto::publishMQTT($mac_addr, "temp_regist", $jdata);
                 
-                $send_info = new \stdClass();
-                $send_info->title = "IOTデバイス仮登録通知";
-                $send_info->body = "新しいIOTデバイスが仮登録されました。";
-                push_send($send_info, null, true); 
-                
+            //登録失敗
             }else{
-                //登録失敗
-                make_error_log($error_log,$ret['msg']);
+                make_error_log($error_log,"device create error:".$ret['msg']);
                 return;
 
             }

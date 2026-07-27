@@ -13,7 +13,7 @@ use App\Models\IotDeviceSignal;
 class IotDevice extends Model
 {
     use HasFactory;
-    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'ver', 'pincode', 'admin_user_id', 'voice_print', 'voice_auth_score'];     //一括代入の許可
+    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'ver', 'pincode', 'admin_user_id', 'ww_data', 'ww_score'];     //一括代入の許可
 
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -132,19 +132,20 @@ class IotDevice extends Model
         try {
 
             $msg = null;
-            if(!isset($data['mac_addr']))       $msg = "mac_addrは必須です";   //データ不足
-            if(!isset($data['type']))           $msg = "typeは必須です";   //データ不足
-            if(!isset($data['ver']))            $msg = "verは必須です";    //データ不足
-            if(!isset($data['pincode']))        $msg = "pincodeは必須です"; //データ不足
+            if(!isset($data['mac_addr']))       $msg = '必要な情報が不足しています。';
+            if(!isset($data['type']))           $msg = '必要な情報が不足しています。';
+            if(!isset($data['ver']))            $msg = '必要な情報が不足しています。';
+            if(!isset($data['pincode']))        $msg = '必要な情報が不足しています。';
 
-            if($msg) return ['success' => false, 'msg' => $msg];
-                   
+            if($msg) return ['success' => false, 'id' => null, 'msg' => $msg];
+
             $keyword = array('admin_flag'=>true,'search_mac_addr'=>$data['mac_addr']);
             $iotdevice_list = IotDevice::getIotDeviceList(1,false,null,$keyword);  //件数,ﾍﾟｰｼﾞｬｰ,ｶﾚﾝﾄﾍﾟｰｼﾞ,ｷｰﾜｰﾄﾞ
+            //dd($iotdevice_list);
             //mac_addrのユニーク規制
             if(count($iotdevice_list)!=0) {
-                $msg = "エラー：mac_addr [{$data['mac_addr']}] は既に登録されています。";
-                if($msg) return ['success' => false, 'msg' => $msg];
+                $msg = '既に登録されているデバイスです';
+                return ['success' => false, 'id' => null, 'msg' => $msg];
             }
 
             //dd($data);
@@ -157,7 +158,7 @@ class IotDevice extends Model
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['success' => false, 'msg' => "エラーが発生しました。"];   //追加失敗
+            return ['success' => false, 'id' => null, 'msg' => '追加失敗'];   //追加失敗
         }
         
     }
@@ -172,7 +173,7 @@ class IotDevice extends Model
             
             if(!$device){
                 make_error_log($error_log,".not applicable:".$data['mac_addr']);
-                return ['success' => false, 'id' => null, 'msg' => "デバイスが見つかりません。"];   //更新失敗
+                return ['success' => false, 'id' => null, 'msg' => '更新対象が見つかりません'];   //更新失敗
             }
             //dd($data);
             
@@ -193,14 +194,14 @@ class IotDevice extends Model
             if (isset($data['name']) && $device->name != $data['name'])
                 $updateData['name'] = $data['name']; 
 
-            if (array_key_exists('voice_print', $data) && $device->voice_print != $data['voice_print'])
-                $updateData['voice_print'] = $data['voice_print']; 
+            if (array_key_exists('ww_data', $data) && $device->ww_data != $data['ww_data'])
+                $updateData['ww_data'] = $data['ww_data']; 
 
-            if (array_key_exists('voice_print', $data) && $device->voice_print != $data['voice_print'])
-                $updateData['voice_print'] = $data['voice_print']; 
+            if (array_key_exists('ww_data', $data) && $device->ww_data != $data['ww_data'])
+                $updateData['ww_data'] = $data['ww_data']; 
 
-            if (array_key_exists('voice_auth_score', $data) && $device->voice_auth_score != $data['voice_auth_score'])
-                $updateData['voice_auth_score'] = $data['voice_auth_score']; 
+            if (array_key_exists('ww_score', $data) && $device->ww_score != $data['ww_score'])
+                $updateData['ww_score'] = $data['ww_score']; 
 
             //NULL更新を許容
             if (array_key_exists('pincode', $data) && $device->pincode != $data['pincode'])
@@ -213,12 +214,12 @@ class IotDevice extends Model
                 make_error_log($error_log,"success");
             }
             
-            return ['success' => true, 'id' => $device->id, 'msg' => "更新しました。"];   //更新成功
+            return ['success' => true, 'id' => $device->id, 'msg' => '更新が完了しました。'];   //更新成功
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             make_error_log($error_log, "Data: " . print_r($data, true));
-            return ['success' => false, 'id' => null, 'msg' => "更新に失敗しました。"];   //更新失敗
+            return ['success' => false, 'id' => null, 'msg' => '更新に失敗しました。'];   //更新失敗
         }
     }
     //IoTデバイス削除
@@ -237,13 +238,40 @@ class IotDevice extends Model
             //}else{//ユーザーによるデバイス削除  
             //}
             make_error_log($error_log,"success");
-            return ['success' => true, 'id' => null, 'msg' => "削除に成功しました。"];   //削除成功
+            return ['success' => true, 'id' => null, 'msg' => '削除が完了しました。'];   //削除成功
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['success' => false, 'id' => null, 'msg' => "削除に失敗しました。"];   //削除失敗
+            return ['success' => false, 'id' => null, 'msg' => '削除に失敗しました。'];
 
         }
+    }
+
+    /**
+     * 音声指紋（カンマ区切り文字列）をBase64配列に変換する
+     * 
+     * @param string|null $ww_data_json
+     * @return array
+     */
+    public static function getVoicePrintsB64($ww_data_json)
+    {
+        if (!$ww_data_json) {
+            return [];
+        }
+
+        $ww_data = json_decode($ww_data_json, true);
+        if (!isset($ww_data['prints']) || !is_array($ww_data['prints'])) {
+            return [];
+        }
+
+        $b64_prints = [];
+        foreach ($ww_data['prints'] as $print_str) {
+            $vals = explode(',', $print_str);
+            $binary = pack('c*', ...$vals);
+            $b64_prints[] = base64_encode($binary);
+        }
+
+        return $b64_prints;
     }
 
 }

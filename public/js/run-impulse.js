@@ -201,12 +201,12 @@ function getDeviceType() {
 }
 
 // グローバルスコープに公開
-window.get_voice_data = get_voice_data;
-window.voice_analyze_execute = voice_analyze_execute;
-window.voice_score_check = voice_score_check;
+window.get_ww_data = get_ww_data;
+window.ww_analyze_execute = ww_analyze_execute;
+window.ww_score_check = ww_score_check;
 window.getClassifier = () => classifier;
 
-async function get_voice_data($check_msec = 2000) {
+async function get_ww_data($check_msec = 2000) {
     // 初期化
     isCapturing = false;
     audioBufferQueue = [];
@@ -313,7 +313,7 @@ async function get_voice_data($check_msec = 2000) {
 }
 
 // MFCC用 分析実行
-async function voice_analyze_execute(classifier, recordedData) {
+async function ww_analyze_execute(classifier, recordedData) {
     const props = classifier.getProperties();
     const required = props.input_features_count;
 
@@ -382,7 +382,7 @@ async function voice_analyze_execute(classifier, recordedData) {
 }
 
 //スコア判定
-function voice_score_check(vectorA, vectorB) {
+function ww_score_check(vectorA, vectorB) {
     if (!vectorA || !vectorB || vectorA.length !== vectorB.length) return 0;
 
     let dot = 0;
