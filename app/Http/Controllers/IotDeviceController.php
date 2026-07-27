@@ -118,15 +118,14 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $input['admin_flag']        = false;
-        $input['iotdevice_id']      = get_proc_data($input,"iotdevice_id");
-        $input['iotdevice_name']    = get_proc_data($input,"iotdevice_name");
-        $input['ww_score']          = get_proc_data($input,"ww_score");
+        $iotdevice_id      = get_proc_data($input,"iotdevice_id");
+        $iotdevice_name    = get_proc_data($input,"iotdevice_name");
+        $ww_score          = get_proc_data($input,"ww_score");
         
         //テーブル：virtual_remotesのid
         $input['search_admin_uid']  = Auth::id();
         $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$input['iotdevice_id']. " iotdevice_name:".$input['iotdevice_name']." ww_score:".$input['ww_score']);
+        make_error_log($error_log,"iotdevice_id:".$iotdevice_id. " iotdevice_name:".$iotdevice_name." ww_score:".$ww_score);
 
         $keyword = array(
             'admin_flag'        => false,
@@ -137,14 +136,14 @@ class IotDeviceController extends Controller
 
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
-            if($input['iotdevice_name']){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$input['iotdevice_name'], 'ww_score'=>$input['ww_score']]);
+            if($iotdevice_name){
+                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'ww_score'=>$ww_score]);
                 make_error_log($error_log,"success:".$ret['success']);
                 if($ret['success']){
                     // デバイス名とスコア閾値のみ更新（音声は変更なしのため含めない）
                     $jdata = json_encode([
-                        "device_name" => $input['iotdevice_name'],
-                        "ww_score" => (int)$input['ww_score']
+                        "device_name" => $iotdevice_name,
+                        "ww_score" => (int)$ww_score
                     ]);
                     Mosquitto::publishMQTT($iotdevice->mac_addr, "update_device", $jdata);
                     $message = make_message($ret['msg'], 'device_chg');
