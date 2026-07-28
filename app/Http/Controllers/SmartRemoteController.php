@@ -27,7 +27,7 @@ class SmartRemoteController extends Controller
         $keyword = array(
             'admin_flag'        => false,
         );
-        $virtual_remote_list = VirtualRemoteUser::getVirtualRemoteUserList(null,false,null,$input);  //全件
+        $virtual_remote_list = VirtualRemoteUser::getVirtualRemoteUserList(null,false,null,$keyword);  //全件
         
         $keyword = array(
             'admin_flag'        => false,
