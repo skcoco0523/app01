@@ -1,4 +1,3 @@
-<?//button type="submitにしないと、プレビューで処理されてしまう"?>
 <div class="remote-body">
     <div class="row justify-content-center">
         <div class="col-md-12 col-sm-12 col-12">
