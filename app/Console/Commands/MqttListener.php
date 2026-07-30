@@ -56,21 +56,22 @@ class MqttListener extends Command
             $mac_addr = $topic_array[1] ?? null;
 
             // JSONペイロードを解析
-            $data = json_decode($message, true);
+            $payload = json_decode($message, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $this->error("Failed to decode JSON from message. Error: " . json_last_error_msg());
                 make_error_log($error_log,"Failed to decode JSON from message. Error: " . json_last_error_msg());
                 return;
             }
 
-            $mac_addr       = $data['mac_addr'] ?? null;
-            $device_name    = $data['device_name'] ?? null;
-            $ww_data        = $data['ww_data'] ?? null; // ESP32からの能動的同期用(Base64)
-            $command        = $data['command'] ?? null;
+            $mac_addr       = $payload['mac_addr'] ?? null;
+            $device_name    = $payload['device_name'] ?? null;
+            $ww_data        = $payload['ww_data'] ?? null; // ESP32からの能動的同期用(Base64)
+            $command        = $payload['command'] ?? null;
             //config/common.php で定義されているデバイスタイプを取得
-            $type           = $data['type'] ?? null;
-            $ver            = $data['ver'] ?? null;
-            $data           = $data['data'] ?? null;
+            $type           = $payload['type'] ?? null;
+            $ver            = $payload['ver'] ?? null;
+            $data           = $payload['data'] ?? null;
+            $ir_signal      = $payload['ir_signal'] ?? null;
 
             $this->info('topic:'. $topic);
             $this->info('command:'. $command);
@@ -83,12 +84,19 @@ class MqttListener extends Command
             
             if(config('common.device_info')[$type]){
                 //デバイス起動時の初回アクセス
-                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $device_name, $ver, $ww_data);
-                //赤外線信号スタンバイ通知
+                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $type, $device_name, $ver, $ww_data);
+                //赤外線信号受信スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
+                //赤外線信号受信タイムアウト通知
+                if ($command == 'ir-receive-timeout')   $this->mqtt_ir_receive_timeout($mac_addr);
                 //赤外線信号受信通知
-                if ($command == 'ir-received')          $this->mqtt_ir_received($mac_addr, $data);
-                
+                if ($command == 'ir-received'){
+                    // make_error_log 用に ir_signal を文字列化
+                    $ir_signal_str = is_array($ir_signal) ? json_encode($ir_signal) : $ir_signal;
+                    $this->info('ir_signal:'. $ir_signal_str);
+                    $this->mqtt_ir_received($mac_addr, $ir_signal);
+                }
+
                 make_error_log($error_log,"--------end---------");
             }else{
                 make_error_log($error_log,"--------type:" . $type . " is undefined ---------");
@@ -151,8 +159,37 @@ class MqttListener extends Command
         return Command::SUCCESS;
     }
 
+    //赤外線信号スタンバイ通知
+    public function mqtt_ir_receive_standby($mac_addr)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+
+        make_error_log($error_log, "---------------start----------------");
+        make_error_log($error_log, "mac_addr:" . $mac_addr);
+
+        // ステータスを「Standby (3)」に更新
+        IotDevice::where('mac_addr', $mac_addr)->update(['status' => 3]);
+
+        make_error_log($error_log, "----------------end-----------------");
+    }
+
+    //赤外線信号受信タイムアウト通知
+    public function mqtt_ir_receive_timeout($mac_addr)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+
+        make_error_log($error_log, "---------------start----------------");
+        make_error_log($error_log, "mac_addr:" . $mac_addr);
+
+        // ステータスを「Timeout (5)」に更新
+        IotDevice::where('mac_addr', $mac_addr)->update(['status' => 5]);
+
+        make_error_log($error_log, "----------------end-----------------");
+    }
+
     //デバイス起動時の初回アクセス
-    public function mqtt_device_access($mac_addr, $device_name, $ver = null, $ww_data = null){
+    public function mqtt_device_access($mac_addr, $type, $device_name, $ver = null, $ww_data = null)
+    {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         make_error_log($error_log,"---------------start----------------");
@@ -208,8 +245,7 @@ class MqttListener extends Command
             // ユニークなpincodeになるまで繰り返す
             while (IotDevice::where('pincode', $pincode)->exists()) { $pincode = random_int(100000, 999999); }
             make_error_log($error_log,"pincode:".$pincode);
-            //type:99=未設定
-            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => 99, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
+            $ret = IotDevice::createIotDevice(["mac_addr" => $mac_addr, "type" => $type, "name" => $device_name, "ver" => $ver, "pincode" => $pincode]);
             //登録成功　piccodeをESPデバイスに送信
             if($ret['success']){
                 make_error_log($error_log,"device create success id:".$ret['id']);
@@ -226,16 +262,9 @@ class MqttListener extends Command
         make_error_log($error_log,"----------------end-----------------");
     }
 
-    //赤外線信号スタンバイ通知
-    public function mqtt_ir_receive_standby($mac_addr){
-        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-
-        make_error_log($error_log,"---------------start----------------");
-        make_error_log($error_log,"----------------end-----------------");
-    }
 
     //赤外線信号受信通知
-    public function mqtt_ir_received($mac_addr, $data)
+    public function mqtt_ir_received($mac_addr, $ir_signal)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "---------------start----------------");
@@ -248,26 +277,19 @@ class MqttListener extends Command
             return;
         }
 
-        /* 
-           信号受信時のフロー（暫定）:
-           ESP32が学習モード中に受信した信号を、現在「学習待機中」のリモコンボタンに割り当てる、
-           あるいは一旦デフォルトの「未分類(category_name='unknown')」として保存するなどの処理が必要。
-           ここでは一旦、引数 $data に必要な情報が含まれている前提、
-           あるいはシステム側の「学習中フラグ」を参照する想定。
-        */
+        // $ir_signal は json_decode 済みの配列。そのまま再シリアライズして保存
+        // インターフェース定義に基づき、{"raw": [...]} 等が含まれる想定
+        $receive_json = is_array($ir_signal) ? json_encode($ir_signal) : $ir_signal;
 
-        // 仮のデータ構造（ESP32からの $data に remote_id や button_num が含まれない場合を考慮）
-        $insert_data = [
-            'device_id'     => $device->id,
-            'remote_id'     => $data['remote_id'] ?? 0, // 本来は学習中のリモコンID
-            'button_num'    => $data['button_num'] ?? 0,
-            'category_name' => $data['category_name'] ?? '未分類',
-            'signal_name'   => $data['signal_name'] ?? '受信信号_' . date('YmdHis'),
-            'signal_data'   => is_array($data['signal_data']) ? json_encode($data['signal_data']) : ($data['signal_data'] ?? $data),
+        // 汎用受信フィールドに保存 (コマンド名とデータ)
+        $update_data = [
+            'status'          => 4, // Received
+            'receive_command' => 'ir-received',
+            'receive_data'    => $receive_json,
         ];
 
-        $ret = IotDeviceSignal::createIotDeviceSignal($insert_data);
-        make_error_log($error_log, "Result: " . $ret['msg']);
+        $device->update($update_data);
+        make_error_log($error_log, "device status and receive_data updated. mac_addr:" . $mac_addr);
 
         make_error_log($error_log, "----------------end-----------------");
     }

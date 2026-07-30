@@ -136,10 +136,3 @@
     
 
 @endsection
-
-<style>
-    /* プレビュー時は未割当状態を変えない */
-    .noset-signal {
-         opacity: 1 !important;
-    }
-</style>
