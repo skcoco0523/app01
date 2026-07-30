@@ -68,8 +68,12 @@
         const api_login                     = `{{ url('/api/login') }}`;
         const getAdvertisementUrl           = `{{ url('/api/adv/get') }}`;
         const AdvertisementClickUrl         = `{{ url('/api/adv/click') }}`;
-        const getVirtualRemoteBladeUrl      = `{{ url('/api/remote-blade/get') }}`;
-        const getIotDevicesUrl              = `{{ url('/api/iot_devices/get') }}`;
+        const getVirtualRemoteBladeUrl      = `{{ url('/api/remote-blade/get') }}`;         //スマートリモコンのブレード情報を取得
+        const getIotDevicesUrl              = `{{ url('/api/iot_devices/get') }}`;          //所持しているIoTデバイスの情報を取得
+        const irReceiveRequestUrl           = `{{ url('/api/ir-receive-request') }}`;       //赤外線信号学習リクエスト　ESP32宛て
+        const getIotDeviceStatusUrl         = `{{ url('/api/iot_device_status/get') }}`;    //デバイスのステータス情報取得
+        const irSendSignalUrl               = `{{ url('/api/smart-remote/signal/send') }}`; //赤外線信号送信　ESP32宛て
+        const irSignalSaveUrl               = `{{ url('/api/smart-remote/signal/save') }}`; //学習した赤外線信号の保存
         const getFriendlistUrl              = `{{ url('/api/friendlist/get') }}`;
         const shareNoteWithFriendUrl        = `{{ url('/api/note/share') }}`;
         const unshareNoteFromFriendUrl      = `{{ url('/api/note/unshare') }}`;

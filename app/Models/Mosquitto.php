@@ -33,7 +33,7 @@ class Mosquitto extends Model
         
         $jdata    = [
             'command' => (string)$command,
-            'data'    => (string)$data,
+            'data'    => $data,
         ];
         $json_message = json_encode($jdata);
 

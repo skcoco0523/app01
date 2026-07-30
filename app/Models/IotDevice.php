@@ -13,7 +13,7 @@ use App\Models\IotDeviceSignal;
 class IotDevice extends Model
 {
     use HasFactory;
-    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'ver', 'pincode', 'admin_user_id', 'ww_data', 'ww_score'];     //一括代入の許可
+    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'status', 'receive_command', 'receive_data', 'ver', 'pincode', 'admin_user_id', 'ww_data', 'ww_score'];     //一括代入の許可
 
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)

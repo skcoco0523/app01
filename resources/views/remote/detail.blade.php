@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+    <style>
+        /* 編集モード時は未割当状態を変えない（はっきり表示する） */
+        #RemoteDesignContainer.is-edit-mode .noset-signal {
+            opacity: 1 !important;
+        }
+    </style>
     <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('remote.index') }}'"></i>
     <div class="container py-4">
         <div class="remote-header d-flex flex-column align-items-end mb-3">
@@ -32,8 +38,8 @@
                     <form id="remoteNameUpdateForm" method="POST" action="{{ route('remote.update') }}">
                         @csrf
                         <?// 変更権限がある場合のみ入力許可?>
-                        <input type="hidden" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
-                        <input type="hidden" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
+                        <input type="hidden" id="remote_id" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
+                        <input type="hidden" id="remote_user_id" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
                         @if($virtual_remote->admin_flag ?? false)
                             <input type="text" class="form-control form-control-sm me-2" name="remote_name" value="{{ $virtual_remote->name ?? '' }}" >
                         @else
@@ -111,7 +117,9 @@
         </div>
 
         <?//リモコンデザイン?>
-        @include($virtual_remote->blade_path)
+        <div id="RemoteDesignContainer">
+            @include($virtual_remote->blade_path)
+        </div>
     </div>
 
     <?//広告モーダル?>   
@@ -138,14 +146,17 @@
 
             function setEditMode(enableEdit) {
                 isEditingMode = enableEdit;
+                const designContainer = document.getElementById('RemoteDesignContainer');
                 if (isEditingMode) { // 編集モードに入る
                     DisplayArea.style.display = 'none';
                     EditArea.style.display = 'block';
                     buttonTextSpan.textContent = '閉じる';
+                    designContainer.classList.add('is-edit-mode');
                 } else { // 表示モードに戻る
                     DisplayArea.style.display = 'block';
                     EditArea.style.display = 'none';
                     buttonTextSpan.textContent = '設定';
+                    designContainer.classList.remove('is-edit-mode');
                 }
             }
             // 設定の切り替え
@@ -170,6 +181,7 @@
                         console.log(`編集モード: ボタン ${buttonNum} : ${buttonName} を編集`);
                         openModal('edit_virtualremote_signal-modal', {
                             remote_id: remoteId,
+                            button_num: buttonNum,
                             button_name: buttonName,
                         });
 
@@ -181,7 +193,27 @@
 
             function sendRemoteSignal(remoteId, buttonNum) {
                 console.log(`sendRemoteSignal()   remoteId: ${remoteId}  buttonNum: ${buttonNum} `);
-                // Ajaxやフォーム送信など
+                
+                $.ajax({
+                    type: "POST",
+                    url: irSendSignalUrl,
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        remote_id: remoteId,
+                        button_num: buttonNum,
+                        test_flag: 0
+                    }
+                })
+                .done(response => {
+                    if (response.success) {
+                        console.log('信号を送信しました。');
+                    } else {
+                        console.error('送信失敗:', response.msg);
+                    }
+                })
+                .fail((xhr, status, error) => {
+                    console.error('通信エラー:', error);
+                });
             }
             
 

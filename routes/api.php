@@ -46,6 +46,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // 所有iotデバイス検索
     Route::get('/iot_devices/get', [ApiSmartRemoteController::class, 'api_iot_devices_get']);
 
+    // 赤外線受信待機リクエスト
+    Route::get('/ir-receive-request', [ApiSmartRemoteController::class, 'api_ir_receive_request']);
+    // デバイスステータス取得
+    Route::get('/iot_device_status/get', [ApiSmartRemoteController::class, 'api_iot_device_status_get']);
+    // 赤外線信号保存
+    Route::post('/smart-remote/signal/save', [ApiSmartRemoteController::class, 'api_ir_signal_save']);
+    // 赤外線信号送信
+    Route::post('/smart-remote/signal/send', [ApiSmartRemoteController::class, 'api_ir_send']);
+
     // フレンドリスト取得
     Route::get('/friendlist/get', [ApiFriendlistController::class, 'api_friendlist_get']);
 
