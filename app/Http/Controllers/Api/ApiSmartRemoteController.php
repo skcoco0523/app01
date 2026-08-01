@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use App\Http\Controllers\Controller;
 
+use App\Models\VirtualRemote;
 use App\Models\VirtualRemoteBlade;
 use App\Models\IotDevice;
 use App\Models\Mosquitto;
@@ -199,86 +200,129 @@ class ApiSmartRemoteController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "-------start-------");
 
-        $device_id = $request->input('device_id');
-        $signal_id = $request->input('signal_id');
-        $test_flag = $request->input('test_flag');
+        $device_id      = $request->input('device_id');
+        $test_flag      = $request->input('test_flag');  //仮保存信号でテスト
         
-        // 仮想リモコン経由の送信対応
-        $remote_id = $request->input('remote_id');
-        $button_num = $request->input('button_num');
+        $library_flag   = $request->input('library_flag');
 
-        $raw_signal = null;
-        $device = null;
+        // ライブラリ送信用のパラメータ
+        $protocol       = $request->input('protocol');
+        $hex            = $request->input('hex');
+        $bits           = $request->input('bits');
+        
+        // エアコン用追加パラメータ
+        $temp           = $request->input('temp');
+        $mode           = $request->input('mode');
+        $fan            = $request->input('fan');
+        $power          = $request->input('power');
 
-        if ($test_flag) {
-            // テスト送信：一時保存中の受信データを使用
-            $device = IotDevice::where('id', $device_id)
-                ->where('admin_user_id', Auth::id())
-                ->first();
+        // 仮想リモコン経由の送信
+        $remote_id      = $request->input('remote_id');
+        $button_num     = $request->input('button_num');
+
+        $raw_signal     = null;
+        $device         = null;
+
+        $mqtt_payload = array();
+        // ESPのライブラリを利用
+        if($library_flag){
+            
+            make_error_log($error_log, "send_library");
+            
+            // 1. リクエストに device_id があればそれを使用
+            if ($device_id) {
+                $device = IotDevice::where('id', $device_id)->where('admin_user_id', Auth::id())->first();
+            } 
+            // 2. なければリモコン設定 (virtual_remotes.device_id) を確認
+            else if ($remote_id) {
+                $v_remote = VirtualRemote::find($remote_id);
+                if ($v_remote && $v_remote->device_id > 0) {
+                    $device = IotDevice::where('id', $v_remote->device_id)->where('admin_user_id', Auth::id())->first();
+                    make_error_log($error_log, "found device from virtual_remote. device_id: ".$v_remote->device_id);
+                }
+            }
+
+            // 3. それでもなければユーザーの最初の有効なデバイスを検索
+            if (!$device) {
+                $device = IotDevice::where('admin_user_id', Auth::id())->where('status', 1)->first();
+                if ($device) make_error_log($error_log, "fallback to user first device. device_id: ".$device->id);
+            }
+
+            if (!$device) return response()->json(['success' => false, 'msg' => '送信デバイスが見つからないか権限がありません。'], 404);
+
+            $mqtt_payload = [
+                'type'     => 'library',
+                'protocol' => $protocol,
+            ];
+
+            // エアコン用のパラメータがあれば追加
+            if ($temp !== null)  $mqtt_payload['temp']  = (int)$temp;
+            if ($mode !== null)  $mqtt_payload['mode']  = $mode;
+            if ($fan !== null)   $mqtt_payload['fan']   = $fan;
+            if ($power !== null) $mqtt_payload['power'] = ($power === 'false' || $power === 0 || $power === "0") ? false : true;
+
+            // Hexデータがあれば追加（テレビ・照明等）
+            if ($hex !== null) {
+                $mqtt_payload['hex']  = $hex;
+                $mqtt_payload['bits'] = (int)$bits;
+            }
+
+        //ESPの学習データを利用
+        }else{
+            make_error_log($error_log, "send_learned data");
+            if ($test_flag) {
+                // テスト送信：一時保存中の受信データを使用
+                $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>AUth::id()])->first();
+                if (!$device)       return response()->json(['success' => false, 'msg' => 'デバイスが見つかりません。'], 404);
+                $raw_signal = $device->receive_data;
+                if (!$raw_signal)   return response()->json(['success' => false, 'msg' => 'テストデータの受信、もしくは更新が失敗しています。'], 400);
                 
-            if (!$device) {
-                return response()->json(['success' => false, 'msg' => 'デバイスが見つかりません。'], 404);
+            } else {
+                // 通常送信：保存済みの信号データを使用
+                $signal = null;
+                if ($remote_id && $button_num) {
+                    // 仮想リモコンIDとボタン番号から検索
+                    $signal = IotDeviceSignal::where('remote_id', $remote_id)
+                        ->where('button_num', $button_num)
+                        ->first();
+                }
+                if (!$signal) return response()->json(['success' => false, 'msg' => '指定された信号が見つかりません。'], 404);   
+
+                $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$signal->device_id, 'search_admin_uid'=>AUth::id()])->first();
+                if (!$device) return response()->json(['success' => false, 'msg' => '送信デバイスが見つからないか権限がありません。'], 404);
+                
+                $raw_signal = $signal->signal_data;
+            }
+            // 信号データの解析とフォーマット変換
+            // raw_signal が JSON 文字列であることを想定
+            $data_array = json_decode($raw_signal, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($data_array)) {
+                // ESPで学習した信号
+                if (isset($data_array['raw'])) {
+                    $mqtt_payload = [
+                        'type' => 'raw',
+                        'raw'  => $data_array['raw'],
+                        'freq' => $data_array['freq'] ?? 38 //周波数
+                    ];
+                }
             }
 
-            $raw_signal = $device->receive_data;
-            if (!$raw_signal) {
-                return response()->json(['success' => false, 'msg' => 'テストする信号データがありません。'], 400);
-            }
-        } else {
-            // 通常送信：保存済みの信号データを使用
-            $signal = null;
-            if ($signal_id) {
-                $signal = IotDeviceSignal::find($signal_id);
-            } elseif ($remote_id && $button_num) {
-                // 仮想リモコンIDとボタン番号から検索
-                $signal = IotDeviceSignal::where('remote_id', $remote_id)
-                    ->where('button_num', $button_num)
-                    ->first();
-            }
-
-            if (!$signal) {
-                return response()->json(['success' => false, 'msg' => '指定された信号が見つかりません。'], 404);
-            }
-
-            $device = IotDevice::where('id', $signal->device_id)
-                ->where('admin_user_id', Auth::id())
-                ->first();
-
-            if (!$device) {
-                return response()->json(['success' => false, 'msg' => '送信デバイスが見つからないか権限がありません。'], 404);
-            }
-
-            $raw_signal = $signal->signal_data;
         }
 
-        // 信号データの解析とフォーマット変換
-        // raw_signal が JSON 文字列であることを想定
-        $data_array = json_decode($raw_signal, true);
-        $mqtt_payload = $raw_signal; // デフォルトはそのまま
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($data_array)) {
-            // 定義書 A. パルス配列指定
-            if (isset($data_array['raw'])) {
-                $mqtt_payload = [
-                    'type' => 'raw',
-                    'raw'  => $data_array['raw'],
-                    'freq' => $data_array['freq'] ?? 38 //周波数
-                ];
-            }
-            // 定義書 B. プロトコル・コード指定の場合はそのまま（または構造を維持）
-            elseif (isset($data_array['protocol'])) {
-                $mqtt_payload = [
-                    'protocol' => $data_array['protocol'],
-                    'hex'      => $data_array['hex'] ?? '0x0',
-                    'bits'     => $data_array['bits'] ?? 0
-                ];
-            }
-        }
-
+    make_error_log($error_log, "mqtt_payload:".print_r($mqtt_payload,1));
+        
+    if($mqtt_payload){
         // ESP32にMQTT送信 (コマンドは ir-send)
         // $mqtt_payload が配列の場合は Mosquitto::publishMQTT 内で json_encode される
         $ret = Mosquitto::publishMQTT($device->mac_addr, 'ir-send', $mqtt_payload);
-
         return response()->json($ret);
+
+    }else{
+        return ['success' => false, 'msg' => "送信に失敗しました。"];
+    }
+
+
+
     }
 }
