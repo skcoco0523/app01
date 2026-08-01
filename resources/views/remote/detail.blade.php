@@ -40,10 +40,29 @@
                         <?// 変更権限がある場合のみ入力許可?>
                         <input type="hidden" id="remote_id" name="remote_id" value="{{ $virtual_remote->remote_id ?? '' }}">
                         <input type="hidden" id="remote_user_id" name="remote_user_id" value="{{ $virtual_remote->id ?? '' }}">
+
                         @if($virtual_remote->admin_flag ?? false)
-                            <input type="text" class="form-control form-control-sm me-2" name="remote_name" value="{{ $virtual_remote->name ?? '' }}" >
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" name="remote_name" value="{{ $virtual_remote->name ?? '' }}" >
+                            </div>
+                            
+                            <?// ライブラリ型リモコンの場合のみ送信デバイス選択を表示?>
+                            <div id="LibraryDeviceSelectArea" style="display: none;" class="mb-3">
+                                <select name="device_id" id="library_device_select" class="form-select form-select-sm">
+                                    <option value="0">送信先を選択してください</option>
+                                </select>
+                            </div>
                         @else
-                            <input type="text" class="form-control form-control-sm me-2" value="{{ $virtual_remote->name ?? '' }}" disabled>
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" value="{{ $virtual_remote->name ?? '' }}" disabled>
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" value="{{ $virtual_remote->device_name ?? '' }}" disabled>
+                            </div>
+
+                        @endif
+
+                        @if($virtual_remote->admin_flag ?? false)
                         @endif
                     </form>
 
@@ -135,86 +154,195 @@
         //===================================================================
         //モード切り替え関数 ☆☆☆
         //===================================================================
-            const DisplayArea = document.getElementById('DisplayArea');
-            const EditArea = document.getElementById('EditArea');
-            //const remoteNameInput = document.getElementById('remoteNameInput');
-            const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
-            const buttonTextSpan = document.getElementById('buttonText');
-            const buttonIcon = toggleEditModeBtn.querySelector('i');
+        const DisplayArea = document.getElementById('DisplayArea');
+        const EditArea = document.getElementById('EditArea');
+        //const remoteNameInput = document.getElementById('remoteNameInput');
+        const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+        const buttonTextSpan = document.getElementById('buttonText');
+        const buttonIcon = toggleEditModeBtn.querySelector('i');
 
-            let isEditingMode = false; // 現在のモード状態を保持
+        let isEditingMode = false; // 現在のモード状態を保持
 
-            function setEditMode(enableEdit) {
-                isEditingMode = enableEdit;
-                const designContainer = document.getElementById('RemoteDesignContainer');
-                if (isEditingMode) { // 編集モードに入る
-                    DisplayArea.style.display = 'none';
-                    EditArea.style.display = 'block';
-                    buttonTextSpan.textContent = '閉じる';
-                    designContainer.classList.add('is-edit-mode');
-                } else { // 表示モードに戻る
-                    DisplayArea.style.display = 'block';
-                    EditArea.style.display = 'none';
-                    buttonTextSpan.textContent = '設定';
-                    designContainer.classList.remove('is-edit-mode');
+        function setEditMode(enableEdit) {
+            isEditingMode = enableEdit;
+            const designContainer = document.getElementById('RemoteDesignContainer');
+            if (isEditingMode) { // 編集モードに入る
+                DisplayArea.style.display = 'none';
+                EditArea.style.display = 'block';
+                buttonTextSpan.textContent = '閉じる';
+                designContainer.classList.add('is-edit-mode');
+
+                // ライブラリ型ボタン（data-lib-protocol）が存在する場合、デバイス選択を表示
+                const libButtons = document.querySelectorAll('button[data-lib-protocol]');
+                if (libButtons.length > 0) {
+                    initLibraryDeviceSelect();
                 }
+
+            } else { // 表示モードに戻る
+                DisplayArea.style.display = 'block';
+                EditArea.style.display = 'none';
+                buttonTextSpan.textContent = '設定';
+                designContainer.classList.remove('is-edit-mode');
             }
-            // 設定の切り替え
-            toggleEditModeBtn.addEventListener('click', function() {
-                if (isEditingMode)  setEditMode(false); 
-                else                setEditMode(true);
-            });
+        }
+        // 設定の切り替え
+        toggleEditModeBtn.addEventListener('click', function() {
+            if (isEditingMode)  setEditMode(false); 
+            else                setEditMode(true);
+        });
 
-            // 初期状態は表示モード
-            setEditMode(false);
-            
-            // ----------------------------------------------------------
-            // data-button-num を持つボタンのクリック処理
-            // ----------------------------------------------------------
-            const remoteId = document.getElementById('remote_id')?.value || '';
-            document.querySelectorAll('button[data-button-num]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const buttonNum = btn.dataset.buttonNum;
-                    const buttonName = btn.dataset.buttonName;
+        // 初期状態は表示モード
+        setEditMode(false);
+        
+        // ----------------------------------------------------------
+        // ボタンのクリック処理
+        // ----------------------------------------------------------
+        const remoteId = document.getElementById('remote_id')?.value || '';
+        
+        // 学習済み信号用 (data-button-num)
+        document.querySelectorAll('button[data-button-num]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const buttonNum = btn.dataset.buttonNum;
+                const buttonName = btn.dataset.buttonName;
 
-                    if (isEditingMode) {    // 編集モードの場合の処理
-                        console.log(`編集モード: ボタン ${buttonNum} : ${buttonName} を編集`);
-                        openModal('edit_virtualremote_signal-modal', {
-                            remote_id: remoteId,
-                            button_num: buttonNum,
-                            button_name: buttonName,
-                        });
-
-                    } else {    // 通常モード（送信モード）の処理
-                        sendRemoteSignal(remoteId, buttonNum);
-                    }
-                });
-            });
-
-            function sendRemoteSignal(remoteId, buttonNum) {
-                console.log(`sendRemoteSignal()   remoteId: ${remoteId}  buttonNum: ${buttonNum} `);
-                
-                $.ajax({
-                    type: "POST",
-                    url: irSendSignalUrl,
-                    data: {
-                        _token: '{{ csrf_token() }}',
+                if (isEditingMode) {    // 編集モードの場合の処理
+                    console.log(`編集モード: ボタン ${buttonNum} : ${buttonName} を編集`);
+                    openModal('edit_virtualremote_signal-modal', {
                         remote_id: remoteId,
                         button_num: buttonNum,
-                        test_flag: 0
-                    }
+                        button_name: buttonName,
+                    });
+
+                } else {    // 通常モード（送信モード）の処理
+                    sendRemoteSignal(remoteId, buttonNum);
+                }
+            });
+        });
+
+        // ライブラリ送信用 (data-lib-protocol)
+        document.querySelectorAll('button[data-lib-protocol]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const protocol = btn.dataset.libProtocol;
+                const hex      = btn.dataset.libHex;
+                const bits     = btn.dataset.libBits;
+
+                // 追加パラメータ（エアコン等）
+                // undefined の場合は、基本的なデフォルト値を設定（または送信しない）
+                const options = {};
+                if (btn.dataset.libTemp !== undefined)   options.temp  = btn.dataset.libTemp;
+                if (btn.dataset.libMode !== undefined)   options.mode  = btn.dataset.libMode;
+                if (btn.dataset.libFan !== undefined)    options.fan   = btn.dataset.libFan;
+                if (btn.dataset.libPower !== undefined)  options.power = btn.dataset.libPower;
+
+                if (!isEditingMode) {    // 通常モード（送信モード）のみ
+                    sendRemoteLibrary(protocol, hex, bits, options);
+                }
+            });
+        });
+
+        function sendRemoteSignal(remoteId, buttonNum) {
+            console.log(`sendRemoteSignal()   remoteId: ${remoteId}  buttonNum: ${buttonNum} `);
+            
+            $.ajax({
+                type: "POST",
+                url: irSendSignalUrl,
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    remote_id: remoteId,
+                    button_num: buttonNum,
+                    test_flag: 0
+                }
+            })
+            .done(response => {
+                if (response.success) {
+                    console.log('信号を送信しました。');
+                } else {
+                    console.error('送信失敗:', response.msg);
+                }
+            })
+            .fail((xhr, status, error) => {
+                console.error('通信エラー:', error);
+            });
+        }
+
+        // ----------------------------------------------------------
+        // ライブラリ型デバイス選択の初期化
+        // ----------------------------------------------------------
+        async function initLibraryDeviceSelect() {
+            const area = document.getElementById('LibraryDeviceSelectArea');
+            const select = document.getElementById('library_device_select');
+            const currentDeviceId = '{{ $virtual_remote->device_id ?? 0 }}';
+
+            if (!area || !select) return;
+            area.style.display = 'block';
+
+            // 既にロード済みの場合はスキップ（または最新化したい場合はリロード）
+            if (select.options.length > 1) return;
+
+            try {
+                const deviceList = await get_iot_device();
+                if (deviceList && deviceList.length > 0) {
+                    deviceList.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.id;
+                        option.textContent = device.name;
+                        if (device.id == currentDeviceId) option.selected = true;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to fetch devices:', err);
+            }
+        }
+
+        // 登録済みデバイス取得 (ご提示いただいた関数)
+        async function get_iot_device() {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    type: "get",
+                    url: getIotDevicesUrl,
+                    data: {},
                 })
-                .done(response => {
-                    if (response.success) {
-                        console.log('信号を送信しました。');
-                    } else {
-                        console.error('送信失敗:', response.msg);
-                    }
+                .done(data => {
+                    if (data && data.length > 0)    resolve(data);
+                    else                            resolve([]);
                 })
                 .fail((xhr, status, error) => {
-                    console.error('通信エラー:', error);
+                    console.error('Error fetching devices:', error);
+                    reject(error);
                 });
-            }
+            });
+        }
+
+        function sendRemoteLibrary(protocol, hex, bits, options = {}) {
+            console.log(`sendRemoteLibrary() protocol: ${protocol}, hex: ${hex}, bits: ${bits}`, options);
+            
+            const sendData = {
+                _token: '{{ csrf_token() }}',
+                remote_id: remoteId, // リモコンIDを追加
+                protocol: protocol,
+                hex: hex,
+                bits: bits,
+                library_flag: 1,
+                ...options
+            };
+
+            $.ajax({
+                type: "POST",
+                url: irSendSignalUrl,
+                data: sendData
+            })
+            .done(response => {
+                if (response.success) {
+                    console.log('ライブラリ信号を送信しました。');
+                } else {
+                    console.error('送信失敗:', response.msg);
+                }
+            })
+            .fail((xhr, status, error) => {
+                console.error('通信エラー:', error);
+            });
+        }
             
 
     });

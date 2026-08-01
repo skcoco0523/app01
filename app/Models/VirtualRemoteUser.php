@@ -24,9 +24,19 @@ class VirtualRemoteUser extends Model
         try {
             $sql_cmd = DB::table('virtual_remote_users as remote_u');
             $sql_cmd = $sql_cmd->leftJoin('virtual_remotes as remote', 'remote_u.remote_id', '=', 'remote.id');
+            $sql_cmd = $sql_cmd->leftJoin('iot_devices as device', 'remote.device_id', '=', 'device.id');
             $sql_cmd = $sql_cmd->leftJoin('virtual_remote_blades as remote_b', 'remote.blade_id', '=', 'remote_b.id');
             $sql_cmd = $sql_cmd->leftJoin('users', 'remote_u.user_id', '=', 'users.id');
-            $sql_cmd = $sql_cmd->select('remote_u.*', 'remote.remote_name as name', 'remote.admin_user_id', 'remote_b.kind', 'remote_b.blade_name', 'users.name as uname');
+            $sql_cmd = $sql_cmd->select(
+                'remote_u.*',
+                'remote.remote_name as name',
+                'remote.admin_user_id',
+                'remote.device_id',
+                'remote_b.kind',
+                'remote_b.blade_name',
+                'users.name as uname',
+                'device.name as device_name'
+            );
             if($keyword){
     
                 //管理者による検索

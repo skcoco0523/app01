@@ -113,32 +113,39 @@ class SmartRemoteController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $input['admin_flag']        = false;
-        $input['remote_id']         = get_proc_data($input,"remote_id");
-        $input['remote_user_id']    = get_proc_data($input,"remote_user_id");
-        //テーブル：virtual_remotesのid
-        $input['remote_name']       = get_proc_data($input,"remote_name");
+        $remote_id          = get_proc_data($input,"remote_id");
+        $search_remote_id   = $remote_id;
+        $device_id          = get_proc_data($input,"device_id");
+        $remote_user_id     = get_proc_data($input,"remote_user_id");
+        $remote_name        = get_proc_data($input,"remote_name");
 
-        $input['search_remote_id']  = $input['remote_user_id'];
-        make_error_log($error_log,"user_id:".Auth::id(). "    remote_id:".$input['remote_id']. "    remote_user_id:".$input['remote_user_id']. "    remote_name:".$input['remote_name']);
+        make_error_log($error_log,"user_id:".Auth::id(). "    remote_id:".$remote_id. "    remote_user_id:".$remote_user_id. "    remote_name:".$remote_name);
 
-        if($input['search_remote_id']){
-            $virtual_remote = VirtualRemoteUser::getVirtualRemoteUserList(1,true,false,$input)->first();  //1件
+        if($search_remote_id){
+            $keyword = array(
+                'admin_flag'        => false,
+                'search_remote_id'  => $remote_id,
+                'search_admin_uid'  => Auth::id(),
+            );
+            $virtual_remote = VirtualRemoteUser::getVirtualRemoteUserList(1,true,false,$keyword)->first();  //1件
             
             $message = make_message('更新に失敗しました。', 'error'); 
             if($virtual_remote->admin_flag){
-                if($input['remote_name']){
+                if($remote_name){
                     $input['id']    = get_proc_data($input,"remote_id");
-                    $ret = VirtualRemote::chgVirtualRemote(['id'=>$virtual_remote->remote_id, 'remote_name'=>$input['remote_name']]);
+                    $update_params = [
+                        'id'            => $virtual_remote->remote_id,
+                        'remote_name'   => $remote_name,
+                        'device_id'     => $device_id
+                    ];
+
+                    $ret = VirtualRemote::chgVirtualRemote($update_params);
                     if($ret['error_code']==0){
                         $message = make_message('更新しました。', 'remote_chg'); 
                     }
-                }else if($input['signal_name']){
-
                 }
             }
-            $input['id']    = get_proc_data($input,"search_remote_id");
-            return redirect()->route('remote.show', ['id' => $input['remote_id']])->with($message);
+            return redirect()->route('remote.show', ['id' => $remote_id])->with($message);
         }else{
             $message = make_message('情報が不足しています。', 'error'); 
             return redirect()->route('remote.index')->with($message);
