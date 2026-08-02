@@ -32,6 +32,7 @@ class VirtualRemoteUser extends Model
                 'remote.remote_name as name',
                 'remote.admin_user_id',
                 'remote.device_id',
+                'remote.settings',
                 'remote_b.kind',
                 'remote_b.blade_name',
                 'users.name as uname',

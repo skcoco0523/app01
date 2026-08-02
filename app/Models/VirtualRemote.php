@@ -12,7 +12,11 @@ use Illuminate\Support\Facades\Auth;
 class VirtualRemote extends Model
 {
     use HasFactory;
-    protected $fillable = ['kHz', 'admin_user_id', 'remote_name', 'blade_id', 'device_id'];     //一括代入の許可
+    protected $fillable = ['kHz', 'admin_user_id', 'remote_name', 'blade_id', 'device_id', 'settings'];     //一括代入の許可
+
+    protected $casts = [
+        'settings' => 'array',
+    ];
 
     //仮想リモコン一覧取得
     public static function getVirtualRemoteList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -155,6 +159,9 @@ class VirtualRemote extends Model
                 
                 if (isset($data['device_id']) && $remote->device_id != $data['device_id'])
                     $updateData['device_id'] = $data['device_id']; 
+
+                if (isset($data['settings']))
+                    $updateData['settings'] = $data['settings'];
 
                 make_error_log($error_log,"chg_data=".print_r($updateData,1));
                 if(count($updateData) > 0){

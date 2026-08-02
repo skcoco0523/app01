@@ -200,6 +200,7 @@ class ApiSmartRemoteController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "-------start-------");
 
+        $remote_id      = $request->input('remote_id');
         $device_id      = $request->input('device_id');
         $test_flag      = $request->input('test_flag');  //仮保存信号でテスト
         
@@ -217,7 +218,6 @@ class ApiSmartRemoteController extends Controller
         $power          = $request->input('power');
 
         // 仮想リモコン経由の送信
-        $remote_id      = $request->input('remote_id');
         $button_num     = $request->input('button_num');
 
         $raw_signal     = null;
@@ -256,10 +256,29 @@ class ApiSmartRemoteController extends Controller
             ];
 
             // エアコン用のパラメータがあれば追加
-            if ($temp !== null)  $mqtt_payload['temp']  = (int)$temp;
+            if ($temp !== null)  $mqtt_payload['temp']  = (float)$temp;
             if ($mode !== null)  $mqtt_payload['mode']  = $mode;
             if ($fan !== null)   $mqtt_payload['fan']   = $fan;
+            if ($request->has('swingv')) $mqtt_payload['swingv'] = $request->input('swingv');
             if ($power !== null) $mqtt_payload['power'] = ($power === 'false' || $power === 0 || $power === "0") ? false : true;
+
+            // ライブラリ送信時かつリモコンIDがある場合、状態（settings）を保存
+            if ($remote_id) {
+                $v_remote = VirtualRemote::find($remote_id);
+                if ($v_remote) {
+                    $settings = $v_remote->settings ?? [];
+            if ($temp !== null)  $settings['temp']  = (float)$temp;
+            if ($mode !== null)  $settings['mode']  = $mode;
+            if ($fan !== null)   $settings['fan']   = $fan;
+            if ($request->has('swingv')) $settings['swingv'] = $request->input('swingv');
+            if ($request->has('clean'))  $settings['clean']  = ($request->input('clean') === 'true' || $request->input('clean') === 1 || $request->input('clean') === "1") ? true : false;
+            if ($power !== null) $settings['power'] = ($power === 'false' || $power === 0 || $power === "0") ? false : true;
+                    
+                    $v_remote->settings = $settings;
+                    $v_remote->save();
+                    make_error_log($error_log, "Updated remote settings: ".json_encode($settings));
+                }
+            }
 
             // Hexデータがあれば追加（テレビ・照明等）
             if ($hex !== null) {
@@ -303,7 +322,7 @@ class ApiSmartRemoteController extends Controller
                     $mqtt_payload = [
                         'type' => 'raw',
                         'raw'  => $data_array['raw'],
-                        'freq' => $data_array['freq'] ?? 38 //周波数
+                        'freq' => $data_array['freq'] ?? $data_array['kHz'] ?? 38 //周波数 (freq または kHz、なければ38)
                     ];
                 }
             }
