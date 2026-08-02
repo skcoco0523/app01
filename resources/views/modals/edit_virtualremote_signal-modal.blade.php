@@ -56,13 +56,65 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     
+    // デバイス選択状態に基づいてUIを更新する関数
+    function renderDeviceUI() {
+        const selectedOption = deviceSelect.options[deviceSelect.selectedIndex];
+
+        if (selectedOption && selectedOption.value !== '') {
+            const deviceType        = selectedOption.dataset.type; 
+            const deviceTypeName    = selectedOption.dataset.type_name; 
+            selectDeviceId          = selectedOption.value;
+            
+            if (deviceTypeName && deviceTypeName.trim() !== '') {
+                deviceInfoArea.innerHTML = '<p style="text-align: center; color: #888;">タイプ: ' + deviceTypeName + '</p>';
+
+                //選択デバイスとの疎通確認
+                let status = true; // 疎通確認結果（仮）
+                let processMess = '';
+                if(status){
+                    processMess = '<p style="color: green;">疎通確認成功</p>';
+                                    
+                    switch(deviceType){
+                        case "1": //赤外線リモコン
+                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="ir_receive_request()">';
+                            processMess+= '受信待機開始';
+                            processMess+= '</button>';
+                            break;
+                        case "101": //スマートロック
+                            processMess += '<p>スマートロックの設定は<br>デバイス設定で行ってください。';
+                            processMess +=      '<a href="' + iotDeviceUrlBase + '/' + selectedOption.value + '" class="btn btn-link">';
+                            processMess +=          'デバイス設定<i class="fa fa-cog"></i>';
+                            processMess +=      '</a>';
+                            processMess += '</p>';
+                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="add_signals()">';
+                            processMess+= 'デバイス登録';
+                            processMess+= '</button>';
+                            break;
+                        default:
+                            break;
+                    }
+                }else{
+                    processMess = '<p style="color: red;">疎通確認失敗<br>デバイスを確認してください。</p>';
+                }
+                processArea.innerHTML = processMess;
+            }
+        } else {
+            deviceInfoArea.innerHTML = '';
+            processArea.innerHTML = '<p style="text-align: center; color: #888;">デバイスを選択すると受信リクエストができます。</p>';
+        }
+    }
+
     //リモコンボタン編集モーダル表示時、登録済みデバイスを取得しプルダウンに追加
     modal.addEventListener('modal:open', async function () {
-        
+        if (statusPollingInterval) clearInterval(statusPollingInterval); // ポーリングが走っていたら停止
+
         // openModalでセットされた値をJS変数へ格納
         selectRemoteId = document.getElementById('remote_id').value;
         selectButtonName = document.getElementById('button_name').textContent;
         selectButtonNum = document.getElementById('button_num').value;
+        
+        // デバイスが既に選択されていればUIを表示、そうでなければ初期メッセージ
+        renderDeviceUI();
 
         if(getDevicesFlag) return; // 既に取得済みなら再取得しない
         try {
@@ -92,54 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modal.addEventListener('modal:close', () => {});
 
     // 登録済みデバイスの選択時
-    deviceSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex]; // 選択された <option> 要素を取得
-
-        if (selectedOption && selectedOption.value !== '') {
-            // data-html 属性からHTMLコンテンツを取得
-            const deviceType        = selectedOption.dataset.type; 
-            const deviceTypeName    = selectedOption.dataset.type_name; 
-            selectDeviceId          = selectedOption.value; // 選択されたデバイスIDを保持    
-            
-            if (deviceTypeName && deviceTypeName.trim() !== '') {
-                deviceInfoArea.innerHTML = '<p style="text-align: center; color: #888;">タイプ: ' + deviceTypeName + '</p>';
-
-                //選択デバイスとの疎通確認
-                let status = true; // 疎通確認結果（仮）===================================================================================
-                let processMess = '';
-                if(status){
-                    processMess = '<p style="color: green;">疎通確認成功</p>';
-                                    
-                    //config/common/device_type を参照して表示を切り替え
-                    switch(deviceType){
-                        case "1": //赤外線リモコン
-                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="ir_receive_request()">';
-                            processMess+= '受信待機開始';
-                            processMess+= '</button>';
-                            
-                            break;
-                        case "101": //スマートロック
-                            //施錠、開錠の設定はデバイス設定で行う
-                            processMess += '<p>スマートロックの設定は<br>デバイス設定で行ってください。';
-                            processMess +=      '<a href="' + iotDeviceUrlBase + '/' + selectedOption.value + '" class="btn btn-link">';
-                            processMess +=          'デバイス設定<i class="fa fa-cog"></i>';
-                            processMess +=      '</a>';
-                            processMess += '</p>';
-                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="add_signals()">';
-                            processMess+= 'デバイス登録';
-                            processMess+= '</button>';
-                            break;
-                        default:
-                            break;
-                    }
-                }else{
-                    processMess = '<p style="color: red;">疎通確認失敗<br>デバイスを確認してください。</p>';
-                }
-
-                processArea.innerHTML = processMess;
-            }
-        }
-    });
+    deviceSelect.addEventListener('change', renderDeviceUI);
 
 
 });
@@ -321,7 +326,7 @@ async function test_send_signal() {
             setTimeout(() => {
                 closeModal('edit_virtualremote_signal-modal');
                 // 必要に応じて画面リロードなど
-            }, 2000);
+            }, 1000);
         } else {
             alert('登録に失敗しました: ' + response.msg);
         }

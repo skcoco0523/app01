@@ -65,7 +65,8 @@ class MqttListener extends Command
 
             $mac_addr       = $payload['mac_addr'] ?? null;
             $device_name    = $payload['device_name'] ?? null;
-            $ww_data        = $payload['ww_data'] ?? null; // ESP32からの能動的同期用(Base64)
+            $ww_data        = $payload['ww_data'] ?? null; // ESP32からの能動적同期用(Base64)
+            $ww_score       = $payload['ww_score'] ?? null;
             $command        = $payload['command'] ?? null;
             //config/common.php で定義されているデバイスタイプを取得
             $type           = $payload['type'] ?? null;
@@ -84,7 +85,13 @@ class MqttListener extends Command
             
             if(config('common.device_info')[$type]){
                 //デバイス起動時の初回アクセス
-                if ($command == 'device-access')        $this->mqtt_device_access($mac_addr, $type, $device_name, $ver, $ww_data);
+                if ($command == 'device-access'){
+                    $this->info('device_name:'. $device_name);
+                    $this->info('ww_data:'. $ww_data);
+                    make_error_log($error_log,"device_name:".$device_name."   ww_data:".$ww_data."   ww_score:".$ww_score);
+
+                    $this->mqtt_device_access($mac_addr, $type, $device_name, $ver, $ww_data, $ww_score);
+                }
                 //赤外線信号受信スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
                 //赤外線信号受信タイムアウト通知
@@ -94,6 +101,7 @@ class MqttListener extends Command
                     // make_error_log 用に ir_signal を文字列化
                     $ir_signal_str = is_array($ir_signal) ? json_encode($ir_signal) : $ir_signal;
                     $this->info('ir_signal:'. $ir_signal_str);
+                    make_error_log($error_log,"ir_signal_str:".$ir_signal_str);
                     $this->mqtt_ir_received($mac_addr, $ir_signal);
                 }
 
@@ -188,7 +196,7 @@ class MqttListener extends Command
     }
 
     //デバイス起動時の初回アクセス
-    public function mqtt_device_access($mac_addr, $type, $device_name, $ver = null, $ww_data = null)
+    public function mqtt_device_access($mac_addr, $type, $device_name, $ver = null, $ww_data = null, $ww_score = null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
@@ -213,14 +221,27 @@ class MqttListener extends Command
                 if ($device_name !== (String)$device->name) {
                     $jdata["device_name"] = (String)$device->name;
                 }
+
+                // 判定スコア閾値の同期
+                if ($ww_score !== null) {
+                    if ((int)$ww_score !== (int)$device->ww_score) {
+                        $jdata["ww_score"] = (int)$device->ww_score;
+                    }
+                }
+
                 // 音声指紋の同期
                 $server_b64_prints = IotDevice::getVoicePrintsB64($device->ww_data);
-                if (($server_b64_prints[0] ?? null) !== null && $ww_data !== $server_b64_prints[0]) {
-                    $jdata["ww_datas_b64"] = $server_b64_prints;
+                if ($ww_data !== null && ($server_b64_prints[0] ?? null) !== null) {
+                    // バイナリとして比較。末尾のヌル文字(0x00)による固定長バッファの差異を無視するために rtrim を使用。
+                    $client_bin = rtrim(base64_decode($ww_data), "\0");
+                    $server_bin = rtrim(base64_decode($server_b64_prints[0]), "\0");
+                    if ($client_bin !== $server_bin) {
+                        $jdata["ww_datas_b64"] = $server_b64_prints;
+                    }
                 }
-                // 差分があれば更新通知を送り、接続完了を通知
+
+                // 差分があれば更新通知を送る
                 if (count($jdata) > 0) {
-                    $jdata["ww_score"] = (int)$device->ww_score;
                     Mosquitto::publishMQTT($mac_addr, "update_device", json_encode($jdata));
                 }
 

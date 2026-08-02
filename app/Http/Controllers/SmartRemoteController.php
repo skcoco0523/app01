@@ -53,6 +53,23 @@ class SmartRemoteController extends Controller
 
         if ($virtual_remote !== null) {
             $virtual_remote->blade_path = config('common.smart_remote_blade_paht') ."." . substr($virtual_remote->blade_name, 0, -6); 
+
+            // DBから文字列で取得されている場合は配列にデコード
+            if (is_string($virtual_remote->settings)) {
+                $virtual_remote->settings = json_decode($virtual_remote->settings, true);
+            }
+
+            // 設定の初期値を保証
+            if (empty($virtual_remote->settings)) {
+                $virtual_remote->settings = [
+                    'power' => true,
+                    'temp'  => 25.0,
+                    'mode'  => 'cool',
+                    'fan'   => 'auto',
+                    'swingv' => 'auto'
+                ];
+            }
+
             //デバイスの信号を取得
             // 仮想リモコンIDに紐づく信号を取得
             $signal_list = IotDeviceSignal::where('remote_id', $virtual_remote->remote_id)->get();
