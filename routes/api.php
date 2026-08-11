@@ -46,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // 所有iotデバイス検索
     Route::get('/iot_devices/get', [ApiSmartRemoteController::class, 'api_iot_devices_get']);
 
+    // デバイス疎通確認リクエスト (Ping)
+    Route::get('/iot_device_ping', [ApiSmartRemoteController::class, 'api_iot_device_ping']);
+
     // 赤外線受信待機リクエスト
     Route::get('/ir-receive-request', [ApiSmartRemoteController::class, 'api_ir_receive_request']);
     // デバイスステータス取得

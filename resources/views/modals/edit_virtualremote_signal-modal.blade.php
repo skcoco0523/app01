@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     // デバイス選択状態に基づいてUIを更新する関数
-    function renderDeviceUI() {
+    async function renderDeviceUI() {
         const selectedOption = deviceSelect.options[deviceSelect.selectedIndex];
 
         if (selectedOption && selectedOption.value !== '') {
@@ -68,41 +68,88 @@ document.addEventListener('DOMContentLoaded', function() {
             if (deviceTypeName && deviceTypeName.trim() !== '') {
                 deviceInfoArea.innerHTML = '<p style="text-align: center; color: #888;">タイプ: ' + deviceTypeName + '</p>';
 
-                //選択デバイスとの疎通確認
-                let status = true; // 疎通確認結果（仮）
-                let processMess = '';
-                if(status){
-                    processMess = '<p style="color: green;">疎通確認成功</p>';
-                                    
-                    switch(deviceType){
-                        case "1": //赤外線リモコン
-                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="ir_receive_request()">';
-                            processMess+= '受信待機開始';
-                            processMess+= '</button>';
-                            break;
-                        case "101": //スマートロック
-                            processMess += '<p>スマートロックの設定は<br>デバイス設定で行ってください。';
-                            processMess +=      '<a href="' + iotDeviceUrlBase + '/' + selectedOption.value + '" class="btn btn-link">';
-                            processMess +=          'デバイス設定<i class="fa fa-cog"></i>';
-                            processMess +=      '</a>';
-                            processMess += '</p>';
-                            processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="add_signals()">';
-                            processMess+= 'デバイス登録';
-                            processMess+= '</button>';
-                            break;
-                        default:
-                            break;
+                // 疎通確認開始
+                if (statusPollingInterval) clearInterval(statusPollingInterval);
+                processArea.innerHTML = `
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary mb-2" role="status"></div>
+                        <p class="text-primary">デバイスとの疎通を確認中...</p>
+                    </div>`;
+
+                try {
+                    const response = await $.ajax({
+                        type: "get",
+                        url: iotDevicePingUrl, 
+                        data: { device_id: selectDeviceId }
+                    });
+
+                    if (response.success) {
+                        // 疎通確認のポーリング開始
+                        let pingRetry = 0;
+                        const maxPingRetry = 10; // 10秒間
+                        
+                        statusPollingInterval = setInterval(async () => {
+                            pingRetry++;
+                            if (pingRetry > maxPingRetry) {
+                                clearInterval(statusPollingInterval);
+                                processArea.innerHTML = '<p style="color: red; text-align:center;">疎通確認タイムアウト<br>デバイスの電源や接続を確認してください。</p>';
+                                return;
+                            }
+
+                            const statusRes = await $.ajax({
+                                type: "get",
+                                url: getIotDeviceStatusUrl,
+                                data: { device_id: selectDeviceId }
+                            });
+
+                            if (statusRes.success && statusRes.status == 1) { // Onlineに戻ったら成功
+                                clearInterval(statusPollingInterval);
+                                showDeviceActionUI(deviceType, selectedOption.value);
+                            }
+                        }, 1000);
+                    } else {
+                        processArea.innerHTML = '<p style="color: red; text-align:center;">疎通確認リクエスト失敗<br>' + (response.msg || '') + '</p>';
                     }
-                }else{
-                    processMess = '<p style="color: red;">疎通確認失敗<br>デバイスを確認してください。</p>';
+                } catch (err) {
+                    console.error(err);
+                    processArea.innerHTML = '<p style="color: red; text-align:center;">疎通確認中に通信エラーが発生しました。</p>';
                 }
-                processArea.innerHTML = processMess;
             }
         } else {
             deviceInfoArea.innerHTML = '';
             processArea.innerHTML = '<p style="text-align: center; color: #888;">デバイスを選択すると受信リクエストができます。</p>';
         }
     }
+
+    // 疎通確認成功後の操作UI表示
+    function showDeviceActionUI(deviceType, deviceId) {
+        let processMess = '<p style="color: green; text-align:center;"><i class="fas fa-check-circle me-1"></i>疎通確認成功</p>';
+                                        
+        switch(deviceType){
+            case "1": //赤外線リモコン
+                processMess+= '<div class="text-center mt-3">';
+                processMess+= '  <button type="button" id="confirm_btn" class="btn btn-lg btn-danger shadow-sm w-100" onclick="ir_receive_request()">';
+                processMess+= '    <i class="fas fa-signal me-2"></i>受信待機開始';
+                processMess+= '  </button>';
+                processMess+= '  <p class="small text-muted mt-2">デバイスを受信待機状態にします</p>';
+                processMess+= '</div>';
+                break;
+            case "101": //スマートロック
+                processMess += '<p>スマートロックの設定は<br>デバイス設定で行ってください。';
+                processMess +=      '<a href="' + iotDeviceUrlBase + '/' + deviceId + '" class="btn btn-link">';
+                processMess +=          'デバイス設定<i class="fa fa-cog"></i>';
+                processMess +=      '</a>';
+                processMess += '</p>';
+                processMess+= '<button type="button" id="confirm_btn" class="btn btn-danger" onclick="add_signals()">';
+                processMess+= 'デバイス登録';
+                processMess+= '</button>';
+                break;
+            default:
+                break;
+        }
+        processArea.innerHTML = processMess;
+    }
+
 
     //リモコンボタン編集モーダル表示時、登録済みデバイスを取得しプルダウンに追加
     modal.addEventListener('modal:open', async function () {
@@ -234,16 +281,34 @@ function start_status_polling(deviceId) {
                 const processArea = document.getElementById('process_area');
 
                 if (status == 3) { // Standby
-                    processArea.innerHTML = '<p style="color: green; font-weight: bold;">準備完了！リモコンのボタンを押してください。</p>';
+                    processArea.innerHTML = `
+                        <div class="text-center p-4">
+                            <div class="spinner-grow text-danger mb-3" role="status"></div>
+                            <p class="h5 text-success font-weight-bold">準備完了！</p>
+                            <p class="text-muted">リモコンをデバイスに向けて<br>登録したいボタンを押してください。</p>
+                        </div>`;
                 } else if (status == 4) { // Received
                     if(response.receive_data){
-                        processArea.innerHTML = '<p style="color: blue;">信号を受信しました！</p>';
                         getReceiveData = response.receive_data; // データをJS変数に保存
                         
-                        processArea.innerHTML +='<div class="d-flex gap-2 justify-content-center">';
-                        processArea.innerHTML += '<button type="button" class="btn btn-warning" onclick="test_send_signal()">テスト送信</button>';
-                        processArea.innerHTML += '<button type="button" class="btn btn-primary" onclick="add_signals()">登録する</button>';
-                        processArea.innerHTML += '</div>';
+                        processArea.innerHTML = `
+                            <div class="text-center mb-3">
+                                <div class="display-4 text-primary mb-2"><i class="fas fa-check-circle"></i></div>
+                                <p class="h5 text-primary">信号を受信しました！</p>
+                            </div>
+                            <div class="d-flex flex-column gap-3 p-3 border rounded bg-white shadow-sm">
+                                <button type="button" class="btn btn-primary btn-lg shadow-sm" onclick="add_signals()">
+                                    <i class="fas fa-save me-2"></i>この信号を登録する
+                                </button>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-info flex-grow-1" onclick="test_send_signal()">
+                                        <i class="fas fa-paper-plane me-1"></i>テスト送信
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger flex-grow-1" onclick="ir_receive_request()">
+                                        <i class="fas fa-redo me-1"></i>再受信
+                                    </button>
+                                </div>
+                            </div>`;
                     }else{
                         processArea.innerHTML = '<p style="color: red;">信号を受信しましたが、データが取得できませんでした。</p>';
                     }

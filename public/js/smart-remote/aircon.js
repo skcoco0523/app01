@@ -60,15 +60,18 @@ class AirconRemote {
         lcdMode.textContent = modeLabels[this.settings.mode] || this.settings.mode;
 
         // 風量
-        const fanLabels = { 'auto': '風量 自動', 'min': '風量 静か', 'low': '風量 低', 'mid': '風量 中', 'high': '風量 高', 'max': '風量 最大' };
+        const fanLabels = { 'auto': '風量 自動', 'min': '風量 ■', 'low': '風量 ■■', 'medium': '風量 ■■■', 'high': '風量 ■■■■', 'max': '風量 ■■■■■' };
         lcdFan.textContent = fanLabels[this.settings.fan] || `風量 ${this.settings.fan}`;
 
         // 風向き
-        const swingLabels = { 'auto': 'スイング', 'up': '風向 上', 'mid': '風向 中', 'down': '風向 下' };
-        if (lcdSwing) lcdSwing.textContent = swingLabels[this.settings.swingv] || 'スイング';
+        const swingLabels = { 'auto': '風向 自動', 'highest': '風向 最高', 'high': '風向 高', 'middle': '風向 中', 'low': '風向 低', 'lowest': '風向 最低' };
+        if (lcdSwing) lcdSwing.textContent = swingLabels[this.settings.swingv] || '風向 自動';
 
         // 内部クリーン
-        if (lcdClean) lcdClean.style.display = this.settings.clean ? 'inline' : 'none';
+        if (lcdClean) {
+            lcdClean.textContent = '内部ｸﾘｰﾝ';
+            lcdClean.style.display = this.settings.clean ? 'inline' : 'none';
+        }
 
         // 電源
         if (this.settings.power) {
@@ -128,14 +131,15 @@ class AirconRemote {
                 this.settings.power = true;
                 break;
             case 'fan-change':
-                const fans = ['auto', 'low', 'mid', 'high'];
+                const fans = ['auto', 'min', 'low', 'medium', 'high', 'max'];
                 let fanIdx = fans.indexOf(this.settings.fan);
                 this.settings.fan = fans[(fanIdx + 1) % fans.length];
                 this.settings.power = true;
                 break;
             case 'swing-change':
-                const swings = ['auto', 'up', 'mid', 'down'];
+                const swings = ['auto', 'highest', 'high', 'middle', 'low', 'lowest'];
                 let swingIdx = swings.indexOf(this.settings.swingv);
+                if (swingIdx === -1) swingIdx = 0;
                 this.settings.swingv = swings[(swingIdx + 1) % swings.length];
                 this.settings.power = true;
                 break;

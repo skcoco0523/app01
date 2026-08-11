@@ -71,6 +71,7 @@
         const getVirtualRemoteBladeUrl      = `{{ url('/api/remote-blade/get') }}`;         //スマートリモコンのブレード情報を取得
         const getIotDevicesUrl              = `{{ url('/api/iot_devices/get') }}`;          //所持しているIoTデバイスの情報を取得
         const irReceiveRequestUrl           = `{{ url('/api/ir-receive-request') }}`;       //赤外線信号学習リクエスト　ESP32宛て
+        const iotDevicePingUrl              = `{{ url('/api/iot_device_ping') }}`;          //デバイスの疎通確認
         const getIotDeviceStatusUrl         = `{{ url('/api/iot_device_status/get') }}`;    //デバイスのステータス情報取得
         const irSendSignalUrl               = `{{ url('/api/smart-remote/signal/send') }}`; //赤外線信号送信　ESP32宛て
         const irSignalSaveUrl               = `{{ url('/api/smart-remote/signal/save') }}`; //学習した赤外線信号の保存

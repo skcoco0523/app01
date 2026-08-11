@@ -92,6 +92,8 @@ class MqttListener extends Command
 
                     $this->mqtt_device_access($mac_addr, $type, $device_name, $ver, $ww_data, $ww_score);
                 }
+                //疎通確認応答
+                if ($command == 'pong')                 $this->mqtt_device_pong($mac_addr);
                 //赤外線信号受信スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
                 //赤外線信号受信タイムアウト通知
@@ -166,6 +168,19 @@ class MqttListener extends Command
         }
         return Command::SUCCESS;
     }
+    // デバイス疎通確認応答
+    public function mqtt_device_pong($mac_addr)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+
+        make_error_log($error_log, "---------------start----------------");
+        make_error_log($error_log, "mac_addr:" . $mac_addr);
+
+        // ステータスを「Online (1)」に更新
+        IotDevice::where('mac_addr', $mac_addr)->update(['status' => config('common.iot_device_status.online')]);
+
+        make_error_log($error_log, "----------------end-----------------");
+    }
 
     //赤外線信号スタンバイ通知
     public function mqtt_ir_receive_standby($mac_addr)
@@ -176,7 +191,7 @@ class MqttListener extends Command
         make_error_log($error_log, "mac_addr:" . $mac_addr);
 
         // ステータスを「Standby (3)」に更新
-        IotDevice::where('mac_addr', $mac_addr)->update(['status' => 3]);
+        IotDevice::where('mac_addr', $mac_addr)->update(['status' => config('common.iot_device_status.ir_standby')]);
 
         make_error_log($error_log, "----------------end-----------------");
     }
@@ -190,7 +205,7 @@ class MqttListener extends Command
         make_error_log($error_log, "mac_addr:" . $mac_addr);
 
         // ステータスを「Timeout (5)」に更新
-        IotDevice::where('mac_addr', $mac_addr)->update(['status' => 5]);
+        IotDevice::where('mac_addr', $mac_addr)->update(['status' => config('common.iot_device_status.ir_timeout')]);
 
         make_error_log($error_log, "----------------end-----------------");
     }
@@ -304,7 +319,7 @@ class MqttListener extends Command
 
         // 汎用受信フィールドに保存 (コマンド名とデータ)
         $update_data = [
-            'status'          => 4, // Received
+            'status'          => config('common.iot_device_status.ir_received'), // Received
             'receive_command' => 'ir-received',
             'receive_data'    => $receive_json,
         ];
@@ -314,9 +329,4 @@ class MqttListener extends Command
 
         make_error_log($error_log, "----------------end-----------------");
     }
-
-
-
-
-
 }

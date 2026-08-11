@@ -207,6 +207,15 @@ class IotDevice extends Model
             if (array_key_exists('pincode', $data) && $device->pincode != $data['pincode'])
                 $updateData['pincode'] = $data['pincode']; 
 
+            if (array_key_exists('status', $data) && $device->status != $data['status'])
+                $updateData['status'] = $data['status'];
+
+            if (array_key_exists('receive_command', $data) && $device->receive_command != $data['receive_command'])
+                $updateData['receive_command'] = $data['receive_command'];
+
+            if (array_key_exists('receive_data', $data) && $device->receive_data != $data['receive_data'])
+                $updateData['receive_data'] = $data['receive_data'];
+
 
             make_error_log($error_log,"chg_data=".print_r($updateData,1));
             if(count($updateData) > 0){
