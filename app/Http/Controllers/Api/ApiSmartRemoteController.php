@@ -96,6 +96,33 @@ class ApiSmartRemoteController extends Controller
         return response()->json($iotdevice_list_array);
     }
 
+    // デバイス疎通確認リクエスト (Ping)
+    public function api_iot_device_ping(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
+
+        $device_id = $request->input('device_id');
+        if (!$device_id) {
+            return response()->json(['success' => false, 'msg' => 'デバイスIDが指定されていません。'], 400);
+        }
+
+        $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>Auth::id()])->first();
+
+        if (!$device) {
+            return response()->json(['success' => false, 'msg' => 'デバイスが見つからないか、権限がありません。'], 404);
+        }
+
+        // ステータスを一旦「疎通確認中」に更新
+        // ESPからの応答があれば Online に戻る仕組み
+        IotDevice::chgIotDevice(['id' => $device_id, 'status' => config('common.iot_device_status.ping_requesting')]);
+
+        // ESP32にMQTT送信
+        $ret = Mosquitto::publishMQTT($device->mac_addr, 'ping');
+
+        return response()->json($ret);
+    }
+
     // 赤外線受信待機リクエスト
     public function api_ir_receive_request(Request $request)
     {
@@ -108,16 +135,14 @@ class ApiSmartRemoteController extends Controller
         }
 
         // デバイス取得（所有権確認）
-        $device = IotDevice::where('id', $device_id)
-                           ->where('admin_user_id', Auth::id())
-                           ->first();
+        $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>Auth::id()])->first();
 
         if (!$device) {
             return response()->json(['success' => false, 'msg' => 'デバイスが見つからないか、権限がありません。'], 404);
         }
 
-        // ステータスを「Requesting (2)」に更新
-        $device->update(['status' => 2]);
+        // ステータスを「Requesting」に更新
+        IotDevice::chgIotDevice(['id' => $device_id, 'status' => config('common.iot_device_status.requesting')]);
 
         // ESP32にMQTT送信
         $ret = Mosquitto::publishMQTT($device->mac_addr, 'ir-receive-request');
@@ -129,9 +154,7 @@ class ApiSmartRemoteController extends Controller
     public function api_iot_device_status_get(Request $request)
     {
         $device_id = $request->input('device_id');
-        $device = IotDevice::where('id', $device_id)
-                           ->where('admin_user_id', Auth::id())
-                           ->first();
+        $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>Auth::id()])->first();
 
         if (!$device) {
             return response()->json(['success' => false, 'msg' => 'デバイスが見つかりません。'], 404);
@@ -164,7 +187,7 @@ class ApiSmartRemoteController extends Controller
         make_error_log($error_log, "category_name:".$category_name."  signal_name:".$signal_name."  signal_data:".$signal_data);
         
         // 1. デバイスの所有権確認
-        $device = IotDevice::where('id', $device_id )->where('admin_user_id', Auth::id())->first();
+        $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>Auth::id()])->first();
 
         if (!$device) {
             return response()->json(['success' => false, 'msg' => '権限がありません。'], 403);
@@ -181,9 +204,10 @@ class ApiSmartRemoteController extends Controller
         ]);
 
         if ($ret['success']) {
-            // 保存に成功したら一時データをクリアし、ステータスを Online(1) に戻す
-            $device->update([
-                'status'          => 1,
+            // 保存に成功したら一時データをクリアし、ステータスを Online に戻す
+            IotDevice::chgIotDevice([
+                'id'              => $device_id,
+                'status'          => config('common.iot_device_status.online'),
                 'receive_command' => null,
                 'receive_data'    => null,
             ]);
@@ -231,20 +255,20 @@ class ApiSmartRemoteController extends Controller
             
             // 1. リクエストに device_id があればそれを使用
             if ($device_id) {
-                $device = IotDevice::where('id', $device_id)->where('admin_user_id', Auth::id())->first();
+                $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$device_id, 'search_admin_uid'=>Auth::id()])->first();
             } 
             // 2. なければリモコン設定 (virtual_remotes.device_id) を確認
             else if ($remote_id) {
                 $v_remote = VirtualRemote::find($remote_id);
                 if ($v_remote && $v_remote->device_id > 0) {
-                    $device = IotDevice::where('id', $v_remote->device_id)->where('admin_user_id', Auth::id())->first();
+                    $device = IotDevice::getIotDeviceList(1,false,null,['search_id'=>$v_remote->device_id, 'search_admin_uid'=>Auth::id()])->first();
                     make_error_log($error_log, "found device from virtual_remote. device_id: ".$v_remote->device_id);
                 }
             }
 
             // 3. それでもなければユーザーの最初の有効なデバイスを検索
             if (!$device) {
-                $device = IotDevice::where('admin_user_id', Auth::id())->where('status', 1)->first();
+                $device = IotDevice::getIotDeviceList(1,false,null,['search_admin_uid'=>Auth::id(), 'search_status'=>config('common.iot_device_status.online')])->first();
                 if ($device) make_error_log($error_log, "fallback to user first device. device_id: ".$device->id);
             }
 
@@ -260,6 +284,7 @@ class ApiSmartRemoteController extends Controller
             if ($mode !== null)  $mqtt_payload['mode']  = $mode;
             if ($fan !== null)   $mqtt_payload['fan']   = $fan;
             if ($request->has('swingv')) $mqtt_payload['swingv'] = $request->input('swingv');
+            if ($request->has('clean'))  $mqtt_payload['clean']  = ($request->input('clean') === 'true' || $request->input('clean') === 1 || $request->input('clean') === "1" || $request->input('clean') === true) ? true : false;
             if ($power !== null) $mqtt_payload['power'] = ($power === 'false' || $power === 0 || $power === "0") ? false : true;
 
             // ライブラリ送信時かつリモコンIDがある場合、状態（settings）を保存
