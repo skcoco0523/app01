@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ApiSmartRemoteController;
 use App\Http\Controllers\Api\ApiFriendlistController;
 use App\Http\Controllers\Api\ApiNoteController;
 use App\Http\Controllers\Api\ApiGameController; // Added for game data API
+use App\Http\Controllers\Api\ApiIotDeviceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/smart-remote/signal/save', [ApiSmartRemoteController::class, 'api_ir_signal_save']);
     // 赤外線信号送信
     Route::post('/smart-remote/signal/send', [ApiSmartRemoteController::class, 'api_ir_send']);
+
+    // 音声キーワード判定テスト
+    Route::post('/iot_device/ww_score_check', [ApiIotDeviceController::class, 'api_ww_score_check']);
 
     // フレンドリスト取得
     Route::get('/friendlist/get', [ApiFriendlistController::class, 'api_friendlist_get']);

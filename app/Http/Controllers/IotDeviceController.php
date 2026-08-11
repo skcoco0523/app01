@@ -169,7 +169,7 @@ class IotDeviceController extends Controller
 
         $keyword = array(
             'admin_flag'        => false,
-            'search_id'         => $input['iotdevice_id'],
+            'search_id'         => $iotdevice_id,
             'search_admin_uid'  => Auth::id(),
         );
         $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
@@ -197,10 +197,15 @@ class IotDeviceController extends Controller
             $input = $request->all();
             $ww_features_json = $request->input('ww_features');
             
-            $input['iotdevice_id'] = get_proc_data($input, "iotdevice_id");
+            $iotdevice_id = get_proc_data($input, "iotdevice_id");
 
-            if ($input['iotdevice_id'] && $ww_features_json) {
-                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
+            if ($iotdevice_id && $ww_features_json) {
+                    $keyword = array(
+                    'admin_flag'        => false,
+                    'search_id'         => $iotdevice_id,
+                    'search_admin_uid'  => Auth::id(),
+                );
+                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
                 
                 if ($iotdevice && $iotdevice->ww_data) {
                     // 1. テスト音声をJSONから配列へ
@@ -220,50 +225,46 @@ class IotDeviceController extends Controller
                         throw new \Exception("Stored voice print data is empty or malformed.");
                     }
                     
-                    // 3. テスト音声をスケーリング
-                    $test_print_arr = explode(',', $this->prepareFingerprintForDevice($test_features));
+                    // --- モード選択 (strict: 声紋重視 / word: 単語重視) ---
+                    $mode = 'word'; // ひとまず単語モードを優先
+                    
+                    if ($mode === 'strict') {
+                        $test_print_str = $this->prepareFingerprintForDevice($test_features);
+                    } else {
+                        $test_print_str = $this->prepareWordPatternForDevice($test_features);
+                    }
 
                     // 4. 登録されている複数の指紋とそれぞれ比較し、MAXスコアを取得する
                     $max_score = 0;
                     
                     foreach ($prints_to_compare as $stored_print_str) {
-                        $stored_print_arr = explode(',', $stored_print_str);
-                        
-                        if (count($stored_print_arr) === count($test_print_arr)) {
+                        if ($mode === 'strict') {
+                            // 従来のコサイン類似度比較
+                            $stored_print_arr = explode(',', $stored_print_str);
+                            $test_print_arr = explode(',', $test_print_str);
                             $best_sub_score = 0;
                             $count = count($stored_print_arr);
-
-                            // 100要素中の±10（約10%）のズレを許容する
-                            // JS側のトリミングで位置はほぼ合っていますが、これで「念押し」します
-                            for ($offset = -2; $offset <= 2; $offset++) {
-                                $dotProduct = 0;
-                                $normA = 0;
-                                $normB = 0;
-                                
+                            for ($offset = -5; $offset <= 5; $offset++) {
+                                $dotProduct = 0; $normA = 0; $normB = 0;
                                 for ($i = 0; $i < $count; $i++) {
                                     $j = $i + $offset;
-                                    // 枠外にズレた場合は計算から除外
                                     if ($j < 0 || $j >= $count) continue;
-
                                     $a = (int)$stored_print_arr[$i];
                                     $b = (int)$test_print_arr[$j];
-                                    $dotProduct += $a * $b;
-                                    $normA += $a * $a;
-                                    $normB += $b * $b;
+                                    $dotProduct += $a * $b; $normA += $a * $a; $normB += $b * $b;
                                 }
-
                                 if ($normA > 0 && $normB > 0) {
                                     $current_sim = ($dotProduct / (sqrt($normA) * sqrt($normB))) * 100;
-                                    if ($current_sim > $best_sub_score) {
-                                        $best_sub_score = $current_sim;
-                                    }
+                                    if ($current_sim > $best_sub_score) $best_sub_score = $current_sim;
                                 }
                             }
-                            
-                            // 3つの登録データの中で最も高いスコアを採用
-                            if ($best_sub_score > $max_score) {
-                                $max_score = $best_sub_score;
-                            }
+                        } else {
+                            // 単語認識用（寛容）マッチング
+                            $best_sub_score = $this->ww_score_check_word($stored_print_str, $test_print_str);
+                        }
+                        
+                        if ($best_sub_score > $max_score) {
+                            $max_score = $best_sub_score;
                         }
                     }
                     
@@ -281,7 +282,7 @@ class IotDeviceController extends Controller
                 }
             }
             
-            return redirect()->route('iotdevice.show', ['id' => $input['iotdevice_id'] ?? 0])->with(make_message('テストに失敗しました（データ不整合または未登録）。', 'error'));
+            return redirect()->route('iotdevice.show', ['id' => $iotdevice_id ?? 0])->with(make_message('テストに失敗しました（データ不整合または未登録）。', 'error'));
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error: " . $e->getMessage());
@@ -306,13 +307,13 @@ class IotDeviceController extends Controller
         try {
             $user_id = Auth::id();
             $input = $request->all();
+            $iotdevice_id = get_proc_data($input, "iotdevice_id");
             
             // ファイルではなくJSから送られてきたJSON文字列（特徴量リストの配列）を取得
             $ww_features_json = $request->input('ww_features_list');
 
             // 音声削除（クリア）処理
             if (isset($input['clear_voice']) && $input['clear_voice'] == '1') {
-                $iotdevice_id = get_proc_data($input, "iotdevice_id");
                 $iotdevice = IotDevice::where('id', $iotdevice_id)->where('admin_user_id', $user_id)->first();
                 if ($iotdevice) {
                     IotDevice::chgIotDevice(['id' => $iotdevice->id, 'ww_data' => null]);
@@ -327,39 +328,32 @@ class IotDeviceController extends Controller
                 }
             }
 
-            $input['admin_flag']        = false;
-            $input['iotdevice_id']      = get_proc_data($input, "iotdevice_id");
-            $input['search_id']         = $input['iotdevice_id'];
-            $input['search_admin_uid']  = $user_id;
+            $keyword = array(
+                'admin_flag'        => false,
+                'search_id'         => $iotdevice_id,
+                'search_admin_uid'  => $user_id,
+            );
 
-            if ($input['iotdevice_id'] && $ww_features_json) {
-                make_error_log($error_log, "Processing voice prints for device: " . $input['iotdevice_id']);
+            if ($iotdevice_id && $ww_features_json) {
+                make_error_log($error_log, "Processing voice prints for device: " . $iotdevice_id);
                 
-                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $input)->first();
+                $iotdevice = IotDevice::getIotDeviceList(1, false, false, $keyword)->first();
                 if ($iotdevice) {
-                    make_error_log($error_log, "ww_features_json: " . $ww_features_json);
-                    // JSONをデコード（3回分のMFCC配列が含まれる想定）
+                    // JSONをデコード（多次元データオブジェクトの配列）
                     $prints_list = json_decode($ww_features_json, true);
 
-                    // 配列かつ中身があることを確認
                     if (is_array($prints_list) && count($prints_list) > 0) {
-                        $normalized_prints = [];
+                        $final_prints = [];
                         
-                        // 3回分のデータをそれぞれ個別の指紋として変換
-                        foreach ($prints_list as $print) {
-                            if (!is_array($print) || empty($print)) continue;
-                            
-                            // 各データをスケーリングしてカンマ区切り文字列にする
-                            $normalized_str = $this->prepareFingerprintForDevice($print);
-                            if ($normalized_str) {
-                                $normalized_prints[] = $normalized_str;
-                            }
+                        foreach ($prints_list as $print_obj) {
+                            if (empty($print_obj)) continue;
+                            // 多次元データそのままをJSON化して配列に格納
+                            $final_prints[] = json_encode($print_obj);
                         }
 
-                        if (count($normalized_prints) > 0) {
-                            // "prints" という配列キーで3つとも保存する
+                        if (count($final_prints) > 0) {
                             $ww_data_data = json_encode([
-                                "prints" => $normalized_prints
+                                "prints" => $final_prints
                             ]);
                         } else {
                             $ww_data_data = null;
@@ -373,9 +367,8 @@ class IotDeviceController extends Controller
                     if ($ww_data_data) {
                         // モデルを使用してDB保存
                         $ret = IotDevice::chgIotDevice(['id' => $iotdevice->id, 'ww_data' => $ww_data_data]);
-                        make_error_log($error_log, "error_code:". $ret['error_code']);
 
-                        if ($ret['error_code'] == 0) {
+                        if ($ret['success']) {
                             // 音声指紋と現在のスコア閾値のみ更新（名前は変更なしのため含めない）
                             $b64_prints = IotDevice::getVoicePrintsB64($ww_data_data);
                             $jdata = json_encode([
@@ -395,16 +388,16 @@ class IotDeviceController extends Controller
                     $message = make_message('該当するデバイスが見つかりません。', 'error');
                 }
                 
-                return redirect()->route('iotdevice.show', ['id' => $input['iotdevice_id']])->with($message);
+                return redirect()->route('iotdevice.show', ['id' => $iotdevice_id])->with($message);
 
             } else {
                 $message = make_message('データが不足しています。', 'error');
             }
-            return redirect()->route('iotdevice.index')->with($message);
+            return redirect()->route('iotdevice.show', ['id' => $iotdevice_id])->with($message);
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error: " . $e->getMessage());
-            return redirect()->route('iotdevice.index')->with(make_message('システムエラーが発生しました。', 'error'));
+            return redirect()->route('iotdevice.show', ['id' => $iotdevice_id])->with(make_message('システムエラーが発生しました。', 'error'));
         }
     }
 
@@ -425,7 +418,7 @@ class IotDeviceController extends Controller
 
         // 1. ノイズゲート：絶対値の平均が極めて低い場合（無音）は、全要素0にする
         $avg_abs = array_sum(array_map('abs', $features)) / count($features);
-        if ($avg_abs < 0.001) { // 閾値は適宜調整。無音を確実に0にする
+        if ($avg_abs < 0.001) {
             return implode(',', array_fill(0, count($features), 0));
         }
 
@@ -439,9 +432,9 @@ class IotDeviceController extends Controller
             return implode(',', array_fill(0, count($features), 0));
         }
         
-        // 3. 移動平均（スムージング）をかけて、声の「太い流れ」を抽出する
+        // 3. 移動平均（スムージング）をかけて、ノイズを除去
         $smoothed = [];
-        $window = 1; // 窓を小さくして言葉の凹凸を残す
+        $window = 2; // 解像度が上がったため窓を少し広げる
         $count = count($features);
         for ($i = 0; $i < $count; $i++) {
             $sum = 0; $div = 0;
@@ -453,28 +446,124 @@ class IotDeviceController extends Controller
             $smoothed[] = $sum / $div;
         }
 
-        // 4. Z-Score正規化（データの中心を0、ばらつきを一定に揃える）
+        // 4. Z-Score正規化
         $count = count($smoothed);
         $avg = $count > 0 ? array_sum($smoothed) / $count : 0;
         
-        // 分散と標準偏差の計算
         $variance = 0;
         foreach ($smoothed as $val) {
             $variance += pow($val - $avg, 2);
         }
         $std_dev = ($count > 0) ? sqrt($variance / $count) : 0;
 
-        // 5. 正規化の実行と整数化（-128 〜 127 の範囲に収める）
+        // 5. 正規化の実行と整数化（-128 〜 127）
         $final = array_map(function ($val) use ($avg, $std_dev) {
             if ($std_dev == 0) return 0;
             
-            // 平均値を引き標準偏差で割ることで、純粋な「波形の変化パターン」を取り出す
-            // その後、値を25倍（強調係数）して整数化する
             $z_score = ($val - $avg) / $std_dev;
-            // 係数を 20〜25 に落とすことで、データの「形」が正しく維持されます
-            $intVal = (int)round($z_score * 35);
+            // 係数を調整してパターンの強調度を最適化
+            $intVal = (int)round($z_score * 40);
             return max(-128, min(127, $intVal));
         }, $smoothed);
+
+        return implode(',', $final);
+    }
+
+    /**
+     * DTW (Dynamic Time Warping) based multi-dimensional sequence matching.
+     * Handles variable length and speed.
+     */
+    public function ww_score_check_dtw($stored_data, $test_data)
+    {
+        $seqA = $stored_data['features']; // [[f1,f2,f3,f4,rms], ...]
+        $seqB = $test_data['features'];
+        
+        $lenA = count($seqA);
+        $lenB = count($seqB);
+        if ($lenA === 0 || $lenB === 0) return 0;
+
+        // 1. 時間差ペナルティの計算
+        $timeA = $stored_data['sampleCount'] ?? ($lenA * 160);
+        $timeB = $test_data['sampleCount'] ?? ($lenB * 160);
+        $timeRatio = min($timeA, $timeB) / max($timeA, $timeB);
+        // 長さが2倍以上違う場合は、DTWを計算するまでもなく大幅減点
+        $timePenalty = ($timeRatio < 0.5) ? pow($timeRatio, 2) : 1.0;
+
+        // 2. DTWコスト行列の初期化 (Memory考慮しつつ実装)
+        $dtw = array_fill(0, $lenA + 1, array_fill(0, $lenB + 1, INF));
+        $dtw[0][0] = 0;
+
+        // 探索窓（Sakoe-Chiba Band）: 計算量削減と極端な歪みの抑制
+        $window = max($lenA, $lenB) * 0.4; 
+
+        for ($i = 1; $i <= $lenA; $i++) {
+            for ($j = max(1, floor($i - $window)); $j <= min($lenB, floor($i + $window)); $j++) {
+                // 多次元（5次元）ユークリッド距離の計算
+                $dist = 0;
+                for ($d = 0; $d < 5; $d++) {
+                    $dist += pow(($seqA[$i-1][$d] - $seqB[$j-1][$d]) / 255.0, 2);
+                }
+                $cost = sqrt($dist);
+                
+                $dtw[$i][$j] = $cost + min($dtw[$i-1][$j], $dtw[$i][$j-1], $dtw[$i-1][$j-1]);
+            }
+        }
+
+        // 3. スコア換算 (0-100)
+        // 平均コストを計算
+        $avgCost = $dtw[$lenA][$lenB] / max($lenA, $lenB);
+        
+        // 許容コスト閾値を大幅に引き下げ（0.5 -> 0.15）
+        // 5次元(0-1.0)空間での距離なので、0.15はかなり厳しい（＝正確な）基準
+        $threshold = 0.15;
+        $rawScore = max(0, 100 * (1.0 - ($avgCost / $threshold))); 
+        
+        // 時間ペナルティを適用
+        $finalScore = $rawScore * $timePenalty;
+
+        return round($finalScore, 2);
+    }
+
+    /**
+     * Converts float features to a word-pattern (0-255) focusing on rhythm/envelope.
+     * Use this for speaker-independent word recognition.
+     */
+    public function prepareWordPatternForDevice($features)
+    {
+        if (!is_array($features) || empty($features)) return null;
+
+        // 1. 対数変換で音量のダイナミックレンジを圧縮し、小さな声の変化を拾いやすくする
+        $logged = array_map(function($v) {
+            return log(abs($v) + 0.0001);
+        }, $features);
+
+        // 2. 移動平均（強めのスムージング）で声質を消し、「音の塊（言葉の区切り）」だけを抽出
+        $smoothed = [];
+        $window = 4; // 窓を広げて滑らかにする
+        $count = count($logged);
+        for ($i = 0; $i < $count; $i++) {
+            $sum = 0; $div = 0;
+            for ($j = -$window; $j <= $window; $j++) {
+                if (isset($logged[$i + $j])) {
+                    $sum += $logged[$i + $j]; $div++;
+                }
+            }
+            $smoothed[] = $sum / $div;
+        }
+
+        // 3. Min-Max正規化 (0.0 〜 1.0)
+        $min = min($smoothed);
+        $max = max($smoothed);
+        $range = ($max - $min) > 0 ? ($max - $min) : 1;
+
+        $normalized = array_map(function($v) use ($min, $range) {
+            return ($v - $min) / $range;
+        }, $smoothed);
+
+        // 4. 整数化 (0 〜 255)
+        $final = array_map(function($v) {
+            return (int)round($v * 255);
+        }, $normalized);
 
         return implode(',', $final);
     }

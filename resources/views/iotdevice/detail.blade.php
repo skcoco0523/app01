@@ -194,35 +194,27 @@
                     <?//デバイスごとの処理管理==============================================================================?>
                     @switch($iotdevice->type)
                         @case(0)
-                            <p>赤外線リモコン</p>
                             @break
 
                         @case(1)
-                            <span class="device-type"><i class="bi bi-lock"></i> スマートロック</span>
                             @break
 
                         @case(2)
-                            <span class="device-type"><i class="bi bi-lightbulb"></i> 照明</span>
                             @break
 
                         @case(3)
-                            <span class="device-type"><i class="bi bi-fan"></i> 扇風機</span>
                             @break
 
                         @case(4)
-                            <span class="device-type"><i class="bi bi-plug"></i> コンセント</span>
                             @break
 
                         @case(5)
-                            <span class="device-type"><i class="bi bi-thermometer-half"></i> 温度センサー</span>
                             @break
 
                         @case(6)
-                            <span class="device-type"><i class="bi bi-wifi"></i> Wi-Fiデバイス</span>
                             @break
 
                         @default
-                            <span class="device-type"><i class="bi bi-question-circle"></i> 未定義</span>
                     @endswitch
 
                     
@@ -378,7 +370,7 @@
                 statusMsg.textContent = '解析完了！';
 
                 if (isTestMode) {
-                    performTestClassification(features);
+                    await performTestClassification(features);
                 } else {
                     voiceInitialUI.style.display = 'none';
                     voicePreviewUI.style.display = 'block';
@@ -392,48 +384,53 @@
                 console.error("録音または解析に失敗:", error);
                 statusMsg.textContent = '失敗: ' + error.message;
                 progressArea.classList.add('d-none');
-                if (voiceRecordBtn) voiceRecordBtn.disabled = false; // 存在チェックを追加
+                if (voiceRecordBtn) voiceRecordBtn.disabled = false;
                 actionButtons.classList.remove('d-none');
+                if (voiceTestBtn) voiceTestBtn.disabled = false;
             }
         }
 
-        function performTestClassification(features) {
-            // Edge Impulse JS を使ってブラウザ側で判定
-            const classifierInstance = window.getClassifier();
+        async function performTestClassification(features) {
+            statusMsg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 判定中...';
             
-            // 判定テストは現在の登録データではなく、今回の録音単体でのラベル判定を行うか、
-            // あるいは registered data との比較を行う。
-            // ここでは user_message に基づき「登録済みデータがあればスコアチェック」
-            // 登録済みデータは ESP 側と同じロジック（Edge Impulse JS）で判定する。
-            
-            // 既に登録されている MFCC (float[]) があればそれと比較したいが、
-            // 現在 DB にあるのは prepareFingerprintForDevice を通した 0-255 の文字列。
-            // そのため、コントローラーへ POST して比較させる。
-            
-            const testForm = document.createElement('form');
-            testForm.method = 'POST';
-            testForm.action = "{{ route('iotdevice.ww_score_check') }}";
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = "{{ csrf_token() }}";
-            testForm.appendChild(csrfInput);
-            
-            const deviceIdInput = document.createElement('input');
-            deviceIdInput.type = 'hidden';
-            deviceIdInput.name = 'iotdevice_id';
-            deviceIdInput.value = "{{ $iotdevice->id }}";
-            testForm.appendChild(deviceIdInput);
-            
-            const featuresInput = document.createElement('input');
-            featuresInput.type = 'hidden';
-            featuresInput.name = 'ww_features';
-            featuresInput.value = JSON.stringify(features);
-            testForm.appendChild(featuresInput);
-            
-            document.body.appendChild(testForm);
-            testForm.submit();
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    type: "post",
+                    url: wwScoreCheckUrl,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        iotdevice_id: "{{ $iotdevice->id }}",
+                        ww_features: JSON.stringify(features)
+                    },
+                })
+                .done(result => {
+                    if (result.success) {
+                        const colorClass = result.match ? 'text-success' : 'text-danger';
+                        statusMsg.innerHTML = `<span class="${colorClass}">${result.msg}</span>`;
+                        
+                        setTimeout(() => {
+                            statusMsg.textContent = '録音開始ボタンを押してください';
+                            actionButtons.classList.remove('d-none');
+                            if (voiceTestBtn) voiceTestBtn.disabled = false;
+                        }, 1500);
+                    } else {
+                        statusMsg.textContent = 'エラー: ' + (result.msg || '不明なエラー');
+                        actionButtons.classList.remove('d-none');
+                        if (voiceTestBtn) voiceTestBtn.disabled = false;
+                    }
+                    resolve(result);
+                })
+                .fail((xhr, status, error) => {
+                    console.error('API request failed:', error);
+                    statusMsg.textContent = '通信失敗';
+                    actionButtons.classList.remove('d-none');
+                    if (voiceTestBtn) voiceTestBtn.disabled = false;
+                    reject(error);
+                });
+            });
         }
 
         voiceRetakeBtn.addEventListener('click', () => {
