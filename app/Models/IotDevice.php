@@ -13,7 +13,7 @@ use App\Models\IotDeviceSignal;
 class IotDevice extends Model
 {
     use HasFactory;
-    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'status', 'receive_command', 'receive_data', 'ver', 'pincode', 'admin_user_id', 'ww_data', 'ww_score'];     //一括代入の許可
+    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'status', 'receive_command', 'receive_data', 'ver', 'pincode', 'admin_user_id'];     //一括代入の許可
 
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -101,16 +101,16 @@ class IotDevice extends Model
                     }
                     // 子デバイス
                     $iotdevice->child_devices = IotDevice::where('hub_id', $iotdevice->id)->get();  // 子デバイス一覧
-                    foreach($iotdevice->child_devices as $key => $child){
-                        $child->type_name   = $device_info[$child->type]['type_name'] ?? null;
-                        $child->icon_class  = $device_info[$child->type]['icon_class'] ?? null;
-                        $child->desc        = $device_info[$child->type]['description'] ?? null;
+                    foreach ($iotdevice->child_devices as $child) {
+                        foreach ($device_info[$child->type] ?? [] as $key => $value) {
+                            $child->{$key} = $value;
+                        }
                     }
                 }
                 
-                $iotdevice->type_name   = $device_info[$iotdevice->type]['type_name'] ?? null;
-                $iotdevice->icon_class  = $device_info[$iotdevice->type]['icon_class'] ?? null;
-                $iotdevice->desc        = $device_info[$iotdevice->type]['description'] ?? null;
+                foreach ($device_info[$iotdevice->type] ?? [] as $key => $value) {
+                    $iotdevice->{$key} = $value;
+                }
             }
 
             //dd($iotdevice_list);
@@ -194,18 +194,12 @@ class IotDevice extends Model
             if (isset($data['name']) && $device->name != $data['name'])
                 $updateData['name'] = $data['name']; 
 
-            if (array_key_exists('ww_data', $data) && $device->ww_data != $data['ww_data'])
-                $updateData['ww_data'] = $data['ww_data']; 
-
-            if (array_key_exists('ww_data', $data) && $device->ww_data != $data['ww_data'])
-                $updateData['ww_data'] = $data['ww_data']; 
-
-            if (array_key_exists('ww_score', $data) && $device->ww_score != $data['ww_score'])
-                $updateData['ww_score'] = $data['ww_score']; 
-
             //NULL更新を許容
             if (array_key_exists('pincode', $data) && $device->pincode != $data['pincode'])
                 $updateData['pincode'] = $data['pincode']; 
+
+            if (array_key_exists('mic_sensitivity', $data) && $device->mic_sensitivity != $data['mic_sensitivity'])
+                $updateData['mic_sensitivity'] = $data['mic_sensitivity']; 
 
             if (array_key_exists('status', $data) && $device->status != $data['status'])
                 $updateData['status'] = $data['status'];
@@ -254,33 +248,6 @@ class IotDevice extends Model
             return ['success' => false, 'id' => null, 'msg' => '削除に失敗しました。'];
 
         }
-    }
-
-    /**
-     * 音声指紋（カンマ区切り文字列）をBase64配列に変換する
-     * 
-     * @param string|null $ww_data_json
-     * @return array
-     */
-    public static function getVoicePrintsB64($ww_data_json)
-    {
-        if (!$ww_data_json) {
-            return [];
-        }
-
-        $ww_data = json_decode($ww_data_json, true);
-        if (!isset($ww_data['prints']) || !is_array($ww_data['prints'])) {
-            return [];
-        }
-
-        $b64_prints = [];
-        foreach ($ww_data['prints'] as $print_str) {
-            $vals = explode(',', $print_str);
-            $binary = pack('c*', ...$vals);
-            $b64_prints[] = base64_encode($binary);
-        }
-
-        return $b64_prints;
     }
 
 }
