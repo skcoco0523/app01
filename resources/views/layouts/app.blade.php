@@ -68,7 +68,6 @@
         const api_login                     = `{{ url('/api/login') }}`;
         const getAdvertisementUrl           = `{{ url('/api/adv/get') }}`;
         const AdvertisementClickUrl         = `{{ url('/api/adv/click') }}`;
-        const wwScoreCheckUrl               = `{{ url('/api/iot_device/ww_score_check') }}`; //音声キーワード判定テスト
         const getVirtualRemoteBladeUrl      = `{{ url('/api/remote-blade/get') }}`;         //スマートリモコンのブレード情報を取得
         const getIotDevicesUrl              = `{{ url('/api/iot_devices/get') }}`;          //所持しているIoTデバイスの情報を取得
         const irReceiveRequestUrl           = `{{ url('/api/ir-receive-request') }}`;       //赤外線信号学習リクエスト　ESP32宛て

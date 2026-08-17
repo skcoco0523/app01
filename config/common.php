@@ -55,13 +55,13 @@ return [
     ],
     'device_info' => [
         // 1-99
-        1   => ['type_name' => 'ｽﾏｰﾄﾎｰﾑ',           'icon_class' => 'fa-tower-broadcast',         'description' => 'スマートデバイス全体の司令塔',],
+        1   => ['type_name' => 'ｽﾏｰﾄﾎｰﾑ',   'mic_flag' => true,       'icon_class' => 'fa-tower-broadcast',         'description' => 'スマートデバイス全体の司令塔',],
         // 100-299
-        101 => ['type_name' => 'ｽﾏｰﾄﾛｯｸ',           'icon_class' => 'fa-lock',                     'description' => '自宅等の施錠・解錠',],
-        102 => ['type_name' => 'ｽﾏｰﾄﾌﾞﾗｲﾝﾄﾞ',         'icon_class' => 'fa-scroll',                   'description' => '昇降・開閉',],
+        101 => ['type_name' => 'ｽﾏｰﾄﾛｯｸ',       'mic_flag' => false,      'icon_class' => 'fa-lock',                     'description' => '自宅等の施錠・解錠',],
+        102 => ['type_name' => 'ｽﾏｰﾄﾌﾞﾗｲﾝﾄﾞ',     'mic_flag' => false,      'icon_class' => 'fa-scroll',                   'description' => '昇降・開閉',],
         // 300-499
-        301 => ['type_name' => '認証ﾘｰﾀﾞｰ',          'icon_class' => 'fa-address-card',             'description' => 'ICカードやスマホによる解錠トリガー',],
-        302 => ['type_name' => '人感ｾﾝｻｰ',          'icon_class' => 'fa-person-walking',           'description' => '人の動きを検知して通知',],
+        301 => ['type_name' => '認証ﾘｰﾀﾞｰ',  'mic_flag' => false,        'icon_class' => 'fa-address-card',             'description' => 'ICカードやスマホによる解錠トリガー',],
+        302 => ['type_name' => '人感ｾﾝｻｰ',  'mic_flag' => false,        'icon_class' => 'fa-person-walking',           'description' => '人の動きを検知して通知',],
     ],
 
     //=========================================================================

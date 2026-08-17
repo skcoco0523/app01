@@ -65,8 +65,6 @@ class MqttListener extends Command
 
             $mac_addr       = $payload['mac_addr'] ?? null;
             $device_name    = $payload['device_name'] ?? null;
-            $ww_data        = $payload['ww_data'] ?? null; // ESP32からの能動적同期用(Base64)
-            $ww_score       = $payload['ww_score'] ?? null;
             $command        = $payload['command'] ?? null;
             //config/common.php で定義されているデバイスタイプを取得
             $type           = $payload['type'] ?? null;
@@ -87,10 +85,9 @@ class MqttListener extends Command
                 //デバイス起動時の初回アクセス
                 if ($command == 'device-access'){
                     $this->info('device_name:'. $device_name);
-                    $this->info('ww_data:'. $ww_data);
-                    make_error_log($error_log,"device_name:".$device_name."   ww_data:".$ww_data."   ww_score:".$ww_score);
+                    make_error_log($error_log,"device_name:".$device_name);
 
-                    $this->mqtt_device_access($mac_addr, $type, $device_name, $ver, $ww_data, $ww_score);
+                    $this->mqtt_device_access($mac_addr, $type, $device_name, $ver);
                 }
                 //疎通確認応答
                 if ($command == 'pong')                 $this->mqtt_device_pong($mac_addr);
@@ -211,7 +208,7 @@ class MqttListener extends Command
     }
 
     //デバイス起動時の初回アクセス
-    public function mqtt_device_access($mac_addr, $type, $device_name, $ver = null, $ww_data = null, $ww_score = null)
+    public function mqtt_device_access($mac_addr, $type, $device_name, $ver = null)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
@@ -237,25 +234,21 @@ class MqttListener extends Command
                     $jdata["device_name"] = (String)$device->name;
                 }
 
-                // 判定スコア閾値の同期
-                if ($ww_score !== null) {
-                    if ((int)$ww_score !== (int)$device->ww_score) {
-                        $jdata["ww_score"] = (int)$device->ww_score;
-                    }
+                // ドメインとアップロードURLを常に同期（本番環境/開発環境の動的対応）
+                if (app()->environment('local')) {
+                    // ローカル（XAMPP）環境：PCのローカルIP（192.168.x.x）を自動取得
+                    $localIp = gethostbyname(gethostname());
+                    //$baseUrl = "http://{$localIp}";
+                    $baseUrl = "http://{$localIp}/app01/public";
+                } else {
+                    // 本番環境：既存の config('app.url') を使用
+                    $baseUrl = config('app.url');
                 }
 
-                // 音声指紋の同期
-                $server_b64_prints = IotDevice::getVoicePrintsB64($device->ww_data);
-                if ($ww_data !== null && ($server_b64_prints[0] ?? null) !== null) {
-                    // バイナリとして比較。末尾のヌル文字(0x00)による固定長バッファの差異を無視するために rtrim を使用。
-                    $client_bin = rtrim(base64_decode($ww_data), "\0");
-                    $server_bin = rtrim(base64_decode($server_b64_prints[0]), "\0");
-                    if ($client_bin !== $server_bin) {
-                        $jdata["ww_datas_b64"] = $server_b64_prints;
-                    }
-                }
-
-                // 差分があれば更新通知を送る
+                $jdata["domain"]     = parse_url($baseUrl, PHP_URL_HOST);
+                $jdata["upload_url"] = rtrim($baseUrl, '/') . "/api/audio/upload";
+                
+                // 差分があれば更新通知を送る（URL追加により常に count($jdata) > 0 となる）
                 if (count($jdata) > 0) {
                     Mosquitto::publishMQTT($mac_addr, "update_device", json_encode($jdata));
                 }
