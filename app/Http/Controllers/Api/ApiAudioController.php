@@ -17,32 +17,37 @@ class ApiAudioController extends Controller
      */
     public function api_audio_upload(Request $request)
     {
-        // 規約に基づいたログファイル名の定義
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         try {
-            // 音声バイナリデータの取得
-            // Content-Type: audio/wav 等でボディに直接バイナリが送られることを想定
             $audioData = $request->getContent();
 
-            if (empty($audioData)) {
-                make_error_log($error_log, "Error: No audio data received.");
+            // 44バイト（WAVヘッダーサイズ）未満の場合はエラー処理
+            if (empty($audioData) || strlen($audioData) < 44) {
+                make_error_log($error_log, "Error: No audio data received or data too short.");
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'No audio data received'
+                    'message' => 'No or invalid audio data received'
                 ], 400);
             }
 
-            // ファイル名の生成 (audio_YYYYMMDD_HHMMSS.wav)
+            // ★【追加】WAVヘッダーのサイズ補正処理★
+            // 受信した総バイト数からPCMデータ長を計算し、32bitリトルエンディアンでバイナリ上書き
+            $totalSize = strlen($audioData);
+            $pcmDataSize = $totalSize - 44;
+            $chunkSize = 36 + $pcmDataSize;
+
+            $audioData = substr_replace($audioData, pack('V', $chunkSize), 4, 4);   // バイト 4-7
+            $audioData = substr_replace($audioData, pack('V', $pcmDataSize), 40, 4); // バイト 40-43
+            // --------------------------------------------
+
             $timestamp = date('Ymd_His');
             $filename = "audio_{$timestamp}.wav";
             $path = "audio/{$filename}";
 
-            // ストレージに保存 (デフォルトは storage/app/audio/)
-            // Storage::put はディレクトリが存在しない場合、自動的に作成する
             Storage::put($path, $audioData);
 
-            make_error_log($error_log, "Success: Audio saved as {$filename}. Size: " . strlen($audioData) . " bytes");
+            make_error_log($error_log, "Success: Audio saved as {$filename}. Size: " . $totalSize . " bytes");
 
             return response()->json([
                 "status" => "success",
