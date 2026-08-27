@@ -133,29 +133,37 @@ class MqttListener extends Command
                     push_send($send_info, null, true); 
                 }
 
+                $last_check_time = time();
+
                 while ($mqtt->isConnected()) {
-                    // loop() は内部で無限ループを持つため、1回ごとの受信処理を行う loopOnce() を使用する。
-                    // 最大5秒間メッセージを待機（ブロッキング）し、受信するかタイムアウトすると制御を戻す。
-                    $mqtt->loopOnce(5);
+                    // loopOnce(1) で 1 秒間メッセージ待機
+                    $mqtt->loopOnce(1);
 
-                    // ファイルの更新をチェック
-                    clearstatcache(true, $script_file); 
-                    if (filemtime($script_file) !== $last_modified) {
-                        $this->info("File changed. Exiting...");
-                        make_error_log($error_log, "File changed detected: {$script_file}. Exiting for auto-restart.");
+                    // 【修正】ファイル更新チェックは 60 秒に 1 回だけ実行して CPU 負荷を激減させる
+                    if (time() - $last_check_time >= 60) {
+                        $last_check_time = time();
 
-                        // 管理者宛てに通知し処理を強制停止する
-                        try {
-                            $send_info = new \stdClass();
-                            $send_info->title = "MQTT Listener 再起動通知";
-                            $send_info->body = "ファイル更新を検知したため、MQTT Listenerを再起動します。";
-                            push_send($send_info, null, true); 
-                        } catch (\Throwable $e) {
-                            make_error_log($error_log, "Notification failed: " . $e->getMessage());
+                        clearstatcache(true, $script_file); 
+                        if (filemtime($script_file) !== $last_modified) {
+                            $this->info("File changed. Exiting...");
+                            make_error_log($error_log, "File changed detected: {$script_file}. Exiting for auto-restart.");
+
+                            // 管理者宛てに通知し処理を強制停止する[cite: 3]
+                            try {
+                                $send_info = new \stdClass();
+                                $send_info->title = "MQTT Listener 再起動通知";
+                                $send_info->body = "ファイル更新を検知したため、MQTT Listenerを再起動します。";
+                                push_send($send_info, null, true); 
+                            } catch (\Throwable $e) {
+                                make_error_log($error_log, "Notification failed: " . $e->getMessage());
+                            }
+
+                            exit; // Systemd (Restart=always) がこのプロセスを再起動させます[cite: 3]
                         }
-
-                        exit; // Systemd (Restart=always) がこのプロセスを再起動させます
                     }
+
+                    // 【追加】CPU の空回りを防ぐための 10 ミリ秒スリープ
+                    usleep(10000);
                 }
 
             } catch (\Throwable $e) {
