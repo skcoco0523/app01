@@ -91,6 +91,8 @@ class MqttListener extends Command
                 }
                 //疎通確認応答
                 if ($command == 'pong')                 $this->mqtt_device_pong($mac_addr);
+                //トークン要求
+                if ($command == 'request_token')        $this->mqtt_request_token($mac_addr);
                 //赤外線信号受信スタンバイ通知
                 if ($command == 'ir-receive-standby')   $this->mqtt_ir_receive_standby($mac_addr);
                 //赤外線信号受信タイムアウト通知
@@ -183,6 +185,39 @@ class MqttListener extends Command
 
         // ステータスを「Online (1)」に更新
         IotDevice::where('mac_addr', $mac_addr)->update(['status' => config('common.iot_device_status.online')]);
+
+        make_error_log($error_log, "----------------end-----------------");
+    }
+    // serverアクセス用ワンタイムトークン発行要求
+    public function mqtt_request_token($mac_addr)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+
+        make_error_log($error_log, "---------------start----------------");
+        make_error_log($error_log, "mac_addr:" . $mac_addr);
+
+        if (empty($mac_addr)) {
+            make_error_log($error_log, "mac_addr is empty");
+            return;
+        }
+
+        // 1. MACアドレス・タイムスタンプ・乱数・APP_KEYを組み合わせてワンタイムトークンを生成
+        $nonce = \Illuminate\Support\Str::random(16);
+        $raw_string = $mac_addr . '_' . microtime(true) . '_' . $nonce;
+        $token = hash_hmac('sha256', $raw_string, config('app.key'));
+
+        // 2. 有効期限30秒でCache（Redis/Memcached/File等）に保存
+        // キー名を "audio_upload_token_{MACアドレス}" に指定
+        \Illuminate\Support\Facades\Cache::put("audio_upload_token_{$mac_addr}", $token, 30);
+
+        make_error_log($error_log, "generated_token:" . $token);
+
+        // 3. ESP32側へ command: "server_token", data: {"token": "..."} をレスポンス
+        $jdata = json_encode([
+            "token" => $token
+        ]);
+
+        Mosquitto::publishMQTT($mac_addr, "server_token", $jdata);
 
         make_error_log($error_log, "----------------end-----------------");
     }
