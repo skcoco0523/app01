@@ -12,7 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // 毎月1日 06:00 に無料ポイントを90ptへリセット
+        $schedule->command('points:reset-free')->monthlyOn(1, '06:00');
+        //php artisan points:reset-free
     }
 
     /**
