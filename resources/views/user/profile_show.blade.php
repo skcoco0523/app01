@@ -14,7 +14,7 @@
                     @endif
                 </span>
                 {{-- さりげない追加リンク --}}
-                <a href="#" class="small text-decoration-none text-primary" style="font-size: 12px;">
+                <a href="{{ route('point.buy') }}" class="small text-decoration-none text-primary" style="font-size: 12px;">
                     追加はこちらから <i class="fa-solid fa-chevron-right" style="font-size: 10px;" class="ms-1"></i>
                 </a>
             </div>

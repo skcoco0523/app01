@@ -35,6 +35,7 @@ use App\Http\Controllers\SmartRemoteController;
 use App\Http\Controllers\IotDeviceController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\PointController;
 
 
 Auth::routes();
@@ -147,6 +148,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //メモ共有　API経由で実施
     //メモ共有解除
     Route::post('note/unshare', [NoteController::class, 'unshare'])->name('note.unshare');
+
+    
+    //-------------------------------------------------------------------------------------------------------
+    //メモ
+    //-------------------------------------------------------------------------------------------------------
+    //ポイント購入ページ
+    Route::get('/point/buy', [PointController::class, 'buy'])->name('point.buy');
+    //ポイント購入処理
+    Route::post('/point/checkout', [PointController::class, 'checkout'])->name('point.checkout');
 
 });
 
@@ -286,6 +296,7 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //検索>削除
         Route::post('another/memo/search/destroy', [AdminAnotherController::class, 'destroy'])->name('admin.memo.destroy');
         //----------------------------------------------------------------------------------
+
     });
 });
 
