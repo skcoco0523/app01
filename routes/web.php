@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminHomeController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminRequestController;
 use App\Http\Controllers\Admin\AdminAdvController;
+use App\Http\Controllers\Admin\AdminPointController;
 use App\Http\Controllers\Admin\AdminIotDeviceController;
 use App\Http\Controllers\Admin\AdminSmartRemoteController;
 use App\Http\Controllers\Admin\AdminNotificationController;
@@ -217,6 +218,9 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //広告設定
         Route::get('adv/config', [AdminAdvController::class, 'config'])->name('admin.adv.config');
         Route::post('adv/config', [AdminAdvController::class, 'config_update'])->name('admin.adv.config.update');
+        //ポイント設定
+        Route::get('point/config', [AdminPointController::class, 'config'])->name('admin.point.config');
+        Route::post('point/config', [AdminPointController::class, 'config_update'])->name('admin.point.config.update');
         //----------------------------------------------------------------------------------
 
         
