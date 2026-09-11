@@ -9,7 +9,7 @@ use PhpMqtt\Client\ConnectionSettings;
 
 use App\Models\Mosquitto; 
 use App\Models\IotDevice; 
-use App\Models\IotDeviceSignal;
+use App\Models\User;
 
 
 class MqttListener extends Command
@@ -188,7 +188,10 @@ class MqttListener extends Command
 
         make_error_log($error_log, "----------------end-----------------");
     }
-    // serverアクセス用ワンタイムトークン発行要求
+    /**
+     * serverアクセス用ワンタイムトークン発行要求
+     * 音声送信前のポイント判定・同期処理を含みます
+     */
     public function mqtt_request_token($mac_addr)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -201,20 +204,61 @@ class MqttListener extends Command
             return;
         }
 
-        // 1. MACアドレス・タイムスタンプ・乱数・APP_KEYを組み合わせてワンタイムトークンを生成
-        $nonce = \Illuminate\Support\Str::random(16);
-        $raw_string = $mac_addr . '_' . microtime(true) . '_' . $nonce;
-        $token = hash_hmac('sha256', $raw_string, config('app.key'));
+        // 1. デバイスおよび管理者ユーザーの取得
+        $deviceList = IotDevice::getIotDeviceList(1, false, null, ['admin_flag' => true, 'search_mac_addr' => $mac_addr]);
+        $device     = (is_array($deviceList) || $deviceList->isEmpty()) ? null : $deviceList->first();
 
-        // 2. 有効期限30秒でCache（Redis/Memcached/File等）に保存
-        // キー名を "audio_upload_token_{MACアドレス}" に指定
+        $user = ($device && !empty($device->admin_user_id)) ? User::find($device->admin_user_id) : null;
+
+        if (!$user) {
+            make_error_log($error_log, "Error: Device or User not found for mac_addr: " . $mac_addr);
+            $jdata = json_encode([
+                "token"       => null,
+                "status"      => "error",
+                "free_point"  => 0,
+                "pay_point"   => 0,
+                "total_point" => 0,
+            ]);
+            Mosquitto::publishMQTT($mac_addr, "server_token", $jdata);
+            return;
+        }
+
+        // 2. po_check() でポイント残高を事前に確認
+        $check = $user->po_check(1);
+
+        if (!$check['can_use']) {
+            make_error_log($error_log, "Point Depleted: User {$user->id}. Free: {$check['free_point']}, Pay: {$check['pay_point']}");
+
+            // ポイント不足時：トークンは null、status に "empty" をセットして即返却
+            $jdata = json_encode([
+                "token"       => null,
+                "status"      => "empty",
+                "free_point"  => $check['free_point'],
+                "pay_point"   => $check['pay_point'],
+                "total_point" => $check['total_point'],
+            ]);
+
+            Mosquitto::publishMQTT($mac_addr, "server_token", $jdata);
+            make_error_log($error_log, "----------------end-----------------");
+            return;
+        }
+
+        // 3. ポイントありの場合：ワンタイムトークンを生成
+        $nonce      = \Illuminate\Support\Str::random(16);
+        $raw_string = $mac_addr . '_' . microtime(true) . '_' . $nonce;
+        $token      = hash_hmac('sha256', $raw_string, config('app.key'));
+
         \Illuminate\Support\Facades\Cache::put("audio_upload_token_{$mac_addr}", $token, 30);
 
         make_error_log($error_log, "generated_token:" . $token);
 
-        // 3. ESP32側へ command: "server_token", data: {"token": "..."} をレスポンス
+        // 4. ESP32側へ token、status ("ok")、および最新ポイント残高をレスポンス
         $jdata = json_encode([
-            "token" => $token
+            "token"       => $token,
+            "status"      => "ok",
+            "free_point"  => $check['free_point'],
+            "pay_point"   => $check['pay_point'],
+            "total_point" => $check['total_point'],
         ]);
 
         Mosquitto::publishMQTT($mac_addr, "server_token", $jdata);

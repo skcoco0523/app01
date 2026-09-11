@@ -231,5 +231,90 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->userDevice()->exists();
     }
 
+    /**
+     * ポイント残高 ＆ 利用可否チェック（参照のみ）
+     *
+     * @param int $req_points 必要ポイント数
+     * @param bool $is_pay_only 有償ポイント限定フラグ
+     * @return array 残高情報および可否判定
+     */
+    public function po_check($req_points = 1, $is_pay_only = false)
+    {
+        $free  = (int)$this->free_point;
+        $pay   = (int)$this->pay_point;
+        $total = $free + $pay;
+        $req   = (int)$req_points;
+
+        $can_use = $is_pay_only ? ($pay >= $req) : ($total >= $req);
+
+        return [
+            'can_use'     => $can_use,
+            'free_point'  => $free,
+            'pay_point'   => $pay,
+            'total_point' => $total,
+        ];
+    }
+
+    /**
+     * ポイント消費処理（DB更新）
+     *
+     * @param int $use_points 消費ポイント数
+     * @param bool $is_pay_only 有償ポイント限定フラグ
+     * @param string|null $memo ログ用メモ
+     * @return array 処理結果
+     */
+    public function po_use($use_points = 1, $is_pay_only = false, $memo = null)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+
+        $use_points = (int)$use_points;
+        if ($use_points <= 0) {
+            return ['success' => false, 'error_code' => 'INVALID_POINTS', 'message' => '消費ポイントが不正です'];
+        }
+
+        return DB::transaction(function () use ($use_points, $is_pay_only, $memo, $error_log) {
+            // 最新情報を排他ロック取得
+            $user = User::where('id', $this->id)->lockForUpdate()->first();
+
+            // 事前判定
+            $check = $user->po_check($use_points, $is_pay_only);
+            if (!$check['can_use']) {
+                $type = $is_pay_only ? 'PAY_POINT_SHORTAGE' : 'POINT_SHORTAGE';
+                $msg  = $is_pay_only ? '有償ポイントが不足しています' : 'ポイントが不足しています';
+
+                UserLog::create_user_log($user->id, 'point_consume_failed', false, "ポイント不足 (必要:{$use_points}) [{$memo}]");
+                make_error_log($error_log, "Failed: Point insufficient. User:{$user->id}");
+
+                return ['success' => false, 'error_code' => $type, 'message' => $msg];
+            }
+
+            // 減算処理
+            if ($is_pay_only) {
+                $user->pay_point -= $use_points;
+                $logType = 'point_consume_pay';
+            } else {
+                if ($user->free_point >= $use_points) {
+                    $user->free_point -= $use_points;
+                    $logType = 'point_consume_free';
+                } else {
+                    $deficit = $use_points - $user->free_point;
+                    $user->free_point = 0;
+                    $user->pay_point -= $deficit;
+                    $logType = 'point_consume_mixed';
+                }
+            }
+
+            $user->save();
+
+            UserLog::create_user_log($user->id, $logType, true, "pt消費(-{$use_points}pt) 残:free={$user->free_point},pay={$user->pay_point} [{$memo}]");
+
+            return [
+                'success'     => true,
+                'free_point'  => $user->free_point,
+                'pay_point'   => $user->pay_point,
+                'total_point' => $user->free_point + $user->pay_point,
+            ];
+        });
+    }
 
 }
