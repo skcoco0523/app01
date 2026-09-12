@@ -6,15 +6,34 @@
     {{-- 現在のポイント残高ミニカード --}}
     <div class="card border-0 shadow-sm mb-3 bg-light">
         <div class="card-body p-3 d-flex justify-content-between align-items-center">
+            <div class="text-end small text-muted" style="font-size: 11px;">
+                <div>無償: {{ number_format($profile->free_point ?? 0) }} pt</div>
+                <div>有償: {{ number_format($profile->pay_point ?? 0) }} pt</div>
+            </div>
             <div>
                 <div class="text-secondary small" style="font-size: 11px;">現在の所持ポイント</div>
                 <div class="fw-bold text-dark">
                     合計 <span class="fs-5 text-primary">{{ number_format(($profile->free_point ?? 0) + ($profile->pay_point ?? 0)) }}</span> pt
                 </div>
             </div>
-            <div class="text-end small text-muted" style="font-size: 11px;">
-                <div>無償: {{ number_format($profile->free_point ?? 0) }} pt</div>
-                <div>有償: {{ number_format($profile->pay_point ?? 0) }} pt</div>
+        </div>
+    </div>
+    {{-- 広告視聴バナー --}}
+    <div class="card border-0 shadow-sm mb-3 text-white" style="background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);">
+        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-white rounded-circle d-flex justify-content-center align-items-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                    <i class="fa-solid fa-film text-primary fs-5"></i>
+                </div>
+                <div>
+                    <div class="fw-bold" style="font-size: 14px;">広告を見て10ptゲット</div>
+                    <div class="text-white-50 small" style="font-size: 11px;">CMを見て無料ポイントを獲得</div>
+                </div>
+            </div>
+            <div>
+                <a href="{{ route('point.ad') }}" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" style="font-size: 12px;">
+                    視聴する
+                </a>
             </div>
         </div>
     </div>

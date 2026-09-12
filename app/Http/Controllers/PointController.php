@@ -40,5 +40,14 @@ class PointController extends Controller
         
         return back()->with('message', '選択されたパック: ' . $packId);
     }
+    /**
+     * 広告視聴・無料ポイント獲得処理
+     */
+    public function ad()
+    {
+        // TODO: 広告動画視聴画面の表示、または10pt付与ロジックの実装
+        
+        return back()->with('message', '広告を視聴して10pt獲得しました');
+    }
 
 }
