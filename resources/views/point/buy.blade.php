@@ -5,7 +5,6 @@
 
     {{-- 現在のポイント残高ミニカード --}}
     <div class="card border-0 shadow-sm mb-3 bg-light">
-        <!-- (既存のコードそのまま) -->
         <div class="card-body p-3 d-flex justify-content-between align-items-center">
             <div class="text-end small text-muted" style="font-size: 11px;">
                 <div>無償: {{ number_format($profile->free_point ?? 0) }} pt</div>
@@ -33,7 +32,6 @@
                 </div>
             </div>
             <div>
-                {{-- 修正箇所: aタグからbuttonタグへ変更 --}}
                 <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" style="font-size: 12px;" id="btn-start-ad">
                     視聴する
                 </button>
@@ -42,7 +40,6 @@
     </div>
 
     {{-- プラン選択エリア --}}
-    <!-- (既存のコードそのまま) -->
     <div class="mb-3">
         <h6 class="fw-bold text-dark mb-1">ポイントパックを選択</h6>
         <p class="text-muted small mb-3" style="font-size: 12px;">購入した有償ポイントに有効期限はありません。</p>
@@ -53,7 +50,6 @@
             <div class="row g-2 mb-4">
                 @foreach($packs as $pack)
                     @php
-                        // 価格と付与ポイントの差分（お得ポイント数）を計算
                         $bonus = $pack->value2 - $pack->value1;
                     @endphp
                     <div class="col-12">
@@ -111,7 +107,6 @@
     </div>
 
     {{-- 注意事項 --}}
-    <!-- (既存のコードそのまま) -->
     <div class="card border-0 bg-light rounded p-3 mb-4">
         <div class="fw-bold text-secondary mb-1" style="font-size: 12px;">ご購入時のご注意</div>
         <ul class="text-secondary ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
@@ -123,8 +118,10 @@
 
 </div>
 
-{{-- Bootstrap JSの読み込みが落ちている場合のフォールバック（画面上部またはモーダル直前に配置） --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{{-- Bootstrap JS --}}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/js/bootstrap.bundle.min.js"></script>
+{{-- Google IMA SDK の読み込み --}}
+<script src="https://imasdk.googleapis.com/js/sdk/v3/ima3.js"></script>
 
 {{-- 広告動画再生用モーダル --}}
 <div class="modal fade" id="adModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
@@ -134,17 +131,14 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btn-close-ad"></button>
       </div>
       <div class="modal-body p-0 text-center">
-        <video id="adVideo" width="100%" controls controlsList="nodownload">
-          {{-- asset() を使用してサブディレクトリ（/app01/）のパスズレを解消 --}}
-          {{-- ※動作テスト用として、ファイルが未用意でも動くオンライン動画URLを一時設定しています --}}
-          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-          {{-- 本番用の動画ファイルにする場合は以下を有効化してください --}}
-          {{-- <source src="{{ asset('videos/sample_ad.mp4') }}" type="video/mp4"> --}}
-          お使いのブラウザは動画再生に対応していません。
-        </video>
+        {{-- IMA SDK 描画領域 --}}
+        <div id="ad-container-wrapper" style="position: relative; width: 100%; min-height: 250px; background: #000;">
+          <video id="contentElement" style="width:100%; height:100%; display:none;"></video>
+          <div id="adContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+        </div>
       </div>
       <div class="modal-footer border-0 pt-0 text-center text-white-50 small" id="ad-status-text">
-        動画を最後まで視聴するとポイントが付与されます
+        動画広告を最後まで視聴するとポイントが付与されます
       </div>
     </div>
   </div>
@@ -159,50 +153,93 @@
         background-color: #0d6efd;
         color: #fff;
     }
-    .btn-check:checked + .card-select-option .selection-label::after {
-        content: "中";
-    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 要素の取得
     const startBtn = document.getElementById('btn-start-ad');
-    const adVideo = document.getElementById('adVideo');
     const statusText = document.getElementById('ad-status-text');
     const closeBtn = document.getElementById('btn-close-ad');
-    
-    // Bootstrapのモーダル初期化
     const adModal = new bootstrap.Modal(document.getElementById('adModal'));
-    
-    let isRequesting = false; // 二重送信防止フラグ
 
-    // 「視聴する」ボタンを押したときの処理
-    startBtn.addEventListener('click', function() {
-        // モーダルを表示
-        adModal.show();
-        // 状態を初期化して動画を最初から再生
-        statusText.innerText = "動画を最後まで視聴するとポイントが付与されます";
-        adVideo.currentTime = 0;
-        adVideo.play();
-    });
+    let adDisplayContainer;
+    let adsLoader;
+    let adsManager;
+    let isRequesting = false;
 
-    // モーダルが閉じられたときの処理（途中でやめた場合）
-    document.getElementById('adModal').addEventListener('hidden.bs.modal', function () {
-        adVideo.pause(); // 動画を停止
-    });
+    // Google公式 テスト用 VAST タグ（Ad Manager 承認後に自社のものへ変更）
+    const VAST_TAG_URL = 'https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/12431908/external/single_ad_samples&ciu_szs=300x250&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ct%3Dlinear&correlator=';
 
-    // 動画が最後まで再生された（完了した）ときの処理
-    adVideo.addEventListener('ended', function() {
-        if(isRequesting) return; // すでにリクエスト中なら処理しない
+    // IMA SDK 初期化
+    function initIMA() {
+        const adContainer = document.getElementById('adContainer');
+        const contentElement = document.getElementById('contentElement');
+
+        adDisplayContainer = new google.ima.AdDisplayContainer(adContainer, contentElement);
+        adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+
+        adsLoader.addEventListener(
+            google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+            onAdsManagerLoaded,
+            false
+        );
+        adsLoader.addEventListener(
+            google.ima.AdErrorEvent.Type.AD_ERROR,
+            onAdError,
+            false
+        );
+    }
+
+    // 広告リクエスト
+    function requestAds() {
+        adDisplayContainer.initialize();
+        const adsRequest = new google.ima.AdsRequest();
+        adsRequest.adTagUrl = VAST_TAG_URL;
+        adsRequest.linearAdSlotWidth = document.getElementById('ad-container-wrapper').clientWidth;
+        adsRequest.linearAdSlotHeight = 250;
+        adsLoader.requestAds(adsRequest);
+    }
+
+    // 広告ロード成功
+    function onAdsManagerLoaded(adsManagerLoadedEvent) {
+        const adsRenderingSettings = new google.ima.AdsRenderingSettings();
+        adsManager = adsManagerLoadedEvent.getAdsManager(document.getElementById('contentElement'), adsRenderingSettings);
+
+        adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, onAdError);
         
-        isRequesting = true;
-        statusText.innerHTML = '<span class="text-warning"><i class="fa-solid fa-spinner fa-spin"></i> ポイントを獲得しています...</span>';
-        closeBtn.style.display = 'none'; // 処理中に閉じられないようにする
+        // 広告完了イベントのハンドリング
+        adsManager.addEventListener(google.ima.AdEvent.Type.COMPLETE, onAdComplete);
 
-        // サーバー（コントローラー）にポイント付与のリクエストを送る
+        try {
+            adsManager.init(
+                document.getElementById('ad-container-wrapper').clientWidth,
+                250,
+                google.ima.ViewMode.NORMAL
+            );
+            adsManager.start();
+        } catch (adError) {
+            onAdError(adError);
+        }
+    }
+
+    // 広告再生エラー
+    function onAdError(adErrorEvent) {
+        console.error('Ad Error:', adErrorEvent);
+        if (adsManager) adsManager.destroy();
+        statusText.innerHTML = '<span class="text-danger">広告の読み込みに失敗しました。時間をおいて再試行してください。</span>';
+        closeBtn.style.display = 'block';
+    }
+
+    // 広告視聴完了時の処理
+    function onAdComplete() {
+        if (isRequesting) return;
+        isRequesting = true;
+
+        statusText.innerHTML = '<span class="text-warning"><i class="fa-solid fa-spinner fa-spin"></i> ポイントを獲得しています...</span>';
+        closeBtn.style.display = 'none';
+
         fetch("{{ route('point.ad') }}", {
-            method: 'POST', // GETではなくPOSTにする
+            method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Content-Type': 'application/json',
@@ -213,14 +250,13 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             isRequesting = false;
             if (data.success) {
-                statusText.innerHTML = '<span class="text-success fw-bold">ポイントを獲得しました！</span>';
-                // 1秒後に画面をリロードして残高を反映
+                statusText.innerHTML = '<span class="text-success fw-bold">' + data.message + '</span>';
                 setTimeout(() => {
                     location.reload();
-                }, 1000);
+                }, 1200);
             } else {
-                statusText.innerHTML = '<span class="text-danger">エラー: ' + (data.message || 'ポイントの付与に失敗しました') + '</span>';
-                closeBtn.style.display = 'block'; // エラー時は閉じられるように戻す
+                statusText.innerHTML = '<span class="text-danger">' + (data.message || 'ポイントの付与に失敗しました') + '</span>';
+                closeBtn.style.display = 'block';
             }
         })
         .catch(error => {
@@ -229,6 +265,24 @@ document.addEventListener('DOMContentLoaded', function() {
             statusText.innerHTML = '<span class="text-danger">通信エラーが発生しました。</span>';
             closeBtn.style.display = 'block';
         });
+    }
+
+    // ボタン押下時
+    startBtn.addEventListener('click', function() {
+        adModal.show();
+        statusText.innerText = "動画広告を最後まで視聴するとポイントが付与されます";
+        closeBtn.style.display = 'block';
+        if (!adDisplayContainer) {
+            initIMA();
+        }
+        requestAds();
+    });
+
+    // モーダルが閉じられた際の後処理
+    document.getElementById('adModal').addEventListener('hidden.bs.modal', function () {
+        if (adsManager) {
+            adsManager.destroy();
+        }
     });
 });
 </script>

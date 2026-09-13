@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 
 use App\Models\User;
@@ -43,27 +44,43 @@ class PointController extends Controller
     /**
      * 広告視聴・無料ポイント獲得処理
      */
-    
     public function ad(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if (!$user) {
+            return response()->json(['success' => false, 'message' => '未ログインです'], 401);
+        }
+
+        // 1日あたりの上限設定
+        $maxDailyLimit = 5; 
+        
+        // ユーザーIDと日付を組み合わせたキャッシュキー
+        $cacheKey = 'ad_watch_count_' . $user->id . '_' . date('Y-m-d');
+        $watchedCount = (int) Cache::get($cacheKey, 0);
+
+        // 視聴回数上限チェック
+        if ($watchedCount >= $maxDailyLimit) {
             return response()->json([
                 'success' => false,
-                'message' => 'ログインが必要です'
-            ], 401);
+                'message' => "本日の広告視聴上限（{$maxDailyLimit}回）に達しました。また明日お試しください。"
+            ], 400);
         }
 
         // ポイント付与実行（10pt無償ポイント）
         $result = $user->add_po(10, false, '広告視聴');
 
-        // JavaScriptへJSON形式で結果を返却
+        if (!empty($result['success'])) {
+            // 視聴完了時にカウントを+1し、本日の23:59:59まで保持
+            Cache::put($cacheKey, $watchedCount + 1, now()->endOfDay());
+        }
+
         return response()->json([
             'success'     => $result['success'],
             'total_point' => $result['total_point'] ?? 0,
-            'message'     => $result['message'] ?? ''
+            'message'     => $result['message'] ?? '',
+            'remaining'   => $maxDailyLimit - ($watchedCount + 1) // 残り回数
         ]);
     }
 
