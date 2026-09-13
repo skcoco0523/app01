@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 use App\Models\User;
+use App\Models\CommonConfig;
 
 use Illuminate\Support\Str;
 
@@ -59,11 +60,15 @@ class UserController extends Controller
     {
         $this->middleware('auth');
 
-        $profile = User::getProfile(Auth::id());;
+        $profile = User::getProfile(Auth::id());
+        $conf_data = CommonConfig::getValues(['po_free','po_free_flag']);
+        $service_free_point =  $conf_data['po_free']->value2;
+        $free_point_reset_flag =  (bool)$conf_data['po_free_flag']->value1;
+
         $msg = null;
         //dd($profile);
         if($profile){
-            return view('user.profile_show', compact('profile', 'msg'));
+            return view('user.profile_show', compact('profile', 'free_point_reset_flag', 'service_free_point', 'msg'));
         }else{
             $message = ['message' => 'プロフィール情報の取得に失敗しました。','type' => '','sec' => '2000'];
             return redirect()->route('home')->with($message);

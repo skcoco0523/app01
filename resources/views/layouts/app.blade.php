@@ -216,25 +216,26 @@
                                 <li class="nav-item dropdown">
                                 @auth
                                     @if (Auth::user()->admin_flag)
-                                        <a class="dropdown-item" href="{{ route('admin.home') }}">{{ __('Admin') }}</a>
+                                        <a class="dropdown-item" href="{{ route('admin.home') }}">管理者画面</a>
                                     @endif
-                                        <a class="dropdown-item" href="{{ route('profile.show') }}">{{ __('Profile') }}</a>
-                                        <a class="dropdown-item" href="{{ route('request.index') }}">{{ __('Request') }}</a>
+                                        <a class="dropdown-item" href="{{ route('profile.show') }}">プロフィール</a>
+                                        <a class="dropdown-item" href="{{ route('request.index') }}">要望・問い合わせ</a>
+                                        <a class="dropdown-item" href="{{ route('point.buy') }}">ポイント購入</a>
                                         <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            {{ __('Logout') }}
+                                            ログアウト
                                         </a>
                                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                             @csrf
                                         </form>
                                 @else
                                     @if (Route::has('login'))
-                                        <a class="dropdown-item" href="{{ route('login') }}">{{ __('Login') }}</a>
+                                        <a class="dropdown-item" href="{{ route('login') }}">ログイン</a>
                                     @endif
                                     @if (Route::has('register'))
-                                        <a class="dropdown-item" href="{{ route('register') }}">{{ __('Register') }}</a>
+                                        <a class="dropdown-item" href="{{ route('register') }}">会員登録</a>
                                     @endif
                                 @endauth
-                                    <a id="add-to-home-screen" class="dropdown-item" href="#">{{ __('Install to Application') }}</a>
+                                    <a id="add-to-home-screen" class="dropdown-item" href="#">アプリ インストール</a>
                                 </li>
                             </ul>
                         </div>

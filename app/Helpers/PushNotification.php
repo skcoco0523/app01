@@ -23,8 +23,8 @@ use App\Models\UserLog;
 // プッシュ通知関数
 if (! function_exists('push_send')) {
     //$send_info(title,body)
-    function push_send($send_info, $user_id = null, $admin_flag = false){
-        return PushNotification::push_send($send_info, $user_id, $admin_flag);
+    function push_send($send_info, $user_id = null, $admin_flag = false, $all_flag = false){
+        return PushNotification::push_send($send_info, $user_id, $admin_flag, $all_flag);
     }
 }
 
@@ -34,7 +34,7 @@ function urlSafeBase64Decode($base64Url) {
 }
 class PushNotification
 {
-    public static function push_send($send_info, $user_id = null, $admin_flag = false)
+    public static function push_send($send_info, $user_id = null, $admin_flag = false, $all_flag = false)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "========================start========================");
@@ -42,13 +42,19 @@ class PushNotification
 
         //管理者充て(admin_flag=ture)の場合は複数名に送信するため、一旦配列にする
         $send_user_id_list=array();
-        if($user_id){
+        if ($user_id) {
+            // 特定の1名
             $send_user_id_list[0] = $user_id;
-        }elseif($admin_flag){
-            $user_list = User::getUserList(100,false,null,['search_admin_flag' => true]);
-            foreach($user_list as $user){ $send_user_id_list[] = $user->id;}
-        }else{
-            make_error_log($error_log, "user_id and admin_flag are null");
+        } elseif ($admin_flag) {
+            // 管理者のみ
+            $user_list = User::getUserList(100, false, null, ['search_admin_flag' => true]);
+            foreach ($user_list as $user) { $send_user_id_list[] = $user->id; }
+        } elseif ($all_flag) {
+            // 全会員宛て
+            $user_list = User::all(); // または全ユーザーIDを取得するメソッド
+            foreach ($user_list as $user) { $send_user_id_list[] = $user->id; }
+        } else {
+            make_error_log($error_log, "user_id, admin_flag and all_flag are null");
             return;
         }
 

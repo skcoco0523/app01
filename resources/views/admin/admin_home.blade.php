@@ -53,6 +53,12 @@
                 ['url' => route('admin.adv.config'), 'label' => '広告設定'],
             ]
         ],
+        'point' => [
+            'title' => 'ポイント',
+            'items' => [
+                ['url' => route('admin.point.config'), 'label' => 'ポイント設定'],
+            ]
+        ],
         'notification' => [
             'title' => '通知',
             'items' => [
@@ -112,6 +118,8 @@
         $view_right_file    = 'admin.admin_adv_search';
     }elseif ($tab1 == 'adv' && $tab2 == 'config' && $tab3 == '') {
         $view_right_file    = 'admin.admin_adv_config';
+    }elseif ($tab1 == 'point' && $tab2 == 'config' && $tab3 == '') {
+        $view_right_file    = 'admin.admin_point_config';
     }elseif ($tab1 == 'notification' && $tab2 == 'search' && $tab3 == '') {
         $view_left_file     = 'admin.admin_notification_left';
         $view_right_file    = 'admin.admin_notification';

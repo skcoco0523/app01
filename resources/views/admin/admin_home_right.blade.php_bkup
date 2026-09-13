@@ -23,6 +23,12 @@
         @if($tab2 == "search")          @include('admin.admin_adv_search') @endif
     @endif
 
+    {{---------------- ポイントメニュー ------------------}}
+    @if($tab1 == "point")
+        @if($tab2 == "config")             @include('admin.admin_point_config') @endif
+        
+    @endif
+
     {{---------------- 通知メニュー ------------------}}
     @if($tab1 == "notification")
         @if($tab2 == "search")          @include('admin.admin_notification') @endif
