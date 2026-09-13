@@ -28,13 +28,21 @@
                 </div>
                 <div>
                     <div class="fw-bold" style="font-size: 14px;">広告を見て10ptゲット</div>
-                    <div class="text-white-50 small" style="font-size: 11px;">※無償ポイント</div>
+                    <div class="text-white-50 small" style="font-size: 11px;">
+                        ※無償ポイント（{{ $periodLabel === 'AM' ? '午前' : '午後' }}あと <span id="ad-remaining-badge" class="fw-bold text-warning">{{ $remainingAdCount }}</span> / {{ $maxDailyLimit }} 回）
+                    </div>
                 </div>
             </div>
             <div>
-                <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" style="font-size: 12px;" id="btn-start-ad">
-                    視聴する
-                </button>
+                @if($remainingAdCount > 0)
+                    <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" id="btn-start-ad" style="font-size: 12px;">
+                        視聴する
+                    </button>
+                @else
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold rounded-pill px-3 shadow-sm" disabled style="font-size: 12px;">
+                        {{ $periodLabel === 'AM' ? '午前上限' : '午後上限' }}
+                    </button>
+                @endif
             </div>
         </div>
     </div>
@@ -118,31 +126,11 @@
 
 </div>
 
-{{-- Bootstrap JS --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/js/bootstrap.bundle.min.js"></script>
-{{-- Google IMA SDK の読み込み --}}
-<script src="https://imasdk.googleapis.com/js/sdk/v3/ima3.js"></script>
+{{-- 共通モーダルの読み込み --}}
+@include('layouts.adv_popup')
 
-{{-- 広告動画再生用モーダル --}}
-<div class="modal fade" id="adModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark border-0">
-      <div class="modal-header border-0 pb-0">
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btn-close-ad"></button>
-      </div>
-      <div class="modal-body p-0 text-center">
-        {{-- IMA SDK 描画領域 --}}
-        <div id="ad-container-wrapper" style="position: relative; width: 100%; min-height: 250px; background: #000;">
-          <video id="contentElement" style="width:100%; height:100%; display:none;"></video>
-          <div id="adContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0 text-center text-white-50 small" id="ad-status-text">
-        動画広告を最後まで視聴するとポイントが付与されます
-      </div>
-    </div>
-  </div>
-</div>
+{{-- Google Publisher Tag --}}
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
 
 <style>
     .btn-check:checked + .card-select-option {
@@ -156,134 +144,150 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const startBtn = document.getElementById('btn-start-ad');
-    const statusText = document.getElementById('ad-status-text');
-    const closeBtn = document.getElementById('btn-close-ad');
-    const adModal = new bootstrap.Modal(document.getElementById('adModal'));
+    window.googletag = window.googletag || {cmd: []};
 
-    let adDisplayContainer;
-    let adsLoader;
-    let adsManager;
-    let isRequesting = false;
-
-    // Google公式 テスト用 VAST タグ（Ad Manager 承認後に自社のものへ変更）
-    const VAST_TAG_URL = 'https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/12431908/external/single_ad_samples&ciu_szs=300x250&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ct%3Dlinear&correlator=';
-
-    // IMA SDK 初期化
-    function initIMA() {
-        const adContainer = document.getElementById('adContainer');
-        const contentElement = document.getElementById('contentElement');
-
-        adDisplayContainer = new google.ima.AdDisplayContainer(adContainer, contentElement);
-        adsLoader = new google.ima.AdsLoader(adDisplayContainer);
-
-        adsLoader.addEventListener(
-            google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-            onAdsManagerLoaded,
-            false
-        );
-        adsLoader.addEventListener(
-            google.ima.AdErrorEvent.Type.AD_ERROR,
-            onAdError,
-            false
-        );
-    }
-
-    // 広告リクエスト
-    function requestAds() {
-        adDisplayContainer.initialize();
-        const adsRequest = new google.ima.AdsRequest();
-        adsRequest.adTagUrl = VAST_TAG_URL;
-        adsRequest.linearAdSlotWidth = document.getElementById('ad-container-wrapper').clientWidth;
-        adsRequest.linearAdSlotHeight = 250;
-        adsLoader.requestAds(adsRequest);
-    }
-
-    // 広告ロード成功
-    function onAdsManagerLoaded(adsManagerLoadedEvent) {
-        const adsRenderingSettings = new google.ima.AdsRenderingSettings();
-        adsManager = adsManagerLoadedEvent.getAdsManager(document.getElementById('contentElement'), adsRenderingSettings);
-
-        adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, onAdError);
+    document.addEventListener('DOMContentLoaded', function() {
+        const startBtn = document.getElementById('btn-start-ad');
+        let remainingAdCount = {{ $remainingAdCount }};
+        const periodText = "{{ $periodLabel === 'AM' ? '午前' : '午後' }}";
+        const nextTimeText = "{{ $periodLabel === 'AM' ? '12:00以降に再度お試しください。' : 'また明日お試しください。' }}";
         
-        // 広告完了イベントのハンドリング
-        adsManager.addEventListener(google.ima.AdEvent.Type.COMPLETE, onAdComplete);
+        let rewardedSlot = null;
+        let rewardPayload = null;
+        let isClickTriggered = false;
+        let pendingResult = null;
 
-        try {
-            adsManager.init(
-                document.getElementById('ad-container-wrapper').clientWidth,
-                250,
-                google.ima.ViewMode.NORMAL
-            );
-            adsManager.start();
-        } catch (adError) {
-            onAdError(adError);
+        function resetButton() {
+            if (!startBtn) return;
+            startBtn.disabled = false;
+            startBtn.innerHTML = '視聴する';
+            isClickTriggered = false;
         }
-    }
 
-    // 広告再生エラー
-    function onAdError(adErrorEvent) {
-        console.error('Ad Error:', adErrorEvent);
-        if (adsManager) adsManager.destroy();
-        statusText.innerHTML = '<span class="text-danger">広告の読み込みに失敗しました。時間をおいて再試行してください。</span>';
-        closeBtn.style.display = 'block';
-    }
+        if (remainingAdCount > 0) {
+            googletag.cmd.push(function() {
+                rewardedSlot = googletag.defineOutOfPageSlot(
+                    '/22639388115/rewarded_web_example',
+                    googletag.enums.OutOfPageFormat.REWARDED
+                );
 
-    // 広告視聴完了時の処理
-    function onAdComplete() {
-        if (isRequesting) return;
-        isRequesting = true;
+                if (!rewardedSlot) return;
 
-        statusText.innerHTML = '<span class="text-warning"><i class="fa-solid fa-spinner fa-spin"></i> ポイントを獲得しています...</span>';
-        closeBtn.style.display = 'none';
+                rewardedSlot.addService(googletag.pubads());
 
-        fetch("{{ route('point.ad') }}", {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            isRequesting = false;
-            if (data.success) {
-                statusText.innerHTML = '<span class="text-success fw-bold">' + data.message + '</span>';
-                setTimeout(() => {
-                    location.reload();
-                }, 1200);
-            } else {
-                statusText.innerHTML = '<span class="text-danger">' + (data.message || 'ポイントの付与に失敗しました') + '</span>';
-                closeBtn.style.display = 'block';
-            }
-        })
-        .catch(error => {
-            isRequesting = false;
-            console.error('Error:', error);
-            statusText.innerHTML = '<span class="text-danger">通信エラーが発生しました。</span>';
-            closeBtn.style.display = 'block';
-        });
-    }
+                // 1. 在庫チェック
+                googletag.pubads().addEventListener('slotRenderEnded', function(event) {
+                    if (event.slot === rewardedSlot && event.isEmpty) {
+                        if (isClickTriggered) {
+                            openModal('common-modal', {
+                                title: 'お知らせ',
+                                mess: '現在視聴できる広告がありません。時間をおいて再試行してください。',
+                                user_chk: false
+                            });
+                            resetButton();
+                        }
+                    }
+                });
 
-    // ボタン押下時
-    startBtn.addEventListener('click', function() {
-        adModal.show();
-        statusText.innerText = "動画広告を最後まで視聴するとポイントが付与されます";
-        closeBtn.style.display = 'block';
-        if (!adDisplayContainer) {
-            initIMA();
+                // 2. 広告の準備完了
+                googletag.pubads().addEventListener('rewardedSlotReady', function(event) {
+                    rewardPayload = event;
+                    if (isClickTriggered) {
+                        rewardPayload.makeRewardedVisible();
+                    }
+                });
+
+                // 3. 視聴完了時（サーバーへポイント付与リクエスト）
+                googletag.pubads().addEventListener('rewardedSlotGranted', function(event) {
+                    fetch("{{ route('point.ad') }}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        pendingResult = data;
+                    })
+                    .catch(error => {
+                        console.error('API Error:', error);
+                        pendingResult = { success: false, message: '通信エラーが発生しました' };
+                    });
+                });
+
+                // 4. ユーザーが広告を閉じた後の処理
+                googletag.pubads().addEventListener('rewardedSlotClosed', function() {
+                    rewardPayload = null;
+                    resetButton();
+
+                    if (pendingResult) {
+                        if (pendingResult.success) {
+                            openModal('common-modal', {
+                                title: 'ポイント獲得',
+                                mess: pendingResult.message || 'ポイントを獲得しました！',
+                                user_chk: false
+                            });
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            openModal('common-modal', {
+                                title: 'お知らせ',
+                                mess: pendingResult.message || 'ポイントの付与に失敗しました',
+                                user_chk: false
+                            });
+                        }
+                        pendingResult = null;
+                    }
+
+                    googletag.pubads().refresh([rewardedSlot]);
+                });
+
+                googletag.enableServices();
+                googletag.display(rewardedSlot);
+            });
         }
-        requestAds();
-    });
 
-    // モーダルが閉じられた際の後処理
-    document.getElementById('adModal').addEventListener('hidden.bs.modal', function () {
-        if (adsManager) {
-            adsManager.destroy();
+        // 「視聴する」ボタン押下時
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                if (remainingAdCount <= 0) {
+                    openModal('common-modal', {
+                        title: 'お知らせ',
+                        mess: `${periodText}の広告視聴上限（5回）に達しました。${nextTimeText}`,
+                        user_chk: false
+                    });
+                    return;
+                }
+
+                if (startBtn.disabled) return;
+
+                isClickTriggered = true;
+                startBtn.disabled = true;
+                startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 読み込み中...';
+
+                if (rewardPayload) {
+                    rewardPayload.makeRewardedVisible();
+                } else {
+                    googletag.cmd.push(function() {
+                        googletag.pubads().refresh([rewardedSlot]);
+                    });
+
+                    setTimeout(function() {
+                        if (startBtn.disabled && !rewardPayload) {
+                            openModal('common-modal', {
+                                title: '読み込みエラー',
+                                mess: '広告の読み込みに時間がかかっています。再度お試しください。',
+                                user_chk: false
+                            });
+                            resetButton();
+                        }
+                    }, 10000);
+                }
+            });
         }
-    });
 });
 </script>
 @endsection

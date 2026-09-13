@@ -67,9 +67,10 @@ self.addEventListener('notificationclick', function(event) {
 // =====================================================================
 
 registerRoute(
-    // request.destination で静的ファイルを判定
-    ({ request }) =>
-        ['style', 'script', 'image', 'font'].includes(request.destination),
+    // request.destination で判定しつつ、自ドメイン（同一オリジン）の静的ファイルのみに限定
+    ({ request, url }) =>
+        ['style', 'script', 'image', 'font'].includes(request.destination) &&
+        url.origin === self.location.origin,
 
     new StaleWhileRevalidate({
         cacheName: `${self.registration.scope}-static-assets-cache`,
