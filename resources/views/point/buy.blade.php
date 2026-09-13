@@ -89,7 +89,7 @@
                                         {{ number_format($pack->value2) }} <span class="fs-6 fw-normal text-dark">pt</span>
                                     </div>
                                     <div class="text-muted" style="font-size: 11px;">
-                                        約 {{ number_format($pack->value2) }} 回分の音声操作
+                                        約 {{ number_format($pack->value2) }} 回分のAI・コンテンツ利用
                                     </div>
                                 </div>
                                 <div class="text-end">
