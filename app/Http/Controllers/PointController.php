@@ -43,11 +43,28 @@ class PointController extends Controller
     /**
      * 広告視聴・無料ポイント獲得処理
      */
-    public function ad()
+    
+    public function ad(Request $request)
     {
-        // TODO: 広告動画視聴画面の表示、または10pt付与ロジックの実装
-        
-        return back()->with('message', '広告を視聴して10pt獲得しました');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ログインが必要です'
+            ], 401);
+        }
+
+        // ポイント付与実行（10pt無償ポイント）
+        $result = $user->add_po(10, false, '広告視聴');
+
+        // JavaScriptへJSON形式で結果を返却
+        return response()->json([
+            'success'     => $result['success'],
+            'total_point' => $result['total_point'] ?? 0,
+            'message'     => $result['message'] ?? ''
+        ]);
     }
 
 }

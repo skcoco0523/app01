@@ -1,4 +1,5 @@
 User-agent: *
+# 検索エンジンに見せたくないページの定義
 # 管理画面
 Disallow: /admin/
 

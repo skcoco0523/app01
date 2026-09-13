@@ -5,6 +5,7 @@
 
     {{-- 現在のポイント残高ミニカード --}}
     <div class="card border-0 shadow-sm mb-3 bg-light">
+        <!-- (既存のコードそのまま) -->
         <div class="card-body p-3 d-flex justify-content-between align-items-center">
             <div class="text-end small text-muted" style="font-size: 11px;">
                 <div>無償: {{ number_format($profile->free_point ?? 0) }} pt</div>
@@ -18,6 +19,7 @@
             </div>
         </div>
     </div>
+
     {{-- 広告視聴バナー --}}
     <div class="card border-0 shadow-sm mb-3 text-white" style="background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);">
         <div class="card-body p-3 d-flex justify-content-between align-items-center">
@@ -27,18 +29,20 @@
                 </div>
                 <div>
                     <div class="fw-bold" style="font-size: 14px;">広告を見て10ptゲット</div>
-                    <div class="text-white-50 small" style="font-size: 11px;">CMを見て無料ポイントを獲得</div>
+                    <div class="text-white-50 small" style="font-size: 11px;">※無償ポイント</div>
                 </div>
             </div>
             <div>
-                <a href="{{ route('point.ad') }}" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" style="font-size: 12px;">
+                {{-- 修正箇所: aタグからbuttonタグへ変更 --}}
+                <button type="button" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" style="font-size: 12px;" id="btn-start-ad">
                     視聴する
-                </a>
+                </button>
             </div>
         </div>
     </div>
 
     {{-- プラン選択エリア --}}
+    <!-- (既存のコードそのまま) -->
     <div class="mb-3">
         <h6 class="fw-bold text-dark mb-1">ポイントパックを選択</h6>
         <p class="text-muted small mb-3" style="font-size: 12px;">購入した有償ポイントに有効期限はありません。</p>
@@ -53,7 +57,6 @@
                         $bonus = $pack->value2 - $pack->value1;
                     @endphp
                     <div class="col-12">
-                        {{-- input と label を並列にし、for 属性で紐付ける --}}
                         <input type="radio" 
                             name="config_name" 
                             value="{{ $pack->config_name }}" 
@@ -66,16 +69,12 @@
                             for="pack_{{ $pack->config_name }}" 
                             style="cursor: pointer;">
                             <div class="d-flex justify-content-between align-items-center">
-                                {{-- 左側：パック名、お得バッジ、ポイント数 --}}
                                 <div>
                                     <div class="d-flex align-items-center gap-1 mb-1 flex-wrap">
                                         <span class="fw-bold text-dark">{{ $pack->description }}</span>
-                                        
                                         @if(!empty($pack->badge))
                                             <span class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">{{ $pack->badge }}</span>
                                         @endif
-                                        
-                                        {{-- 差分お得バッジ --}}
                                         @if($bonus > 0)
                                             <span class="badge bg-danger rounded-pill" style="font-size: 10px;">
                                                 +{{ number_format($bonus) }}ptお得
@@ -89,8 +88,6 @@
                                         約 {{ number_format($pack->value2) }} 回分の音声操作
                                     </div>
                                 </div>
-
-                                {{-- 右側：価格と選択状態表示 --}}
                                 <div class="text-end">
                                     <div class="fs-5 fw-bold text-dark mb-1">
                                         ¥{{ number_format($pack->value1) }}
@@ -105,7 +102,6 @@
                 @endforeach
             </div>
 
-            {{-- 決済ボタンエリア --}}
             <div class="sticky-bottom bg-white pt-2 pb-3 border-top">
                 <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm py-3">
                     購入手続きへ進む
@@ -115,6 +111,7 @@
     </div>
 
     {{-- 注意事項 --}}
+    <!-- (既存のコードそのまま) -->
     <div class="card border-0 bg-light rounded p-3 mb-4">
         <div class="fw-bold text-secondary mb-1" style="font-size: 12px;">ご購入時のご注意</div>
         <ul class="text-secondary ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
@@ -126,7 +123,33 @@
 
 </div>
 
-{{-- ラジオボタン選択時の枠線強調用スタイル --}}
+{{-- Bootstrap JSの読み込みが落ちている場合のフォールバック（画面上部またはモーダル直前に配置） --}}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{{-- 広告動画再生用モーダル --}}
+<div class="modal fade" id="adModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-0">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btn-close-ad"></button>
+      </div>
+      <div class="modal-body p-0 text-center">
+        <video id="adVideo" width="100%" controls controlsList="nodownload">
+          {{-- asset() を使用してサブディレクトリ（/app01/）のパスズレを解消 --}}
+          {{-- ※動作テスト用として、ファイルが未用意でも動くオンライン動画URLを一時設定しています --}}
+          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+          {{-- 本番用の動画ファイルにする場合は以下を有効化してください --}}
+          {{-- <source src="{{ asset('videos/sample_ad.mp4') }}" type="video/mp4"> --}}
+          お使いのブラウザは動画再生に対応していません。
+        </video>
+      </div>
+      <div class="modal-footer border-0 pt-0 text-center text-white-50 small" id="ad-status-text">
+        動画を最後まで視聴するとポイントが付与されます
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
     .btn-check:checked + .card-select-option {
         border-color: #0d6efd !important;
@@ -136,9 +159,77 @@
         background-color: #0d6efd;
         color: #fff;
     }
-    /* 選択時に「選択中」へ表示切り替え */
     .btn-check:checked + .card-select-option .selection-label::after {
         content: "中";
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 要素の取得
+    const startBtn = document.getElementById('btn-start-ad');
+    const adVideo = document.getElementById('adVideo');
+    const statusText = document.getElementById('ad-status-text');
+    const closeBtn = document.getElementById('btn-close-ad');
+    
+    // Bootstrapのモーダル初期化
+    const adModal = new bootstrap.Modal(document.getElementById('adModal'));
+    
+    let isRequesting = false; // 二重送信防止フラグ
+
+    // 「視聴する」ボタンを押したときの処理
+    startBtn.addEventListener('click', function() {
+        // モーダルを表示
+        adModal.show();
+        // 状態を初期化して動画を最初から再生
+        statusText.innerText = "動画を最後まで視聴するとポイントが付与されます";
+        adVideo.currentTime = 0;
+        adVideo.play();
+    });
+
+    // モーダルが閉じられたときの処理（途中でやめた場合）
+    document.getElementById('adModal').addEventListener('hidden.bs.modal', function () {
+        adVideo.pause(); // 動画を停止
+    });
+
+    // 動画が最後まで再生された（完了した）ときの処理
+    adVideo.addEventListener('ended', function() {
+        if(isRequesting) return; // すでにリクエスト中なら処理しない
+        
+        isRequesting = true;
+        statusText.innerHTML = '<span class="text-warning"><i class="fa-solid fa-spinner fa-spin"></i> ポイントを獲得しています...</span>';
+        closeBtn.style.display = 'none'; // 処理中に閉じられないようにする
+
+        // サーバー（コントローラー）にポイント付与のリクエストを送る
+        fetch("{{ route('point.ad') }}", {
+            method: 'POST', // GETではなくPOSTにする
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            isRequesting = false;
+            if (data.success) {
+                statusText.innerHTML = '<span class="text-success fw-bold">ポイントを獲得しました！</span>';
+                // 1秒後に画面をリロードして残高を反映
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                statusText.innerHTML = '<span class="text-danger">エラー: ' + (data.message || 'ポイントの付与に失敗しました') + '</span>';
+                closeBtn.style.display = 'block'; // エラー時は閉じられるように戻す
+            }
+        })
+        .catch(error => {
+            isRequesting = false;
+            console.error('Error:', error);
+            statusText.innerHTML = '<span class="text-danger">通信エラーが発生しました。</span>';
+            closeBtn.style.display = 'block';
+        });
+    });
+});
+</script>
 @endsection

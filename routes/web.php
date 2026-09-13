@@ -151,14 +151,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     
     //-------------------------------------------------------------------------------------------------------
-    //メモ
+    //ポイント購入関連
     //-------------------------------------------------------------------------------------------------------
     //ポイント購入ページ
     Route::get('/point/buy', [PointController::class, 'buy'])->name('point.buy');
     //ポイント購入処理
     Route::post('/point/checkout', [PointController::class, 'checkout'])->name('point.checkout');
     // 広告視聴用ルーティングの追加
-    Route::get('/point/ad', [PointController::class, 'ad'])->name('point.ad');
+    Route::post('/point/ad', [PointController::class, 'ad'])->name('point.ad');
 
 });
 
@@ -341,4 +341,32 @@ Route::get('/manifest.json', function () {
 
     return response()->json($manifest)
         ->header('Content-Type', 'application/json');
+});
+
+// -------------------------------------------------------------------------------------------------------
+// 検索エンジン用 XMLサイトマップの生成
+// -------------------------------------------------------------------------------------------------------
+Route::get('/sitemap.xml', function () {
+    // 検索エンジンにインデックスさせたい公開ページ（ログイン不要なURLなど）を指定
+    $urls = [
+        url('/'),                   // トップページ
+        //route('roulette.show'),     // ルーレット画面（公開ページ）
+        // 今後増える公開ページのURL（ルーティング名またはurl()）をここに追加
+    ];
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+
+    foreach ($urls as $url) {
+        $xml .= '<url>';
+        $xml .= '<loc>' . htmlspecialchars($url, ENT_XML1, 'UTF-8') . '</loc>';
+        $xml .= '<lastmod>' . date('Y-m-d') . '</lastmod>';
+        $xml .= '<changefreq>weekly</changefreq>';
+        $xml .= '<priority>0.8</priority>';
+        $xml .= '</url>';
+    }
+
+    $xml .= '</urlset>';
+
+    return response($xml, 200)->header('Content-Type', 'text/xml');
 });

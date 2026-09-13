@@ -9,7 +9,6 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail; //メールアドレス認証対応
 use Laravel\Sanctum\HasApiTokens;
 
-
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Friendlist;
@@ -316,5 +315,51 @@ class User extends Authenticatable implements MustVerifyEmail
             ];
         });
     }
+    
+    /**
+     * ポイント付与処理（DB更新）
+     *
+     * @param int $add_points 付与ポイント数
+     * @param bool $is_pay 有償ポイントかどうかのフラグ (true: 有償, false: 無償)
+     * @param string|null $memo ログ用メモ
+     * @return array 処理結果
+     */
+    public function add_po($add_points = 0, $is_pay = false, $memo = null)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "add_points: {$add_points}, is_pay: {$is_pay}, memo: {$memo}");
+
+        $add_points = (int)$add_points;
+        if ($add_points <= 0) {
+            return ['success' => false, 'error_code' => 'INVALID_POINTS', 'message' => '付与ポイントが不正です'];
+        }
+
+        return DB::transaction(function () use ($add_points, $is_pay, $memo, $error_log) {
+            // 最新情報を排他ロック取得（同時に複数リクエストが来ても安全に処理）
+            $user = User::where('id', $this->id)->lockForUpdate()->first();
+
+            // 加算処理
+            if ($is_pay) {
+                $user->pay_point += $add_points;
+                $logType = 'point_add_pay';
+            } else {
+                $user->free_point += $add_points;
+                $logType = 'point_add_free';
+            }
+
+            $user->save();
+
+            // ログの記録（既存の UserLog::create_user_log を使用）
+            UserLog::create_user_log($user->id, $logType, true, "pt付与(+{$add_points}pt) 残:free={$user->free_point},pay={$user->pay_point} [{$memo}]");
+
+            return [
+                'success'     => true,
+                'free_point'  => $user->free_point,
+                'pay_point'   => $user->pay_point,
+                'total_point' => $user->free_point + $user->pay_point,
+            ];
+        });
+    }
+
 
 }
