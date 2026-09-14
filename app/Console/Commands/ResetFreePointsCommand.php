@@ -32,8 +32,9 @@ class ResetFreePointsCommand extends Command
         $this->info('service_free_point: ' . $service_free_point . 'pt.');
 
         if($free_point_reset_flag){
-            // 全ユーザーの free_point を 90 に一括更新（pay_pointはそのまま維持）
-            User::query()->update(['free_point' => $service_free_point]);
+            // free_point が $service_free_point 未満のユーザーのみ 90pt に引き上げ更新
+            User::where('free_point', '<', $service_free_point)
+            ->update(['free_point' => $service_free_point]);
 
             $this->info('Free points have been reset to ' . $service_free_point . 'pt.');
             
