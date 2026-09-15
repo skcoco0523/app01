@@ -27,6 +27,15 @@ class PointController extends Controller
         ];
         $packs = CommonConfig::getValues($common_conf_names);
 
+        
+        $conf_data = CommonConfig::getValues(['po_pack_late','po_ad_reward']);
+        // 1円あたりの標準付与ポイント数（例: 1円＝1ptなら 1）
+        $po_pack_late = $conf_data['po_pack_late']->value1;
+        $po_ad_reward = $conf_data['po_ad_reward']->value1;
+        foreach ($packs as $key => $pack) {
+            // （獲得ポイント） - （価格 × 標準レート） ＝ お得なポイント数
+            $pack->bonus = $pack->value2 - ($pack->value1 * $po_pack_late);
+        }
         // 午前(AM) / 午後(PM) 判定
         $isAm = date('H') < 12;
         $periodLabel = $isAm ? 'AM' : 'PM';
@@ -39,7 +48,30 @@ class PointController extends Controller
 
         $msg = "";
             
-        return view('point.buy', compact('profile', 'packs', 'msg', 'remainingAdCount', 'maxDailyLimit', 'periodLabel'));
+        return view('point.buy', compact('profile', 'packs', 'po_ad_reward', 'remainingAdCount', 'maxDailyLimit', 'periodLabel', 'msg'));
+    }
+
+    /**
+     * ポイント説明ページ表示
+     */
+    public function about(Request $request)
+    {
+        if($request->input('input')!==null)     $input = request('input');
+        else                                    $input = $request->all();
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $profile = User::getProfile($user->id);
+        
+        $conf_data = CommonConfig::getValues(['po_free','po_free_flag','po_ad_reward']);
+        $service_free_point =  $conf_data['po_free']->value2;
+        $free_point_reset_flag =  (bool)$conf_data['po_free_flag']->value1;
+        $ad_reward_point =  $conf_data['po_ad_reward']->value1;
+
+
+        $msg = "";
+            
+        return view('point.about', compact('profile', 'service_free_point', 'free_point_reset_flag', 'ad_reward_point', 'msg'));
     }
 
     /**
@@ -81,8 +113,11 @@ class PointController extends Controller
             ], 400);
         }
 
-        // ポイント付与実行（10pt無償ポイント）
-        $result = $user->add_po(10, false, '広告視聴');
+        // ポイント付与実行
+        
+        $conf_data = CommonConfig::getValues(['po_ad_reward']);
+        $ad_reward_point =  $conf_data['po_ad_reward']->value1;
+        $result = $user->add_po($ad_reward_point, false, '広告視聴');
 
         if (!empty($result['success'])) {
             // キャッシュ期限設定（午前なら12:00まで、午後なら23:59:59まで）

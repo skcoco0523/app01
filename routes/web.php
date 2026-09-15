@@ -157,6 +157,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/point/buy', [PointController::class, 'buy'])->name('point.buy');
     //ポイント購入処理
     Route::post('/point/checkout', [PointController::class, 'checkout'])->name('point.checkout');
+    //ポイント説明
+    Route::get('/point/about', [PointController::class, 'about'])->name('point.about');
     // 広告視聴用ルーティングの追加
     Route::post('/point/ad', [PointController::class, 'ad'])->name('point.ad');
 

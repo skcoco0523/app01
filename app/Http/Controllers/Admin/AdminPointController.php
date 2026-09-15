@@ -19,8 +19,8 @@ class AdminPointController extends Controller
     {
         
         $common_conf_names = [
-            'po_pack1', 'po_pack2', 'po_pack3', 'po_pack4', 'po_pack5', 'po_pack6',
-            'po_free', 'po_free_flag'
+            'po_pack1', 'po_pack2', 'po_pack3', 'po_pack4', 'po_pack5', 'po_pack6', 'po_pack_late',
+            'po_free', 'po_free_flag', 'po_ad_reward'
         ];
         $configs = CommonConfig::getValues($common_conf_names);
         $msg = $request->query('msg');
