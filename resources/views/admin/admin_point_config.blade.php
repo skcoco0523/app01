@@ -26,6 +26,7 @@
             <form action="{{ route('admin.point.config.update') }}" method="POST" class="row g-2 align-items-center w-100 m-0 p-0">
                 @csrf
                 <!-- 識別用・送信用の hidden フィールドを追加 -->
+                <input type="hidden" name="config_type" value="{{ $config_type }}">
                 <input type="hidden" name="config_name" value="{{ $config->config_name }}">
                 <input type="hidden" name="type" value="{{ $config->type }}">
 

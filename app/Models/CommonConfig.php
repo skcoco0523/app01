@@ -37,8 +37,8 @@ class CommonConfig extends Model
         if($name == 'po_ad_reward')             self::upsertValue('po_ad_reward',             'int', 10, 0, '広告視聴によるポイント付与数');
 
         // 利用ポイント設定
-        if($name == 'po_groq')                  self::upsertValue('po_groq',                  'int', 90, 0, 'groq利用時のポイント消費数');
-        if($name == 'po_whisper')               self::upsertValue('po_whisper',               'int', 10, 0, 'whisper利用時のポイント消費数');
+        if($name == 'po_groq')                  self::upsertValue('po_groq',                  'int', 1, 0, 'groq利用時のポイント消費数');
+        if($name == 'po_whisper')               self::upsertValue('po_whisper',               'int', 2, 0, 'whisper利用時のポイント消費数');
 
     }
 

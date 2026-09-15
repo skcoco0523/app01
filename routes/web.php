@@ -233,7 +233,9 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         Route::get('adv/config', [AdminAdvController::class, 'config'])->name('admin.adv.config');
         Route::post('adv/config', [AdminAdvController::class, 'config_update'])->name('admin.adv.config.update');
         //ポイント設定
-        Route::get('point/config', [AdminPointController::class, 'config'])->name('admin.point.config');
+        Route::get('point/config_pack', [AdminPointController::class, 'config_pack'])->name('admin.point.config_pack');
+        Route::get('point/config_free', [AdminPointController::class, 'config_free'])->name('admin.point.config_free');
+        Route::get('point/config_amount', [AdminPointController::class, 'config_amount'])->name('admin.point.config_amount');
         Route::post('point/config', [AdminPointController::class, 'config_update'])->name('admin.point.config.update');
         //----------------------------------------------------------------------------------
 
