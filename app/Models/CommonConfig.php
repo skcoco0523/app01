@@ -29,16 +29,16 @@ class CommonConfig extends Model
         if($name == 'po_pack4')                 self::upsertValue('po_pack4',                 'int', 1000, 1500, 'お得');
         if($name == 'po_pack5')                 self::upsertValue('po_pack5',                 'int', 2000, 3500, '大容量');
         if($name == 'po_pack6')                 self::upsertValue('po_pack6',                 'int', 3000, 6000, '特大');
-        if($name == 'po_pack_late')             self::upsertValue('po_pack_late',             'int', 10, 0, '購入額に対してのポイント付与レート');
+        if($name == 'po_pack_late')             self::upsertValue('po_pack_late',             'int', 10, 0, '購入額に対してのpt付与レート');
 
         // 無料ポイント設定
-        if($name == 'po_free')                  self::upsertValue('po_free',                  'int', 90, 0, '毎月付与される無料ポイント');
-        if($name == 'po_free_flag')             self::upsertValue('po_free_flag',             'bool', 1, 0, '毎月無料ポイント付与フラグ');
-        if($name == 'po_ad_reward')             self::upsertValue('po_ad_reward',             'int', 10, 0, '広告視聴によるポイント付与数');
+        if($name == 'po_free')                  self::upsertValue('po_free',                  'int', 90, 0, '毎月付与される無料pt');
+        if($name == 'po_free_flag')             self::upsertValue('po_free_flag',             'bool', 1, 0, '毎月無料pt付与フラグ');
+        if($name == 'po_ad_reward')             self::upsertValue('po_ad_reward',             'int', 10, 0, '広告視聴によるpt付与数');
 
         // 利用ポイント設定
-        if($name == 'po_groq')                  self::upsertValue('po_groq',                  'int', 1, 0, 'groq利用時のポイント消費数');
-        if($name == 'po_whisper')               self::upsertValue('po_whisper',               'int', 2, 0, 'whisper利用時のポイント消費数');
+        if($name == 'po_whisper')               self::upsertValue('po_whisper',               'int', 1, 50, '文字起こし利用時のpt消費数と無料枠');
+        if($name == 'po_ai')                    self::upsertValue('po_ai',                    'int', 10, 0, 'AI利用時のpt消費数と無料枠');
 
     }
 

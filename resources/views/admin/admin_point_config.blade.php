@@ -16,8 +16,17 @@
         <div class="col-md-3">設定名</div>
         <div class="col-md-2">パラメータ</div>
         <div class="col-md-1">タイプ</div>
-        <div class="col-md-4">設定値</div>
-        <div class="col-md-2"></div>
+        @if($config_type=='pack')
+            <div class="col-md-2">価格</div>
+            <div class="col-md-2">付与pt</div>
+
+        @elseif($config_type=='free')
+            <div class="col-md-4">付与ptまたは実行フラグ</div>
+
+        @elseif($config_type=='amount')
+            <div class="col-md-2">必要pt</div>
+            <div class="col-md-2">月間無料回数</div>
+        @endif
     </div>
 
     <!-- データ行 -->

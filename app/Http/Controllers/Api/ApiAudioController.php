@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\IotDevice;
 use App\Models\User;
 use App\Models\Mosquitto;
+use App\Models\CommonConfig;
 use Exception;
 
 class ApiAudioController extends Controller
@@ -24,7 +25,22 @@ class ApiAudioController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
 
         try {
-            // 1. HTTPヘッダー検証
+            // ===========================================================================
+            //設定値取得
+            // ===========================================================================
+            $common_conf_names = [
+                'po_whisper', 'po_ai'
+            ];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_whisper = $configs['po_whisper']->value1;
+            $whisper_free_cnt = $configs['po_whisper']->value2;
+            $po_ai = $configs['po_ai']->value1;
+            $ai_free_cnt = $configs['po_ai']->value2;
+            
+
+            // ===========================================================================
+            // HTTPヘッダー検証
+            // ===========================================================================
             $macAddress  = $request->header('X-Mac-Address');
             $serverToken = $request->header('X-Server-Token');
 
@@ -36,7 +52,9 @@ class ApiAudioController extends Controller
                 ], 401);
             }
 
-            // 2. ワンタイムトークン照合
+            // ===========================================================================
+            // ワンタイムトークン照合
+            // ===========================================================================
             $cacheKey    = "audio_upload_token_{$macAddress}";
             $storedToken = Cache::get($cacheKey);
 
@@ -51,7 +69,9 @@ class ApiAudioController extends Controller
             // 検証完了後、トークンを即座に削除（ワンタイム化）
             Cache::forget($cacheKey);
 
-            // 3. IotDevice::getIotDeviceList を使用してデバイスを取得
+            // ===========================================================================
+            // IotDevice::getIotDeviceList を使用してデバイスを取得
+            // ===========================================================================
             $keyword = [
                 'admin_flag'        => true,
                 'search_mac_addr'   => $macAddress
@@ -67,7 +87,9 @@ class ApiAudioController extends Controller
                 ], 404);
             }
 
-            // 4. User モデルを通して実データを取得
+            // ===========================================================================
+            // ユーザーデータを取得
+            // ===========================================================================
             $user = User::find($device->admin_user_id);
             if (!$user) {
                 make_error_log($error_log, "Error: User model find failed for ID: {$device->admin_user_id}");
@@ -76,23 +98,34 @@ class ApiAudioController extends Controller
                     'message' => 'User not found'
                 ], 404);
             }
+            // ===========================================================================
+            // 当日の利用回数取得 ＆ 必要ポイント数の計算
+            // ===========================================================================
+            $todayCount = Cache::get("user_stt_count_{$user->id}_" . date('Ymd'), 0);
+            $requiredPoint = ($todayCount < $whisper_free_cnt) ? 0 : $po_whisper;
 
-            // 5. 【事前判定】Userモデルの po_check() で実DBのポイント残高を確認
-            $check = $user->po_check(1);
-            if (!$check['can_use']) {
-                make_error_log($error_log, "Point Depleted: User {$user->id} has insufficient points. Free:{$check['free_point']}, Pay:{$check['pay_point']}");
+            // ===========================================================================
+            // 事前判定（必要ポイントが 1 以上の場合のみ残高チェック）
+            // ===========================================================================
+            if ($requiredPoint > 0) {
+                $check = $user->po_check($requiredPoint);
+                if (!$check['can_use']) {
+                    make_error_log($error_log, "Point Depleted: User {$user->id} has insufficient points. Free:{$check['free_point']}, Pay:{$check['pay_point']}");
 
-                // ESP32へ「ポイント切れ（げッそり顔）」通知を送信
-                Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
+                    // ESP32へ「ポイント切れ（げッそり顔）」通知を送信
+                    Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
 
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Point depleted',
-                    'points'  => $check
-                ], 402); // 402 Payment Required
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Point depleted',
+                        'points'  => $check
+                    ], 402); // 402 Payment Required
+                }
             }
 
-            // 6. 音声データの取得 ＆ WAVヘッダーサイズ補正
+            // ===========================================================================
+            // 音声データの取得 ＆ WAVヘッダーサイズ補正
+            // ===========================================================================
             $audioData = $request->getContent();
 
             if (empty($audioData) || strlen($audioData) < 44) {
@@ -116,30 +149,60 @@ class ApiAudioController extends Controller
 
             Storage::put($path, $audioData);
 
-            // ===============================================
-            // 7. 【仮処理】Whisper API 文字起こし ＆ AI解析
-            // ===============================================
-            $transcript = "テスト"; 
-            make_error_log($error_log, "[STT Stub] Transcript: {$transcript}");
+            
+            // ===========================================================================
+            // 文字起こし ＆ AI解析
+            // ===========================================================================
+            $transcript = null;
+            $usedProvider = 'groq';
 
-            // ===============================================
-            // 8. 【成功確定】処理完了後に po_use() でポイント減算
-            // ===============================================
-            $poResult = $user->po_use(1, false, "音声対話処理: {$transcript}");
+            try {
+                // Groq API を呼び出す
+                $transcript = $this->transcribeWithGroq($path);
+                make_error_log($error_log, "[STT Success] Groq: {$transcript}");
 
-            if (!$poResult['success']) {
-                make_error_log($error_log, "Error: Point deduction failed.");
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => $poResult['message']
-                ], 402);
+            } catch (Exception $e) {
+                // Groq失敗時はログを残して OpenAI Whisper に切り替え
+                make_error_log($error_log, "[STT Fallback] Groq failed ({$e->getMessage()}). Switching to OpenAI Whisper.");
+                $usedProvider = 'whisper';
+                
+                // OpenAI Whisper API を呼び出す
+                $transcript = $this->transcribeWithWhisper($path);
+                make_error_log($error_log, "[STT Success] OpenAI Whisper: {$transcript}");
             }
 
-            // ポイント消費の結果、合計残高が 0pt になった場合はESP32を即座に「げッそり顔」へ変更
-            if ($poResult['total_point'] == 0) {
-                Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
+            // ===========================================================================
+            // 処理完了後にポイント減算 ＆ 利用回数カウントアップ
+            // ===========================================================================
+            if ($requiredPoint > 0) {
+                $poResult = $user->po_use($requiredPoint, false, "音声対話処理({$usedProvider}): {$transcript}");
+
+                if (!$poResult['success']) {
+                    make_error_log($error_log, "Error: Point deduction failed.");
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => $poResult['message']
+                    ], 402);
+                }
+
+                if ($poResult['total_point'] == 0) {
+                    Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
+                }
+            } else {
+                // 無料枠消費時のレスポンス用ダミー結果
+                $poResult = [
+                    'free_point'  => $user->free_point,
+                    'pay_point'   => $user->pay_point,
+                    'total_point' => $user->free_point + $user->pay_point
+                ];
             }
 
+            // 当日の利用回数をインクリメント（24時間で自動消去）
+            Cache::put("user_stt_count_{$user->id}_" . date('Ymd'), $todayCount + 1, now()->endOfDay());
+            
+            // ===========================================================================
+            // 処理完了レスポンスを返却
+            // ===========================================================================
             make_error_log($error_log, "Success: Audio processed. Remaining points: Free={$poResult['free_point']}, Pay={$poResult['pay_point']}");
 
             return response()->json([
@@ -162,4 +225,24 @@ class ApiAudioController extends Controller
             ], 500);
         }
     }
+    /**
+     * Groq API での文字起こし処理（プライベートメソッド）
+     */
+    private function transcribeWithGroq($filePath)
+    {
+        // TODO: Groq API の呼び出し実装（Curl/Guzzle等）
+        // 現時点ではスタブ
+        return "テスト (Groq)";
+    }
+
+    /**
+     * OpenAI Whisper API での文字起こし処理（プライベートメソッド）
+     */
+    private function transcribeWithWhisper($filePath)
+    {
+        // TODO: OpenAI API の呼び出し実装（Curl/Guzzle等）
+        // 現時点ではスタブ
+        return "テスト (Whisper)";
+    }
+
 }
