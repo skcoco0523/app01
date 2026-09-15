@@ -102,6 +102,55 @@
                             <input type="text" class="form-control form-control-sm" id="iotdevice_name" name="iotdevice_name" value="{{ $iotdevice->name ?? '' }}" placeholder="デバイス名を入力">
                         </div>
 
+                        {{-- AIモード設定 --}}
+                        @if($iotdevice->ai_flag)
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted mb-1">
+                                    <i class="fa-solid fa-robot me-1"></i>AI応答モード
+                                </label>
+                                <div class="card border-0 bg-light p-2 rounded">
+                                    <div class="row g-2">
+                                        {{-- 操作のみ --}}
+                                        <div class="col-4">
+                                            <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_command" value="command" 
+                                                {{ ($iotdevice->ai_reply_mode ?? 'command') === 'command' ? 'checked' : '' }} autocomplete="off">
+                                            <label class="btn btn-outline-secondary btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_command" style="border-radius: 8px;">
+                                                <i class="fa-solid fa-bolt fs-6 my-1"></i>
+                                                <span class="fw-bold" style="font-size: 11px;">操作のみ</span>
+                                                <span class="badge bg-secondary text-white mt-1" style="font-size: 9px;">+0 pt</span>
+                                            </label>
+                                        </div>
+
+                                        {{-- テキスト表示 --}}
+                                        <div class="col-4">
+                                            <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_text" value="text" 
+                                                {{ ($iotdevice->ai_reply_mode ?? '') === 'text' ? 'checked' : '' }} autocomplete="off">
+                                            <label class="btn btn-outline-primary btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_text" style="border-radius: 8px;">
+                                                <i class="fa-solid fa-comment-dots fs-6 my-1"></i>
+                                                <span class="fw-bold" style="font-size: 11px;">テキスト表示</span>
+                                                <span class="badge bg-primary text-white mt-1" style="font-size: 9px;">+1 pt</span>
+                                            </label>
+                                        </div>
+
+                                        {{-- 音声応答 --}}
+                                        <div class="col-4">
+                                            <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_voice" value="voice" 
+                                                {{ ($iotdevice->ai_reply_mode ?? '') === 'voice' ? 'checked' : '' }} autocomplete="off">
+                                            <label class="btn btn-outline-success btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_voice" style="border-radius: 8px;">
+                                                <i class="fa-solid fa-volume-high fs-6 my-1"></i>
+                                                <span class="fw-bold" style="font-size: 11px;">音声会話</span>
+                                                <span class="badge bg-success text-white mt-1" style="font-size: 9px;">+2 pt</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-muted px-1" style="font-size: 10px; line-height: 1.4;">
+                                        ※「操作のみ」は家電制御のみ実行。「テキスト表示」はボットでのディスプレイ表示/Push通知、「音声会話」はボットが声で応答します。
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                        
+
                         <?//マイク感度?>
                         @if($iotdevice->mic_flag)
                             <label for="mic_sensitivity" class="form-label small fw-bold text-muted mb-1">マイク感度</label>
