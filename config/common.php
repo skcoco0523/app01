@@ -65,6 +65,31 @@ return [
     ],
 
     //=========================================================================
+    // TTS音声設定
+    //=========================================================================
+    'tts_voices' => [
+        // 女性ボイス
+        'female_1'   => ['name' => '女性 1 (標準)',       'description' => '明るくクリアな標準ボイス',           'gender' => 'female'],
+        'female_2'   => ['name' => '女性 2 (落ち着き)',   'description' => 'しっとりとした静かなトーン',         'gender' => 'female'],
+        'female_3'   => ['name' => '女性 3 (元気・アニメ)', 'description' => 'ハキハキとした可愛らしいアニメ風',   'gender' => 'female'],
+        'female_4'   => ['name' => '女性 4 (アナウンサー)', 'description' => '知性的でフォーマルなナレーション',   'gender' => 'female'],
+
+        // 男性ボイス
+        'male_1'     => ['name' => '男性 1 (標準)',       'description' => '聞き取りやすい標準ボイス',           'gender' => 'male'],
+        'male_2'     => ['name' => '男性 2 (低音)',       'description' => '深みのある落ち着いた低音',           'gender' => 'male'],
+        'male_3'     => ['name' => '男性 3 (爽やか)',     'description' => '若々しく親しみやすい青年ボイス',     'gender' => 'male'],
+        'male_4'     => ['name' => '男性 4 (渋い・大人)', 'description' => '重厚感のあるダンディな大人ボイス',   'gender' => 'male'],
+
+        // キャラクター・キッズ系
+        'child_1'    => ['name' => 'キッズ (元気)',       'description' => 'かわいらしく元気な子供の声',         'gender' => 'neutral'],
+        'robot_1'    => ['name' => 'ロボット (メカ)',     'description' => '少し機械音の混ざった近未来ボイス',     'gender' => 'neutral'],
+        'butler_1'   => ['name' => '執事 (コンシェルジュ)','description' => '丁寧で礼儀正しい紳士の音声',         'gender' => 'male'],
+
+        // 英語・多言語
+        'en_female_1' => ['name' => 'English (Female)',   'description' => 'Standard US English Female Voice',   'gender' => 'female'],
+        'en_male_1'   => ['name' => 'English (Male)',     'description' => 'Standard US English Male Voice',     'gender' => 'male'],
+    ],
+    //=========================================================================
     // 仮想リモコン
     //=========================================================================
     'remote_kind' => [

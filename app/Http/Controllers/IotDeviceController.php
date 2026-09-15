@@ -114,15 +114,20 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $iotdevice_id      = get_proc_data($input,"iotdevice_id");
-        $iotdevice_name    = get_proc_data($input,"iotdevice_name");
-        $mic_sensitivity    = get_proc_data($input,"mic_sensitivity");
+        $iotdevice_id     = get_proc_data($input, "iotdevice_id");
+        $iotdevice_name   = get_proc_data($input, "iotdevice_name");
         
-        
-        //テーブル：virtual_remotesのid
-        $input['search_admin_uid']  = Auth::id();
-        $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$iotdevice_id. " iotdevice_name:".$iotdevice_name);
+        // 追加パラメータの取得と感度補正（70〜100）
+        $mic_sensitivity  = get_proc_data($input, "mic_sensitivity");
+        if ($mic_sensitivity !== null) {
+            $mic_sensitivity = max(70, min(100, (int)$mic_sensitivity));
+        }
+        $ai_reply_mode    = get_proc_data($input, "ai_reply_mode") ?? 'command';
+        $tts_voice        = get_proc_data($input, "tts_voice") ?? 'female_1';
+        $speaker_volume   = get_proc_data($input, "speaker_volume") ?? 50;
+
+        $input['search_admin_uid'] = Auth::id();
+        $input['search_id']        = $input['iotdevice_id'];
 
         $keyword = array(
             'admin_flag'        => false,
@@ -134,7 +139,9 @@ class IotDeviceController extends Controller
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
             if($iotdevice_name){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'mic_sensitivity'=>$mic_sensitivity]);
+                $ret = IotDevice::chgIotDevice(
+                    ['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'mic_sensitivity'=>$mic_sensitivity, 'ai_reply_mode'=>$ai_reply_mode, 'tts_voice'=>$tts_voice, 'speaker_volume'=>$speaker_volume]
+                );
                 make_error_log($error_log,"success:".$ret['success']);
                 if($ret['success']){
                     // デバイス情報をMQTTで送信
