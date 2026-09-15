@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\UserLog;
 use App\Models\IotDevice;
-use App\Models\IotDeviceSignal;
-use App\Models\VirtualRemote;
-use App\Models\VirtualRemoteUser;
+use App\Models\CommonConfig;
 use App\Models\Mosquitto;
 
 
@@ -25,6 +23,17 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
 
+        // ===========================================================================
+        //設定値取得
+        // ===========================================================================
+        $common_conf_names = [
+            'po_whisper', 'po_ai_text', 'po_ai_voice'
+        ];
+        $configs = CommonConfig::getValues($common_conf_names);
+        $po_whisper = $configs['po_whisper']->value1;
+        $po_ai_text = $configs['po_ai_text']->value1;
+        $po_ai_voice = $configs['po_ai_voice']->value1;
+
         $keyword = array(
             'admin_flag'        => false,
             'search_id'         => $id,
@@ -38,7 +47,7 @@ class IotDeviceController extends Controller
             //受信テスト
             //Mosquitto::sendMqttMessage($iotdevice->mac_addr, $ret['type'], $ret['mess']);
             $msg = null;
-            return view('iotdevice.detail', compact('iotdevice', 'msg'));
+            return view('iotdevice.detail', compact('iotdevice', 'po_whisper', 'po_ai_text', 'po_ai_voice', 'msg'));
 
         }else{
             $message = make_message('対象デバイスが存在しません。', 'error'); 

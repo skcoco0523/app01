@@ -56,30 +56,51 @@
                     @endif
 
                     {{-- 現在の設定ステータス表示 --}}
-                    <div class="card border-0 bg-light p-2 mb-3 text-center rounded shadow-sm">
-                        <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap" style="font-size: 11px;">
+                    <div class="card border-0 bg-light p-3 mb-3 rounded shadow-sm">
+                        <div class="d-flex flex-column gap-2" style="font-size: 12px;">
 
+                            {{-- ウェイクワード感度 --}}
                             @if($iotdevice->ww_flag)
-                                <span>
-                                    <i class="fa-solid fa-microphone text-muted me-1"></i>感度: 
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted"><i class="fa-solid fa-microphone me-1"></i>ウェイクワード感度</span>
                                     <span class="badge bg-dark font-monospace">{{ max(70, min(100, $iotdevice->mic_sensitivity ?? 70)) }}</span>
-                                </span>
+                                </div>
                             @endif
+
+                            {{-- AI応答モード --}}
                             @if($iotdevice->ai_flag)
                                 @php
                                     $mode = $iotdevice->ai_reply_mode ?? 'command';
                                     $modeLabels = [
                                         'command' => ['label' => '操作のみ (+0pt)', 'class' => 'bg-secondary'],
-                                        'text'    => ['label' => 'テキスト表示 (+1pt)', 'class' => 'bg-primary'],
-                                        'voice'   => ['label' => '音声会話 (+2pt)', 'class' => 'bg-success']
+                                        'text'    => ['label' => 'テキスト表示 (+'. $po_ai_text . 'pt)', 'class' => 'bg-primary'],
+                                        'voice'   => ['label' => '音声会話 (+'. $po_ai_voice . 'pt)', 'class' => 'bg-success']
                                     ];
                                     $currentMode = $modeLabels[$mode] ?? $modeLabels['command'];
+                                    
+                                    // config から定義済みの音声モデル名を取得
+                                    $voices = config('iotdevice.tts_voices', []);
+                                    $currentVoiceName = $voices[$iotdevice->tts_voice ?? 'female_1']['name'] ?? '女性 1 (標準)';
                                 @endphp
-                                <span>
-                                    <i class="fa-solid fa-robot text-muted me-1"></i>AI応答: 
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted"><i class="fa-solid fa-robot me-1"></i>AI応答</span>
                                     <span class="badge {{ $currentMode['class'] }} text-white">{{ $currentMode['label'] }}</span>
-                                </span>
+                                </div>
+
+                                {{-- 「音声会話」モード時のみ追加表示 --}}
+                                @if($mode === 'voice')
+                                    <div class="d-flex justify-content-between align-items-center ps-2 border-start">
+                                        <span class="text-muted"><i class="fa-solid fa-user-gear me-1"></i>音声モデル</span>
+                                        <span class="badge bg-white text-dark border">{{ $currentVoiceName }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center ps-2 border-start">
+                                        <span class="text-muted"><i class="fa-solid fa-volume-low me-1"></i>音量</span>
+                                        <span class="badge bg-success font-monospace">{{ $iotdevice->speaker_volume ?? 50 }}%</span>
+                                    </div>
+                                @endif
                             @endif
+
                         </div>
                     </div>
 
@@ -182,7 +203,7 @@
                                             <label class="btn btn-outline-primary btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_text" style="border-radius: 8px;">
                                                 <i class="fa-solid fa-comment-dots fs-6 my-1"></i>
                                                 <span class="fw-bold" style="font-size: 11px;">テキスト表示</span>
-                                                <span class="badge bg-primary text-white mt-1" style="font-size: 9px;">+1 pt</span>
+                                                <span class="badge bg-primary text-white mt-1" style="font-size: 9px;">+{{ $po_ai_text }} pt</span>
                                             </label>
                                         </div>
 
@@ -193,7 +214,7 @@
                                             <label class="btn btn-outline-success btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_voice" style="border-radius: 8px;">
                                                 <i class="fa-solid fa-volume-high fs-6 my-1"></i>
                                                 <span class="fw-bold" style="font-size: 11px;">音声会話</span>
-                                                <span class="badge bg-success text-white mt-1" style="font-size: 9px;">+2 pt</span>
+                                                <span class="badge bg-success text-white mt-1" style="font-size: 9px;">+{{ $po_ai_voice }} pt</span>
                                             </label>
                                         </div>
                                     </div>

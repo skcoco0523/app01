@@ -37,8 +37,9 @@ class CommonConfig extends Model
         if($name == 'po_ad_reward')             self::upsertValue('po_ad_reward',             'int', 10, 0, '広告視聴によるpt付与数');
 
         // 利用ポイント設定
-        if($name == 'po_whisper')               self::upsertValue('po_whisper',               'int', 1, 50, '文字起こし利用時のpt消費数と無料枠');
-        if($name == 'po_ai')                    self::upsertValue('po_ai',                    'int', 10, 0, 'AI利用時のpt消費数と無料枠');
+        if ($name == 'po_whisper')              self::upsertValue('po_whisper',               'int', 1, 50, 'STT（文字起こし）の消費ptと無料枠');
+        if ($name == 'po_ai_text')              self::upsertValue('po_ai_text',               'int', 1,  0, 'AI応答（テキスト表示）の消費ptと無料枠');
+        if ($name == 'po_ai_voice')             self::upsertValue('po_ai_voice',              'int', 2,  0, 'AI応答（音声会話）の消費ptと無料枠');
 
     }
 

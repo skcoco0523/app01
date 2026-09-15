@@ -29,14 +29,15 @@ class ApiAudioController extends Controller
             //設定値取得
             // ===========================================================================
             $common_conf_names = [
-                'po_whisper', 'po_ai'
+                'po_whisper', 'po_ai_text', 'po_ai_voice'
             ];
             $configs = CommonConfig::getValues($common_conf_names);
             $po_whisper = $configs['po_whisper']->value1;
             $whisper_free_cnt = $configs['po_whisper']->value2;
-            $po_ai = $configs['po_ai']->value1;
-            $ai_free_cnt = $configs['po_ai']->value2;
-            
+            $po_ai_text = $configs['po_ai_text']->value1;
+            $ai_free_cnt = $configs['po_ai_text']->value2;
+            $po_ai_voice = $configs['po_ai_voice']->value1;
+            $ai_voice_free_cnt = $configs['po_ai_voice']->value2;
 
             // ===========================================================================
             // HTTPヘッダー検証
