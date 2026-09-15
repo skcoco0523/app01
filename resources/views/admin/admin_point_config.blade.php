@@ -25,7 +25,7 @@
 
         @elseif($config_type=='amount')
             <div class="col-md-2">必要pt</div>
-            <div class="col-md-2">月間無料回数</div>
+            <div class="col-md-2">1日の無料回数</div>
         @endif
     </div>
 
