@@ -151,9 +151,9 @@
                         @endif
                         
 
-                        <?//マイク感度?>
-                        @if($iotdevice->mic_flag)
-                            <label for="mic_sensitivity" class="form-label small fw-bold text-muted mb-1">マイク感度</label>
+                        <?//ウェイクワード感度?>
+                        @if($iotdevice->ww_flag)
+                            <label for="mic_sensitivity" class="form-label small fw-bold text-muted mb-1">ウェイクワード感度</label>
                             <div class="mb-3 p-2 bg-white rounded border">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                 </div>
@@ -161,12 +161,15 @@
                                     min="1" max="100" value="{{ $iotdevice->mic_sensitivity ?? 70 }}" 
                                     oninput="document.getElementById('mic_sensitivity_val').innerText = this.value">
                                 <div class="d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
-                                    <span>低 (鈍感)</span>
+                                    <span>低 (ゆるい)</span>
                                     <span class="badge bg-primary text-white font-monospace">
                                         <span id="mic_sensitivity_val">{{ $iotdevice->mic_sensitivity ?? 70 }}</span>
                                     </span>
-                                    <span>高 (敏感)</span>
+                                    <span>高 (厳しい)</span>
                                 </div>
+                                    <div class="mt-2 text-muted px-1" style="font-size: 10px; line-height: 1.4;">
+                                        ※ウェイクワードの検出感度を調整します。数値が大きいほど厳しくなります。
+                                    </div>
                             </div>
                         @endif
                     </form>
