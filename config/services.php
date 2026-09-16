@@ -53,5 +53,13 @@ return [
         'cert_key'  => env('MQTT_CERT_KEY'),
     ],
 
+    //文字起こしのAPI
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+    ],
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+    ],
+
 
 ];
