@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class VirtualRemoteBlade extends Model
 {
     use HasFactory;
-    protected $fillable = ['kind', 'company_name', 'product_name', 'blade_name', 'test_flag'];     //一括代入の許可
+    protected $fillable = ['kind', 'company_name', 'product_name', 'blade_name', 'test_flag', 'library_flag'];
 
     //リモコンデザイン取得
     public static function getVirtualRemoteBladeList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -131,6 +131,9 @@ class VirtualRemoteBlade extends Model
                 
                 if (isset($data['test_flag']) && $remote->test_flag != $data['test_flag'])
                     $updateData['test_flag'] = $data['test_flag']; 
+
+                if (isset($data['library_flag']) && $remote->library_flag != $data['library_flag'])
+                    $updateData['library_flag'] = $data['library_flag']; 
 
                 make_error_log($error_log,"chg_data=".print_r($updateData,1));
                 if(count($updateData) > 0){
