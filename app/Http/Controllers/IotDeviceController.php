@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\UserLog;
 use App\Models\IotDevice;
-use App\Models\IotDeviceSignal;
-use App\Models\VirtualRemote;
-use App\Models\VirtualRemoteUser;
+use App\Models\CommonConfig;
 use App\Models\Mosquitto;
 
 
@@ -25,6 +23,17 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
 
+        // ===========================================================================
+        //設定値取得
+        // ===========================================================================
+        $common_conf_names = [
+            'po_whisper', 'po_ai_text', 'po_ai_voice'
+        ];
+        $configs = CommonConfig::getValues($common_conf_names);
+        $po_whisper = $configs['po_whisper']->value1;
+        $po_ai_text = $configs['po_ai_text']->value1;
+        $po_ai_voice = $configs['po_ai_voice']->value1;
+
         $keyword = array(
             'admin_flag'        => false,
             'search_id'         => $id,
@@ -38,7 +47,7 @@ class IotDeviceController extends Controller
             //受信テスト
             //Mosquitto::sendMqttMessage($iotdevice->mac_addr, $ret['type'], $ret['mess']);
             $msg = null;
-            return view('iotdevice.detail', compact('iotdevice', 'msg'));
+            return view('iotdevice.detail', compact('iotdevice', 'po_whisper', 'po_ai_text', 'po_ai_voice', 'msg'));
 
         }else{
             $message = make_message('対象デバイスが存在しません。', 'error'); 
@@ -114,15 +123,20 @@ class IotDeviceController extends Controller
         if($request->input('input')!==null)     $input = request('input');
         else                                    $input = $request->all();
         
-        $iotdevice_id      = get_proc_data($input,"iotdevice_id");
-        $iotdevice_name    = get_proc_data($input,"iotdevice_name");
-        $mic_sensitivity    = get_proc_data($input,"mic_sensitivity");
+        $iotdevice_id     = get_proc_data($input, "iotdevice_id");
+        $iotdevice_name   = get_proc_data($input, "iotdevice_name");
         
-        
-        //テーブル：virtual_remotesのid
-        $input['search_admin_uid']  = Auth::id();
-        $input['search_id']  = $input['iotdevice_id'];
-        make_error_log($error_log,"iotdevice_id:".$iotdevice_id. " iotdevice_name:".$iotdevice_name);
+        // 追加パラメータの取得と感度補正（70〜100）
+        $mic_sensitivity  = get_proc_data($input, "mic_sensitivity");
+        if ($mic_sensitivity !== null) {
+            $mic_sensitivity = max(70, min(100, (int)$mic_sensitivity));
+        }
+        $ai_reply_mode    = get_proc_data($input, "ai_reply_mode") ?? 'command';
+        $tts_voice        = get_proc_data($input, "tts_voice") ?? 'female_1';
+        $speaker_volume   = get_proc_data($input, "speaker_volume") ?? 50;
+
+        $input['search_admin_uid'] = Auth::id();
+        $input['search_id']        = $input['iotdevice_id'];
 
         $keyword = array(
             'admin_flag'        => false,
@@ -134,7 +148,9 @@ class IotDeviceController extends Controller
         $message = make_message('更新に失敗しました。', 'error');
         if($iotdevice){
             if($iotdevice_name){
-                $ret = IotDevice::chgIotDevice(['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'mic_sensitivity'=>$mic_sensitivity]);
+                $ret = IotDevice::chgIotDevice(
+                    ['id'=>$iotdevice->id, 'name'=>$iotdevice_name, 'mic_sensitivity'=>$mic_sensitivity, 'ai_reply_mode'=>$ai_reply_mode, 'tts_voice'=>$tts_voice, 'speaker_volume'=>$speaker_volume]
+                );
                 make_error_log($error_log,"success:".$ret['success']);
                 if($ret['success']){
                     // デバイス情報をMQTTで送信

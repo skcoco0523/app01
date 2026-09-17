@@ -13,7 +13,12 @@ use App\Models\IotDeviceSignal;
 class IotDevice extends Model
 {
     use HasFactory;
-    protected $fillable = ['hub_id', 'mac_addr', 'name', 'type', 'status', 'receive_command', 'receive_data', 'ver', 'pincode', 'admin_user_id'];     //一括代入の許可
+    protected $fillable = [
+        'hub_id', 'mac_addr', 'name', 'type', 'status', 
+        'receive_command', 'receive_data', 'ver', 'pincode', 
+        'admin_user_id', 'mic_sensitivity', 'ai_reply_mode', 
+        'tts_voice', 'speaker_volume'
+    ];
 
     //IoTデバイス一覧取得
     public static function getIotDeviceList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -209,6 +214,18 @@ class IotDevice extends Model
 
             if (array_key_exists('receive_data', $data) && $device->receive_data != $data['receive_data'])
                 $updateData['receive_data'] = $data['receive_data'];
+
+            if (array_key_exists('mic_sensitivity', $data) && $device->mic_sensitivity != $data['mic_sensitivity'])
+                $updateData['mic_sensitivity'] = $data['mic_sensitivity']; 
+
+            if (array_key_exists('ai_reply_mode', $data) && $device->ai_reply_mode != $data['ai_reply_mode'])
+                $updateData['ai_reply_mode'] = $data['ai_reply_mode'];
+
+            if (array_key_exists('tts_voice', $data) && $device->tts_voice != $data['tts_voice'])
+                $updateData['tts_voice'] = $data['tts_voice'];
+
+            if (array_key_exists('speaker_volume', $data) && $device->speaker_volume != $data['speaker_volume'])
+                $updateData['speaker_volume'] = $data['speaker_volume'];
 
 
             make_error_log($error_log,"chg_data=".print_r($updateData,1));

@@ -27,7 +27,7 @@
                     <i class="fa-solid fa-film text-primary fs-5"></i>
                 </div>
                 <div>
-                    <div class="fw-bold" style="font-size: 14px;">広告を見て10ptゲット</div>
+                    <div class="fw-bold" style="font-size: 14px;">広告を見て{{ $po_ad_reward }}ptゲット</div>
                     <div class="text-white-50 small" style="font-size: 11px;">
                         ※無償ポイント（{{ $periodLabel === 'AM' ? '午前' : '午後' }}あと <span id="ad-remaining-badge" class="fw-bold text-warning">{{ $remainingAdCount }}</span> / {{ $maxDailyLimit }} 回）
                     </div>
@@ -49,17 +49,21 @@
 
     {{-- プラン選択エリア --}}
     <div class="mb-3">
-        <h6 class="fw-bold text-dark mb-1">ポイントパックを選択</h6>
-        <p class="text-muted small mb-3" style="font-size: 12px;">購入した有償ポイントに有効期限はありません。</p>
+        
+        
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold text-dark mb-1">ポイントパックを選択</h6>
+            <a href="{{ route('point.about') }}" class="text-primary text-decoration-none fw-bold" style="font-size: 11px;">
+                ポイントの詳しい仕組み <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
 
         <form method="POST" action="{{ route('point.checkout') }}">
             @csrf
             
             <div class="row g-2 mb-4">
                 @foreach($packs as $pack)
-                    @php
-                        $bonus = $pack->value2 - $pack->value1;
-                    @endphp
+                
                     <div class="col-12">
                         <input type="radio" 
                             name="config_name" 
@@ -79,9 +83,9 @@
                                         @if(!empty($pack->badge))
                                             <span class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">{{ $pack->badge }}</span>
                                         @endif
-                                        @if($bonus > 0)
+                                        @if($pack->bonus > 0)
                                             <span class="badge bg-danger rounded-pill" style="font-size: 10px;">
-                                                +{{ number_format($bonus) }}ptお得
+                                                +{{ number_format($pack->bonus) }}ptお得
                                             </span>
                                         @endif
                                     </div>
@@ -116,10 +120,10 @@
 
     {{-- 注意事項 --}}
     <div class="card border-0 bg-light rounded p-3 mb-4">
-        <div class="fw-bold text-secondary mb-1" style="font-size: 12px;">ご購入時のご注意</div>
         <ul class="text-secondary ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
             <li>購入完了後、ポイントは即時反映されます。</li>
-            <li>有償ポイントに有効期限はありません。無料ポイントから優先して消費されます。</li>
+            <li>有償ポイントに有効期限はありません。無償ポイントから優先して消費されます。</li>
+            <li>スマートリモコンの操作は1日50回まで無料（0pt）です。超過後は1回 Xpt 消費されます。</li>
             <li>お客様都合による購入後のキャンセル・返金はできません。</li>
         </ul>
     </div>
