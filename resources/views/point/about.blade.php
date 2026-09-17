@@ -76,8 +76,8 @@
                     <span class="badge bg-warning text-dark">1日 50回まで無料</span>
                 </div>
                 <div class="text-muted" style="font-size: 11px;">
-                    1日50回まで無料（0pt）で利用可能です（毎日午前0時にリセット）。<br>
-                    50回を超過した場合は、1回の操作につき <strong>Xpt</strong> 消費されます。
+                    1日{{ $whisper_free }}回まで無料（0pt）で利用可能です（毎日午前0時にリセット）。<br>
+                    {{ $whisper_free }}回を超過した場合は、1回の操作につき <strong>{{ $whisper_po }}pt</strong> 消費されます。
                 </div>
             </div>
 
@@ -93,7 +93,10 @@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body p-3">
             <h6 class="fw-bold text-primary mb-2">
-                <i class="fa-solid fa-calendar-check me-1"></i> 無償ポイントの獲得とリセット
+                <i class="fa-solid fa-calendar-check me-1"></i> 無償ポイントの獲得
+                @if($free_point_reset_flag)
+                    とリセット
+                @endif
             </h6>
             <ul class="text-muted ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
                 
@@ -109,7 +112,7 @@
     {{-- 購入画面へ戻るボタン --}}
     <div class="text-center mt-4 mb-3">
         <a href="{{ route('point.buy') }}" class="btn btn-primary rounded-pill px-4 fw-bold">
-            ポイント購入画面へ戻る
+            ポイント購入画面へ
         </a>
     </div>
 
