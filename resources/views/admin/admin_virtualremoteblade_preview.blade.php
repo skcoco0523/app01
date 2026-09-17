@@ -1,4 +1,3 @@
-
 {{-- リモコンデザインプレビュー --}}
 @extends('layouts.app')
 
@@ -8,6 +7,9 @@
     <div class="alert alert-warning text-center" role="alert">
         <p class="text-center mb-0">
             <strong class="text-danger fs-4">【プレビュー】</strong>
+            <span class="badge {{ $virtualremoteblade->library_flag ? 'bg-info' : 'bg-secondary' }} ms-2">
+                {{ $virtualremoteblade->library_flag ? 'ライブラリ型' : '学習型(RAW)' }}
+            </span>
         </p>
         <p class="text-center mb-0">
             @if($virtualremoteblade->test_flag)

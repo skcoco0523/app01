@@ -36,7 +36,8 @@ class VirtualRemoteUser extends Model
                 'remote_b.kind',
                 'remote_b.blade_name',
                 'users.name as uname',
-                'device.name as device_name'
+                'device.name as device_name',
+                'remote_b.library_flag'
             );
             if($keyword){
     

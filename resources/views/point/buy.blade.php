@@ -93,7 +93,7 @@
                                         {{ number_format($pack->value2) }} <span class="fs-6 fw-normal text-dark">pt</span>
                                     </div>
                                     <div class="text-muted" style="font-size: 11px;">
-                                        1回 10pt〜 / 最大 約 {{ number_format(floor($pack->value2 / 10)) }} 回のコンテンツが利用可能
+                                        約 {{ number_format($pack->value2) }} 回分のAI・コンテンツ利用
                                     </div>
                                 </div>
                                 <div class="text-end">

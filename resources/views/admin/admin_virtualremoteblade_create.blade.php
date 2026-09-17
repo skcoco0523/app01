@@ -1,28 +1,32 @@
-
-{{-- IoTデバイス登録処理 --}}
+{{-- リモコン登録処理 --}}
 <form id="mus_reg_form" method="POST" action="{{ route('admin.virtualremote.blade.store') }}">
     @csrf
     <div class="row g-3 align-items-stretch mb-3">
-        <div class="col-6 col-md-4">
-            <label for="inputbirth" class="form-label">種別</label>
+        <div class="col-4 col-md-4">
+            <label for="remote_kind" class="form-label">種別</label>
             <select name="remote_kind" class="form-control">
-                <option value=""  {{ ($input['remote_kind'] ?? '') == ''  ? 'selected' : '' }}></option>
+                <option value="" {{ ($input['remote_kind'] ?? '') == '' ? 'selected' : '' }}></option>
                 @foreach (config('common.remote_kind') as $key => $value)
                     <option value="{{ $value }}" {{ ($input['remote_kind'] ?? '') == (string)$value ? 'selected' : '' }}>{{ $key }}</option>
                 @endforeach
-                
             </select>
         </div>
-        <div class="col-6 col-md-4">
-            <label for="inputname" class="form-label">ファイル名</label>
-            <input type="text" name="blade_name" class="form-control" placeholder="XXX.blade" value="{{$input['blade_name'] ?? '.blade'}}">
+        <div class="col-4 col-md-4">
+            <label for="blade_name" class="form-label">ファイル名</label>
+            <input type="text" name="blade_name" class="form-control" placeholder="XXX.blade" value="{{ $input['blade_name'] ?? '.blade' }}">
+        </div>
+        <div class="col-4 col-md-4">
+            <label for="library_flag" class="form-label">送信タイプ</label>
+            <select name="library_flag" class="form-control">
+                <option value="0" {{ ($input['library_flag'] ?? 0) == 0 ? 'selected' : '' }}>学習型 (RAW)</option>
+                <option value="1" {{ ($input['library_flag'] ?? 0) == 1 ? 'selected' : '' }}>ライブラリ型</option>
+            </select>
         </div>
     </div>
 
     <div class="text-end mb-3">
         <input type="submit" value="登録" class="btn btn-primary">
     </div>
-    
 </form>
 
 {{--エラー--}}
