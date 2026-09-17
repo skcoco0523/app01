@@ -63,15 +63,20 @@ class PointController extends Controller
         $user = Auth::user();
         $profile = User::getProfile($user->id);
         
-        $conf_data = CommonConfig::getValues(['po_free','po_free_flag','po_ad_reward']);
-        $service_free_point =  $conf_data['po_free']->value2;
+        $conf_data = CommonConfig::getValues(['po_free','po_free_flag','po_ad_reward','po_whisper']);
+        // 1日あたりの無料ポイント数
+        $service_free_point =  $conf_data['po_free']->value1;
         $free_point_reset_flag =  (bool)$conf_data['po_free_flag']->value1;
+        // 広告視聴による付与ポイント数
         $ad_reward_point =  $conf_data['po_ad_reward']->value1;
+        // Whisper（文字起こし）におけるポイント、無料枠
+        $whisper_po =  $conf_data['po_whisper']->value1;
+        $whisper_free =  $conf_data['po_whisper']->value2;
 
 
         $msg = "";
             
-        return view('point.about', compact('profile', 'service_free_point', 'free_point_reset_flag', 'ad_reward_point', 'msg'));
+        return view('point.about', compact('profile', 'service_free_point', 'free_point_reset_flag', 'ad_reward_point', 'whisper_po', 'whisper_free', 'msg'));
     }
 
     /**
