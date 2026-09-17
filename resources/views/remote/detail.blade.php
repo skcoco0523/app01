@@ -47,12 +47,14 @@
                                 <input type="text" class="form-control form-control-sm" name="remote_name" value="{{ $virtual_remote->name ?? '' }}" >
                             </div>
                             
-                            <?// ライブラリ型リモコンの場合のみ送信デバイス選択を表示?>
-                            <div id="LibraryDeviceSelectArea" style="display: none;" class="mb-3">
-                                <select name="device_id" id="library_device_select" class="form-select form-select-sm">
-                                    <option value="0">送信先を選択してください</option>
-                                </select>
-                            </div>
+                            {{-- ライブラリ型リモコン（library_flag = 1）の場合のみ送信デバイス選択を表示 --}}
+                            @if($virtual_remote->library_flag)
+                                <div id="LibraryDeviceSelectArea" style="display: none;" class="mb-3">
+                                    <select name="device_id" id="library_device_select" class="form-select form-select-sm">
+                                        <option value="0">送信先を選択してください</option>
+                                    </select>
+                                </div>
+                            @endif
                         @else
                             <div class="mb-2">
                                 <input type="text" class="form-control form-control-sm" value="{{ $virtual_remote->name ?? '' }}" disabled>
@@ -177,10 +179,10 @@
                 buttonTextSpan.textContent = '閉じる';
                 designContainer.classList.add('is-edit-mode');
 
-                // ライブラリ型ボタンが存在する場合、デバイス選択を表示
-                if (document.querySelectorAll('button[data-lib-protocol]').length > 0) {
+                // サーバー側のフラグで直接呼び出す
+                @if($virtual_remote->library_flag)
                     initLibraryDeviceSelect();
-                }
+                @endif
 
             } else { // 表示モードに戻る
                 DisplayArea.style.display = 'block';
@@ -211,6 +213,12 @@
                         button_name: buttonName,
                     });
                 } else {
+                    // 通常モード：未割当（.noset-signal が存在する）場合は処理を中断
+                    const isNoSet = btn.classList.contains('noset-signal') || btn.querySelector('.noset-signal') !== null;
+                    if (isNoSet) {
+                        console.warn(`ボタン[${buttonName}]は信号が未登録のため送信をスキップしました。`);
+                        return; // HTTP POST を実行せずに終了
+                    }
                     window.smartRemoteInstance.sendSignal(buttonNum);
                 }
             });
