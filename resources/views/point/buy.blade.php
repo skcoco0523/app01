@@ -63,50 +63,51 @@
             
             <div class="row g-2 mb-4">
                 @foreach($packs as $pack)
-                
-                    <div class="col-12">
-                        <input type="radio" 
-                            name="config_name" 
-                            value="{{ $pack->config_name }}" 
-                            class="btn-check" 
-                            id="pack_{{ $pack->config_name }}" 
-                            {{ $loop->first ? 'checked' : '' }} 
-                            autocomplete="off">
-                        
-                        <label class="card border-2 card-select-option h-100 shadow-sm p-3 w-100" 
-                            for="pack_{{ $pack->config_name }}" 
-                            style="cursor: pointer;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="d-flex align-items-center gap-1 mb-1 flex-wrap">
-                                        <span class="fw-bold text-dark">{{ $pack->description }}</span>
-                                        @if(!empty($pack->badge))
-                                            <span class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">{{ $pack->badge }}</span>
-                                        @endif
-                                        @if($pack->bonus > 0)
-                                            <span class="badge bg-danger rounded-pill" style="font-size: 10px;">
-                                                +{{ number_format($pack->bonus) }}ptお得
-                                            </span>
-                                        @endif
+                    @if($pack->value1 > 0)
+                        <div class="col-12">
+                            <input type="radio" 
+                                name="config_name" 
+                                value="{{ $pack->config_name }}" 
+                                class="btn-check" 
+                                id="pack_{{ $pack->config_name }}" 
+                                {{ $loop->first ? 'checked' : '' }} 
+                                autocomplete="off">
+                            
+                            <label class="card border-2 card-select-option h-100 shadow-sm p-3 w-100" 
+                                for="pack_{{ $pack->config_name }}" 
+                                style="cursor: pointer;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-1 mb-1 flex-wrap">
+                                            <span class="fw-bold text-dark">{{ $pack->description }}</span>
+                                            @if(!empty($pack->badge))
+                                                <span class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">{{ $pack->badge }}</span>
+                                            @endif
+                                            @if($pack->bonus > 0)
+                                                <span class="badge bg-danger rounded-pill" style="font-size: 10px;">
+                                                    +{{ number_format($pack->bonus) }}ptお得
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="fs-5 fw-bold text-primary">
+                                            {{ number_format($pack->value2) }} <span class="fs-6 fw-normal text-dark">pt</span>
+                                        </div>
+                                        <div class="text-muted" style="font-size: 11px;">
+                                            約 {{ number_format($pack->value2) }} 回分のAI・コンテンツ利用
+                                        </div>
                                     </div>
-                                    <div class="fs-5 fw-bold text-primary">
-                                        {{ number_format($pack->value2) }} <span class="fs-6 fw-normal text-dark">pt</span>
-                                    </div>
-                                    <div class="text-muted" style="font-size: 11px;">
-                                        約 {{ number_format($pack->value2) }} 回分のAI・コンテンツ利用
+                                    <div class="text-end">
+                                        <div class="fs-5 fw-bold text-dark mb-1">
+                                            ¥{{ number_format($pack->value1) }}
+                                        </div>
+                                        <span class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 selection-label" style="font-size: 12px;">
+                                            選択する
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="text-end">
-                                    <div class="fs-5 fw-bold text-dark mb-1">
-                                        ¥{{ number_format($pack->value1) }}
-                                    </div>
-                                    <span class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 selection-label" style="font-size: 12px;">
-                                        選択する
-                                    </span>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
+                            </label>
+                        </div>
+                    @endif
                 @endforeach
             </div>
 
