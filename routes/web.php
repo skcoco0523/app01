@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\AdminGameStageController;
 use App\Http\Controllers\Admin\AdminGameItemController;
 use App\Http\Controllers\Admin\AdminGameAssetController;
 use App\Http\Controllers\Admin\AdminAnotherController;
+use App\Http\Controllers\Admin\AdminConfigController;
+
 
 //ユーザー
 use App\Http\Controllers\Auth\VerificationController;   //メールアドレス認証対応
@@ -232,7 +234,11 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //広告設定
         Route::get('adv/config', [AdminAdvController::class, 'config'])->name('admin.adv.config');
         Route::post('adv/config', [AdminAdvController::class, 'config_update'])->name('admin.adv.config.update');
+
+        
+        //----------------------------------------------------------------------------------
         //ポイント設定
+        //----------------------------------------------------------------------------------
         Route::get('point/config_pack', [AdminPointController::class, 'config_pack'])->name('admin.point.config_pack');
         Route::get('point/config_free', [AdminPointController::class, 'config_free'])->name('admin.point.config_free');
         Route::get('point/config_amount', [AdminPointController::class, 'config_amount'])->name('admin.point.config_amount');
@@ -288,6 +294,14 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         Route::post('game/sprite-sheet/update', [AdminGameAssetController::class, 'sprite_sheet_update'])->name('admin.game.sprite_sheet.update');
         Route::post('game/sprite-sheet/destroy', [AdminGameAssetController::class, 'sprite_sheet_destroy'])->name('admin.game.sprite_sheet.destroy');
         Route::post('game/sprite-sheet/rename', [AdminGameAssetController::class, 'sprite_sheet_rename'])->name('admin.game.sprite_sheet.rename');
+
+
+        //----------------------------------------------------------------------------------
+        // システム設定
+        //----------------------------------------------------------------------------------
+        Route::get('system/config_maint', [AdminConfigController::class, 'config_maint'])->name('admin.system.config_maint');
+        Route::get('system/config_mqtt', [AdminConfigController::class, 'config_mqtt'])->name('admin.system.config_mqtt');
+        Route::post('system/config_update', [AdminConfigController::class, 'config_update'])->name('admin.system.config.update');
 
 
         //----------------------------------------------------------------------------------

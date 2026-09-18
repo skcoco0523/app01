@@ -83,6 +83,13 @@
                 ['url' => route('admin.game.grid_parts.index'), 'label' => 'グリッドパーツ管理'],
             ]
         ],
+        'system' => [
+            'title' => 'システム設定',
+            'items' => [
+                ['url' => route('admin.system.config_maint'), 'label' => 'メンテナンス設定'],
+                ['url' => route('admin.system.config_mqtt'), 'label' => 'MQTT設定'],
+            ]
+        ],
         'another' => [
             'title' => 'その他',
             'items' => [
@@ -146,32 +153,34 @@
         $view_right_file    = 'admin.game.admin_stage';
     }elseif ($tab1 == 'game' && $tab2 == 'item' && $tab3 == 'search') {
         $view_left_file     = 'admin.game.admin_item_left';
-        $view_right_file    = 'admin.game.admin_item';
-        
+        $view_right_file    = 'admin.game.admin_item';      
     }elseif ($tab1 == 'game' && $tab2 == 'sprite-sheet' && $tab3 == '') {
         // 🌟【修正】スプライトシート管理 ＝ 純粋な画像倉庫
         $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
         $view_right_file    = 'admin.game.admin_game_sprite_sheet';
-
     }elseif ($tab1 == 'game' && $tab2 == 'pixel-parts' && $tab3 == '') {
         // 🌟【新設】ピクセルパーツ管理
         $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
         $view_right_file    = 'admin.game.admin_game_pixel_parts';
-
     }elseif ($tab1 == 'game' && $tab2 == 'grid-parts' && $tab3 == '') {
         // 🌟【新設】グリッドパーツ管理
         $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
         $view_right_file    = 'admin.game.admin_game_grid_parts';
-
     }elseif ($tab1 == 'game' && $tab2 == 'asset' && $tab3 == '') {
         // 🌟【修正】画像アセット管理 ＝ 職人部屋エディタ本体
         $view_left_file     = 'admin.game.admin_game_asset_left';
         $view_right_file    = 'admin.game.admin_game_asset';
 
-    }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {
+    }elseif ($tab1 == 'system' && $tab2 == 'config_maint' && $tab3 == '') {
+        $view_right_file     = 'admin.admin_system_config';
+    }elseif ($tab1 == 'system' && $tab2 == 'config_mqtt' && $tab3 == '') {
+        $view_right_file     = 'admin.admin_system_config';
+
+    }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == '') {
         $view_left_file     = 'admin.admin_memo_search_left';
         $view_right_file    = 'admin.admin_memo_search';
     }
+
 
 @endphp
 
