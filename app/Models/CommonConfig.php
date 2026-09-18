@@ -42,8 +42,9 @@ class CommonConfig extends Model
         if ($name == 'po_ai_voice')                 self::upsertValue('po_ai_voice',              'int', 2,  0, 'AI応答（音声会話）の消費ptと無料枠');
 
         // その他設定
-        if ($name == 'stop_admin_connect_notify')   self::upsertValue('stop_admin_connect_notify',  'bool', 0, 0, '管理者デバイス接続通知停止フラグ');
-        if ($name == 'maint_mode_flag')             self::upsertValue('maint_mode_flag',          'bool', 0, 0, 'メンテナンスモードフラグ');
+        if ($name == 'stop_admin_connect_notify')   self::upsertValue('stop_admin_connect_notify',  'bool', 0, 0, '管理者デバイス接続通知停止');
+        if ($name == 'stop_admin_api_token')        self::upsertValue('stop_admin_api_token',       'bool', 0, 0, '管理者デバイスへトークン送信停止');
+        if ($name == 'maint_mode_flag')             self::upsertValue('maint_mode_flag',          'bool', 0, 0, 'メンテナンスモード');
 
         
 

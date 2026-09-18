@@ -28,7 +28,7 @@ class AdminConfigController extends Controller
     public function config_mqtt(Request $request)
     {
         $common_conf_names = [
-            'stop_admin_connect_notify'
+            'stop_admin_connect_notify','stop_admin_api_token'
         ];
         $configs = CommonConfig::getValues($common_conf_names);
         $config_type = 'mqtt';
