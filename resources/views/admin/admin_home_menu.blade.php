@@ -23,6 +23,9 @@
             <a class="nav-link" href="{{ route('admin.home', ['tab1' => 'game']) }}">ゲーム</a>
         </li>
         <li class="nav-item">
+            <a class="nav-link" href="{{ route('admin.home', ['tab1' => 'system']) }}">システム設定</a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" href="{{ route('admin.home', ['tab1' => 'another']) }}">その他</a>
         </li>
         <li class="nav-item">

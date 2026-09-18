@@ -10,6 +10,7 @@ use PhpMqtt\Client\ConnectionSettings;
 use App\Models\Mosquitto; 
 use App\Models\IotDevice; 
 use App\Models\User;
+use App\Models\CommonConfig;
 
 
 class MqttListener extends Command
@@ -313,39 +314,55 @@ class MqttListener extends Command
 
             //本登録済み　デバイス接続通知
             }else{
-                Mosquitto::publishMQTT($mac_addr, "final_regist");
-                // ESP32側のデバイス名や音声指紋がサーバー側と異なる場合は、サーバー側の情報を送信して同期させる
-                $jdata = [];
-                // デバイス名の同期
-                if ($device_name !== (String)$device->name) {
-                    $jdata["device_name"] = (String)$device->name;
+
+                $shouldSend = true;
+                // テストモード時は、検証環境から送信されるため、本番環境では管理者には送らない
+                $conf_data  = CommonConfig::getValues(['stop_admin_connect_notify']);
+                $stop_flag = (bool)($conf_data['stop_admin_connect_notify']->value1 ?? false);
+                if($stop_flag){
+                    $user    = ($device && !empty($device->admin_user_id)) ? User::find($device->admin_user_id) : null;
+                    $isAdmin = $user ? (bool)$user->admin_flag : false;
+                    // 「テストモードON 且つ 管理者ユーザー」の場合のみ送信をスキップ（それ以外は送信）
+                    $shouldSend = !$isAdmin;
                 }
 
-                // ドメインとアップロードURLを常に同期（本番環境/開発環境の動的対応）
-                if (app()->environment('local')) {
-                    // ローカル（XAMPP）環境：PCのローカルIP（192.168.x.x）を自動取得
-                    $localIp = gethostbyname(gethostname());
-                    //$baseUrl = "http://{$localIp}";
-                    $baseUrl = "http://{$localIp}/app01/public";
-                } else {
-                    // 本番環境：既存の config('app.url') を使用
-                    $baseUrl = config('app.url');
-                }
 
-                $jdata["domain"]     = parse_url($baseUrl, PHP_URL_HOST);
-                $jdata["upload_url"] = rtrim($baseUrl, '/') . "/api/audio/upload";
-                
-                // 差分があれば更新通知を送る（URL追加により常に count($jdata) > 0 となる）
-                if (count($jdata) > 0) {
-                    Mosquitto::publishMQTT($mac_addr, "update_device", json_encode($jdata));
-                }
+                if ($shouldSend) {
+                    Mosquitto::publishMQTT($mac_addr, "final_regist");
+                    // ESP32側のデバイス名や音声指紋がサーバー側と異なる場合は、サーバー側の情報を送信して同期させる
+                    $jdata = [];
+                    // デバイス名の同期
+                    if ($device_name !== (String)$device->name) {
+                        $jdata["device_name"] = (String)$device->name;
+                    }
 
-                //所有者が確定しているため接続通知
-                $send_info = new \stdClass();
-                $send_info->title = "デバイス接続通知";
-                $send_info->body = "[".$device->name. "]が接続されました。";
-                $send_info->url = route('iotdevice.show', ['id' => $device->id]);
-                push_send($send_info, $device->admin_user_id);
+                    // ドメインとアップロードURLを常に同期（本番環境/開発環境の動的対応）
+                    if (app()->environment('local')) {
+                        // ローカル（XAMPP）環境：PCのローカルIP（192.168.x.x）を自動取得
+                        $localIp = gethostbyname(gethostname());
+                        //$baseUrl = "http://{$localIp}";
+                        $baseUrl = "http://{$localIp}/app01/public";
+                    } else {
+                        // 本番環境：既存の config('app.url') を使用
+                        $baseUrl = config('app.url');
+                    }
+
+                    $jdata["domain"]     = parse_url($baseUrl, PHP_URL_HOST);
+                    $jdata["upload_url"] = rtrim($baseUrl, '/') . "/api/audio/upload";
+                    
+                    // 差分があれば更新通知を送る（URL追加により常に count($jdata) > 0 となる）
+                    if (count($jdata) > 0) {
+                        Mosquitto::publishMQTT($mac_addr, "update_device", json_encode($jdata));
+                    }
+
+                    //所有者が確定しているため接続通知
+                    $send_info = new \stdClass();
+                    $send_info->title = "デバイス接続通知";
+                    $send_info->body = "[".$device->name. "]が接続されました。";
+                    $send_info->url = route('iotdevice.show', ['id' => $device->id]);
+                    push_send($send_info, $device->admin_user_id);
+
+                }
             }
 
         //未登録デバイス
