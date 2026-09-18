@@ -176,7 +176,7 @@
     }elseif ($tab1 == 'system' && $tab2 == 'config_mqtt' && $tab3 == '') {
         $view_right_file     = 'admin.admin_system_config';
 
-    }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == '') {
+    }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {
         $view_left_file     = 'admin.admin_memo_search_left';
         $view_right_file    = 'admin.admin_memo_search';
     }

@@ -269,15 +269,17 @@ class ApiAudioController extends Controller
             // ==========================================================================
             // モードに応じた処理
             // ==========================================================================
-            if ($mode === 'text') {
+            if ($mode === 'command') {
+                //$transcript = $this->xxxxxxx($transcript);
+                $transcript = "[コマンドモード] " . $transcript;
+
+            } elseif ($mode === 'text') {
                 //$transcript = $this->xxxxxxx($transcript);
                 $transcript = "[テキスト応答モード] " . $transcript;
+                
             } elseif ($mode === 'voice') {
                 //$transcript = $this->xxxxxxx($transcript);
                 $transcript = "[音声応答モード] " . $transcript;
-            } elseif ($mode === 'command') {
-                //$transcript = $this->xxxxxxx($transcript);
-                $transcript = "[コマンドモード] " . $transcript;
             }
             // ===========================================================================
             // 処理完了後にポイント減算 ＆ 利用回数カウントアップ
