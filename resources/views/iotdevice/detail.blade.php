@@ -73,7 +73,6 @@
                                     $mode = $iotdevice->ai_reply_mode ?? 'command';
                                     $modeLabels = [
                                         'command' => ['label' => '操作のみ (+0pt)', 'class' => 'bg-secondary'],
-                                        'text'    => ['label' => 'テキスト表示 (+'. $po_ai_text . 'pt)', 'class' => 'bg-primary'],
                                         'voice'   => ['label' => '音声会話 (+'. $po_ai_voice . 'pt)', 'class' => 'bg-success']
                                     ];
                                     $currentMode = $modeLabels[$mode] ?? $modeLabels['command'];
@@ -186,7 +185,7 @@
                                 <div class="card border-0 bg-light p-2 rounded">
                                     <div class="row g-2">
                                         {{-- 操作のみ --}}
-                                        <div class="col-4">
+                                        <div class="col-6">
                                             <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_command" value="command" 
                                                 {{ ($iotdevice->ai_reply_mode ?? 'command') === 'command' ? 'checked' : '' }} autocomplete="off">
                                             <label class="btn btn-outline-secondary btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_command" style="border-radius: 8px;">
@@ -196,19 +195,8 @@
                                             </label>
                                         </div>
 
-                                        {{-- テキスト表示 --}}
-                                        <div class="col-4">
-                                            <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_text" value="text" 
-                                                {{ ($iotdevice->ai_reply_mode ?? '') === 'text' ? 'checked' : '' }} autocomplete="off">
-                                            <label class="btn btn-outline-primary btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_text" style="border-radius: 8px;">
-                                                <i class="fa-solid fa-comment-dots fs-6 my-1"></i>
-                                                <span class="fw-bold" style="font-size: 11px;">テキスト表示</span>
-                                                <span class="badge bg-primary text-white mt-1" style="font-size: 9px;">+{{ $po_ai_text }} pt</span>
-                                            </label>
-                                        </div>
-
                                         {{-- 音声応答 --}}
-                                        <div class="col-4">
+                                        <div class="col-6">
                                             <input type="radio" class="btn-check" name="ai_reply_mode" id="mode_voice" value="voice" 
                                                 {{ ($iotdevice->ai_reply_mode ?? '') === 'voice' ? 'checked' : '' }} autocomplete="off">
                                             <label class="btn btn-outline-success btn-sm w-100 p-2 d-flex flex-column align-items-center h-100 justify-content-between shadow-sm" for="mode_voice" style="border-radius: 8px;">
@@ -219,7 +207,7 @@
                                         </div>
                                     </div>
 
-                                    {{-- ★ 音声会話専用オプション（「音声会話」選択時のみ連動表示） --}}
+                                    {{-- 音声会話専用オプション（「音声会話」選択時のみ連動表示） --}}
                                     <div id="voice_settings_area" class="mt-2 pt-2 border-top" style="{{ ($iotdevice->ai_reply_mode ?? '') === 'voice' ? '' : 'display: none;' }}">
                                         {{-- 音声モデル選択 --}}
                                         <div class="mb-2">
@@ -256,7 +244,7 @@
                                     </div>
 
                                     <div class="mt-2 text-muted px-1" style="font-size: 10px; line-height: 1.4;">
-                                        ※「操作のみ」は家電制御のみ実行。「テキスト表示」はボットでのディスプレイ表示/Push通知、「音声会話」はボットが声で応答します。
+                                        ※「操作のみ」は家電制御のみ実行。「音声会話」はボットが声で応答します。
                                     </div>
                                 </div>
                             </div>

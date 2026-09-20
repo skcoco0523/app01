@@ -143,13 +143,11 @@ class ApiAudioController extends Controller
             $mode = $device->ai_reply_mode ?? 'command';
             
             // モードに応じた固定ポイント・無料枠判定
-            if ($mode === 'text') {
-                $requiredPoint = ($textCount < $ai_free_cnt) ? 0 : $po_ai_text;
+            if ($mode === 'command') {
+                $requiredPoint = ($sttCount < $whisper_free_cnt) ? 0 : $po_whisper;
             } elseif ($mode === 'voice') {
                 $requiredPoint = ($voiceCount < $ai_voice_free_cnt) ? 0 : $po_ai_voice;
-            } elseif ($mode === 'command') {
-                $requiredPoint = ($sttCount < $whisper_free_cnt) ? 0 : $po_whisper;
-            }else{
+            } else{
                 make_error_log($error_log, "Error: Unknown mode '{$mode}' for device MAC: {$macAddress}");
                 return response()->json([
                     'status'  => 'error',
@@ -273,10 +271,6 @@ class ApiAudioController extends Controller
                 //$transcript = $this->xxxxxxx($transcript);
                 $transcript = "[コマンドモード] " . $transcript;
 
-            } elseif ($mode === 'text') {
-                //$transcript = $this->xxxxxxx($transcript);
-                $transcript = "[テキスト応答モード] " . $transcript;
-                
             } elseif ($mode === 'voice') {
                 //$transcript = $this->xxxxxxx($transcript);
                 $transcript = "[音声応答モード] " . $transcript;
@@ -311,12 +305,10 @@ class ApiAudioController extends Controller
             // ===========================================================================
             // 処理成功後、利用した機能のカウントのみインクリメント ＆ 不要ファイルの削除
             // ===========================================================================
-            if ($mode === 'text') {
-                Cache::put("user_text_count_{$user->id}_{$dateKey}", $textCount + 1, now()->endOfDay());
+            if ($mode === 'command') {
+                Cache::put("user_stt_count_{$user->id}_{$dateKey}", $sttCount + 1, now()->endOfDay());
             } elseif ($mode === 'voice') {
                 Cache::put("user_voice_count_{$user->id}_{$dateKey}", $voiceCount + 1, now()->endOfDay());
-            } elseif ($mode === 'command') {
-                Cache::put("user_stt_count_{$user->id}_{$dateKey}", $sttCount + 1, now()->endOfDay());
             }
 
             // ===========================================================================
