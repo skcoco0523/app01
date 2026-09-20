@@ -54,20 +54,12 @@ class SmartRemoteController extends Controller
         if ($virtual_remote !== null) {
             $virtual_remote->blade_path = config('common.smart_remote_blade_paht') ."." . substr($virtual_remote->blade_name, 0, -6); 
 
-            // DBから文字列で取得されている場合は配列にデコード
+            // プロトコル未設定時のデフォルト補正（安全対策）
+            $virtual_remote->protocol = $virtual_remote->protocol ?? 'PANASONIC_AC';
+
+            // DBから文字列で取得されている場合は配列にデコード デフォルト情報は定義しない
             if (is_string($virtual_remote->settings)) {
                 $virtual_remote->settings = json_decode($virtual_remote->settings, true);
-            }
-
-            // 設定の初期値を保証
-            if (empty($virtual_remote->settings)) {
-                $virtual_remote->settings = [
-                    'power' => true,
-                    'temp'  => 25.0,
-                    'mode'  => 'cool',
-                    'fan'   => 'auto',
-                    'swingv' => 'auto'
-                ];
             }
 
             //デバイスの信号を取得

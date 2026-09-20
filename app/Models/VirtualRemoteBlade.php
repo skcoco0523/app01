@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class VirtualRemoteBlade extends Model
 {
     use HasFactory;
-    protected $fillable = ['kind', 'company_name', 'product_name', 'blade_name', 'test_flag', 'library_flag'];
+    protected $fillable = ['kind', 'company_name', 'product_name', 'blade_name', 'test_flag', 'library_flag', 'protocol'];     //一括代入の許可
 
     //リモコンデザイン取得
     public static function getVirtualRemoteBladeList($disp_cnt=null,$pageing=false,$page=1,$keyword=null)
@@ -37,6 +37,12 @@ class VirtualRemoteBlade extends Model
 
                     if (isset($keyword['search_test_flag'])) 
                         $sql_cmd = $sql_cmd->where('blade.test_flag',$keyword['search_test_flag']);
+
+                    if (isset($keyword['search_library_flag'])) 
+                        $sql_cmd = $sql_cmd->where('blade.library_flag',$keyword['search_library_flag']);
+
+                    if (isset($keyword['search_protocol'])) 
+                        $sql_cmd = $sql_cmd->where('blade.protocol', 'like',  '%'. $keyword['search_protocol']. '%');
 
                 //ユーザーによる検索
                 }else{
@@ -86,7 +92,7 @@ class VirtualRemoteBlade extends Model
         try {
 
             $error_code = 0;
-            if(!isset($data['remote_kind']))    $error_code = 1;   //データ不足
+            if(!isset($data['kind']))    $error_code = 1;   //データ不足
             if(!isset($data['blade_name']))     $error_code = 2;   //データ不足
             
             if($error_code){
@@ -94,7 +100,7 @@ class VirtualRemoteBlade extends Model
                 return ['id' => null, 'error_code' => $error_code];
             }
             
-            $data['kind'] = $data['remote_kind'];
+            $data['kind'] = $data['kind'];
             $request = self::create($data);
             $request_id = $request->id;
             make_error_log($error_log,"success");
@@ -134,6 +140,9 @@ class VirtualRemoteBlade extends Model
 
                 if (isset($data['library_flag']) && $remote->library_flag != $data['library_flag'])
                     $updateData['library_flag'] = $data['library_flag']; 
+
+                if (isset($data['protocol']) && $remote->protocol != $data['protocol'])
+                    $updateData['protocol'] = $data['protocol']; 
 
                 make_error_log($error_log,"chg_data=".print_r($updateData,1));
                 if(count($updateData) > 0){

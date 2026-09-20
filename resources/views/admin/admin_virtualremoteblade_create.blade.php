@@ -2,7 +2,7 @@
 <form id="mus_reg_form" method="POST" action="{{ route('admin.virtualremote.blade.store') }}">
     @csrf
     <div class="row g-3 align-items-stretch mb-3">
-        <div class="col-4 col-md-4">
+        <div class="col-3 col-md-3">
             <label for="remote_kind" class="form-label">種別</label>
             <select name="remote_kind" class="form-control">
                 <option value="" {{ ($input['remote_kind'] ?? '') == '' ? 'selected' : '' }}></option>
@@ -11,16 +11,20 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-4 col-md-4">
+        <div class="col-3 col-md-3">
             <label for="blade_name" class="form-label">ファイル名</label>
             <input type="text" name="blade_name" class="form-control" placeholder="XXX.blade" value="{{ $input['blade_name'] ?? '.blade' }}">
         </div>
-        <div class="col-4 col-md-4">
+        <div class="col-3 col-md-3">
             <label for="library_flag" class="form-label">送信タイプ</label>
             <select name="library_flag" class="form-control">
                 <option value="0" {{ ($input['library_flag'] ?? 0) == 0 ? 'selected' : '' }}>学習型 (RAW)</option>
                 <option value="1" {{ ($input['library_flag'] ?? 0) == 1 ? 'selected' : '' }}>ライブラリ型</option>
             </select>
+        </div>
+        <div class="col-3 col-md-3">
+            <label for="protocol" class="form-label">プロトコル</label>
+            <input type="text" name="protocol" class="form-control" placeholder="プロトコル" value="{{ $input['protocol'] ?? '' }}">
         </div>
     </div>
 
@@ -45,6 +49,7 @@
                 <th scope="col" class="fw-light">#</th>
                 <th scope="col" class="fw-light">種別</th>
                 <th scope="col" class="fw-light">ファイル名</th>
+                <th scope="col" class="fw-light">プロトコル</th>
                 <th scope="col" class="fw-light">テストフラグ</th>
                 <th scope="col" class="fw-light">データ登録日</th>
                 <th scope="col" class="fw-light">データ更新日</th>
@@ -63,6 +68,7 @@
                         {{ $kind_name }}
                     </td>
                     <td class="fw-light">{{$blade->blade_name}}</td>
+                    <td class="fw-light">{{$blade->protocol ?? '-'}}</td>
                     <td class="fw-light">{{$blade->test_flag}}</td>
                     <td class="fw-light">{!! str_replace(' ', '<br>', $blade->created_at) !!}</td>
                     <td class="fw-light">{!! str_replace(' ', '<br>', $blade->updated_at) !!}</td>

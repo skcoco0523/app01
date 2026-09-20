@@ -28,6 +28,8 @@ class AdminSmartRemoteController extends Controller
         $params['search_kind']      = get_proc_data($input, "search_kind");
         $params['search_name']      = get_proc_data($input, "search_name");
         $params['search_test_flag'] = get_proc_data($input, "search_test_flag");
+        $params['search_library_flag'] = get_proc_data($input, "search_library_flag");
+        $params['search_protocol'] = get_proc_data($input, "search_protocol");
         $params['page']             = get_proc_data($input, "page");
         
         $virtualremoteblade_list = VirtualRemoteBlade::getVirtualRemoteBladeList(10, true, $params['page'], $params);
@@ -75,6 +77,7 @@ class AdminSmartRemoteController extends Controller
         $params['kind']         = get_proc_data($input, "remote_kind");
         $params['blade_name']   = get_proc_data($input, "blade_name") ?? '';
         $params['library_flag'] = get_proc_data($input, "library_flag") ?? 0;
+        $params['protocol']     = get_proc_data($input, "protocol") ?? '';
 
         $msg = null;
         if (!isset($params['kind'])) {
@@ -132,6 +135,7 @@ class AdminSmartRemoteController extends Controller
         $params['blade_name']   = get_proc_data($input, "blade_name");
         $params['test_flag']    = get_proc_data($input, "test_flag");
         $params['library_flag'] = get_proc_data($input, "library_flag") ?? 0;
+        $params['protocol']     = get_proc_data($input, "protocol") ?? '';
 
         $msg = null;
         if (!$params['id'])          $msg = "テーブルから選択してください。";

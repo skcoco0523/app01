@@ -16,6 +16,18 @@
             ・ファイル名
             <input type="text" name="search_name" class="form-control" value="{{$input['search_name'] ?? ''}}">
         </div>
+        <div class="col-3 col-md-12">
+            ・送信タイプ
+            <select name="search_library_flag" class="form-control">
+                <option value=""  {{ ($input['search_library_flag'] ?? '') == ''  ? 'selected' : '' }}></option>
+                <option value="0" {{ ($input['search_library_flag'] ?? '') == 0 ? 'selected' : '' }}>学習型 (RAW)</option>
+                <option value="1" {{ ($input['search_library_flag'] ?? '') == 1 ? 'selected' : '' }}>ライブラリ型</option>
+            </select>
+        </div>
+        <div class="col-3 col-md-12">
+            ・プロトコル名
+            <input type="text" name="search_protocol" class="form-control" value="{{$input['search_protocol'] ?? ''}}">
+        </div>
         <div class="col-4 col-md-12">
             ・テストフラグ
             <select name="search_test_flag" class="form-control">

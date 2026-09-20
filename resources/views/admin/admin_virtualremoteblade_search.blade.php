@@ -32,6 +32,10 @@
                 <option value="1" {{ ($input['library_flag'] ?? 0) == 1 ? 'selected' : '' }}>ライブラリ型</option>
             </select>
         </div>
+        <div class="col-6 col-md-3">
+            <label for="protocol" class="form-label">プロトコル名</label>
+            <input type="text" name="protocol" class="form-control" placeholder="例: PANASONIC_AC" value="{{ $select->protocol ?? ($input['protocol'] ?? '') }}">
+        </div>
 
         <div class="col-6 col-md-3">
             <label for="test_flag" class="form-label">テストフラグ</label>
@@ -69,6 +73,7 @@
                 <th scope="col" class="fw-light">種別</th>
                 <th scope="col" class="fw-light">ファイル名</th>
                 <th scope="col" class="fw-light">送信タイプ</th>
+                <th scope="col" class="fw-light">プロトコル</th>
                 <th scope="col" class="fw-light">テストフラグ</th>
                 <th scope="col" class="fw-light">データ登録日</th>
                 <th scope="col" class="fw-light">データ更新日</th>
@@ -95,6 +100,9 @@
                         <span class="badge {{ $blade->library_flag ? 'bg-info' : 'bg-secondary' }}">
                             {{ $blade->library_flag ? 'ライブラリ型' : '学習型(RAW)' }}
                         </span>
+                    </td>
+                    <td class="fw-light" data-protocol="{{ $blade->protocol }}">
+                        {{ $blade->protocol ?? '-' }}
                     </td>
                     <td class="fw-light" data-test-flag="{{ $blade->test_flag }}">
                         {{ $blade->test_flag ? 'テスト' : '本番' }}
@@ -148,13 +156,15 @@
                 
                 // data属性経由で数値フラグ（0/1）を安全に取得
                 const library_flag      = cells[3].dataset.libraryFlag ?? 0;
-                const test_flag         = cells[4].dataset.testFlag ?? 0;
+                const protocol          = cells[4].dataset.protocol ?? '';
+                const test_flag         = cells[5].dataset.testFlag ?? 0;
 
                 // フォームの対応フィールドへセット
                 form.querySelector('input[name="id"]').value           = id;
                 form.querySelector('select[name="remote_kind"]').value = remote_kind_value;
                 form.querySelector('input[name="blade_name"]').value   = blade_name;
                 form.querySelector('select[name="library_flag"]').value = library_flag;
+                form.querySelector('input[name="protocol"]').value     = protocol;
                 form.querySelector('select[name="test_flag"]').value   = test_flag;
             });
         });
