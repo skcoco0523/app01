@@ -50,6 +50,9 @@ class VirtualRemoteUser extends Model
 
                     if (isset($keyword['search_stop_flag'])) 
                         $sql_cmd = $sql_cmd->where('remote_u.stop_flag',$keyword['search_stop_flag']);
+                    
+                    if (isset($keyword['search_user_id'])) 
+                        $sql_cmd = $sql_cmd->where('remote_u.id',$keyword['search_user_id']);
 
                 //ユーザーによる検索
                 }else{
@@ -84,7 +87,7 @@ class VirtualRemoteUser extends Model
 
             //テーブル用アイコン定義
             foreach($virtual_remote_list as $remote) {
-                $remote->icon_class = config('common.remote_kind_icons')[$remote->kind] ?? null;
+                $remote->icon_class = config('common.virtual_remote')[$remote->kind]['icon'] ?? null;
             }
 
             //dd($virtual_remote_list);

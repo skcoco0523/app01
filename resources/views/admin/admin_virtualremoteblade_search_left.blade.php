@@ -7,8 +7,10 @@
             ・種別
             <select name="search_kind" class="form-control">
                 <option value=""  {{ ($input['search_kind'] ?? '') == ''  ? 'selected' : '' }}></option>
-                @foreach (config('common.remote_kind') as $key => $value)
-                    <option value="{{ $value }}" {{ ($input['search_kind'] ?? '') == (string)$value ? 'selected' : '' }}>{{ $key }}</option>
+                @foreach (config('common.virtual_remote') as $id => $item)
+                    <option value="{{ $id }}" {{ ($input['search_kind'] ?? '') == (string)$id ? 'selected' : '' }}>
+                        {{ $item['name'] }}
+                    </option>
                 @endforeach
             </select>
         </div>

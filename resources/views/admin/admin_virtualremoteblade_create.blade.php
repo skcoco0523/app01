@@ -6,8 +6,10 @@
             <label for="remote_kind" class="form-label">種別</label>
             <select name="remote_kind" class="form-control">
                 <option value="" {{ ($input['remote_kind'] ?? '') == '' ? 'selected' : '' }}></option>
-                @foreach (config('common.remote_kind') as $key => $value)
-                    <option value="{{ $value }}" {{ ($input['remote_kind'] ?? '') == (string)$value ? 'selected' : '' }}>{{ $key }}</option>
+                @foreach (config('common.virtual_remote') as $id => $item)
+                    <option value="{{ $id }}" {{ ($input['remote_kind'] ?? '') == (string)$id ? 'selected' : '' }}>
+                        {{ $item['name'] }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -60,10 +62,7 @@
                     <td class="fw-light">{{$blade->id}}</td>
                     <td class="fw-light">
                         @php
-                            $kind_name = '未登録の種別'; // デフォルト値
-                            foreach (config('common.remote_kind') as $key => $value) {
-                                if ($value === $blade->kind) { $kind_name = $key;}
-                            }
+                            $kind_name = config('common.virtual_remote')[$blade->kind]['name'] ?? '未登録の種別';
                         @endphp
                         {{ $kind_name }}
                     </td>

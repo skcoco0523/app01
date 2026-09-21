@@ -14,8 +14,10 @@
             <label class="form-label">種別</label>
             <select name="remote_kind" class="form-control">
                 <option value="" {{ ($input['remote_kind'] ?? '') == '' ? 'selected' : '' }}></option>
-                @foreach (config('common.remote_kind') as $key => $value)
-                    <option value="{{ $value }}" {{ ($input['remote_kind'] ?? '') == (string)$value ? 'selected' : '' }}>{{ $key }}</option>
+                @foreach (config('common.virtual_remote') as $id =>$item)
+                    <option value="{{ $id }}" {{ ($input['remote_kind'] ?? '') == (string)$id ? 'selected' : '' }}>
+                        {{ $item['name'] }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -61,10 +63,10 @@
 {{--リモコン一覧--}}
 @if(isset($virtualremoteblade_list))
     @php
-        $page_prm = $input ?? '';
+        $page_prm =$input ?? '';
     @endphp
 
-    @include('admin.layouts.pagination', ['paginator' => $virtualremoteblade_list, 'page_prm' => $page_prm])
+    @include('admin.layouts.pagination', ['paginator' => $virtualremoteblade_list, 'page_prm' =>$page_prm])
     <div style="overflow-x: auto;">
         <table class="table table-striped table-hover table-bordered fs-6">
             <thead>
@@ -86,12 +88,10 @@
             @foreach($virtualremoteblade_list as $blade)
                 <tr>
                     <td class="fw-light">{{ $blade->id }}</td>
-                    <td class="fw-light">
+                    {{-- ★修正1: data-kind 属性を追加して ID を保持 --}}
+                    <td class="fw-light" data-kind="{{ $blade->kind }}">
                         @php
-                            $kind_name = '未登録の種別';
-                            foreach (config('common.remote_kind') as $key => $value) {
-                                if ($value === $blade->kind) { $kind_name = $key; }
-                            }
+                            $kind_name = config('common.virtual_remote')[$blade->kind]['name'] ?? '未登録の種別';
                         @endphp
                         {{ $kind_name }}
                     </td>
@@ -132,12 +132,11 @@
             </tbody>
         </table>
     </div>
-    @include('admin.layouts.pagination', ['paginator' => $virtualremoteblade_list, 'page_prm' => $page_prm])
+    @include('admin.layouts.pagination', ['paginator' => $virtualremoteblade_list, 'page_prm' =>$page_prm])
 @endif
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const remoteKindMap = @json(config('common.remote_kind'));
         const form = document.getElementById('remoteblade_chg_form');
         form.style.display = 'none';
 
@@ -146,26 +145,26 @@
             button.addEventListener('click', function () {
                 form.style.display = 'block';
 
-                const row               = this.closest('tr');
-                const cells             = row.querySelectorAll('td');
+                const row        = this.closest('tr');
+                const cells      = row.querySelectorAll('td');
                 
-                const id                = cells[0].textContent.trim();
-                const remote_kind       = cells[1].textContent.trim();
-                const remote_kind_value = remoteKindMap[remote_kind] ?? '';
-                const blade_name        = cells[2].textContent.trim();
+                const id         = cells[0].textContent.trim();
+                // ★修正2: data-kind 属性から ID (0, 1...) を直接取得
+                const remote_kind = cells[1].dataset.kind ?? '';
+                const blade_name = cells[2].textContent.trim();
                 
-                // data属性経由で数値フラグ（0/1）を安全に取得
-                const library_flag      = cells[3].dataset.libraryFlag ?? 0;
-                const protocol          = cells[4].dataset.protocol ?? '';
-                const test_flag         = cells[5].dataset.testFlag ?? 0;
+                // data属性経由で数値フラグ等を安全に取得
+                const library_flag = cells[3].dataset.libraryFlag ?? 0;
+                const protocol     = cells[4].dataset.protocol ?? '';
+                const test_flag    = cells[5].dataset.testFlag ?? 0;
 
                 // フォームの対応フィールドへセット
-                form.querySelector('input[name="id"]').value           = id;
-                form.querySelector('select[name="remote_kind"]').value = remote_kind_value;
-                form.querySelector('input[name="blade_name"]').value   = blade_name;
+                form.querySelector('input[name="id"]').value            = id;
+                form.querySelector('select[name="remote_kind"]').value  = remote_kind;
+                form.querySelector('input[name="blade_name"]').value    = blade_name;
                 form.querySelector('select[name="library_flag"]').value = library_flag;
-                form.querySelector('input[name="protocol"]').value     = protocol;
-                form.querySelector('select[name="test_flag"]').value   = test_flag;
+                form.querySelector('input[name="protocol"]').value      = protocol;
+                form.querySelector('select[name="test_flag"]').value    = test_flag;
             });
         });
     });

@@ -12,6 +12,7 @@ use App\Models\IotDevice;
 use App\Models\User;
 use App\Models\Mosquitto;
 use App\Models\CommonConfig;
+use App\Models\VirtualRemoteUser;
 use Exception;
 
 class ApiAudioController extends Controller
@@ -262,6 +263,25 @@ class ApiAudioController extends Controller
                     'code'    => 'NO_SPEECH_DETECTED', // ESP32側で「首を傾げる/困り顔」表示
                     'message' => 'No clear speech detected'
                 ], 400);
+            }
+
+
+            // ==========================================================================
+            // 低原価APIでユーザーの意図を確認する
+            // ==========================================================================
+            
+            $keyword = array(
+                'admin_flag'        => true,
+                'search_user_id'    => $user->id,
+                'search_admin_flag' => true
+            );
+            $remote_list = VirtualRemoteUser::getVirtualRemoteUserList(null,false,null,$keyword); 
+            $my_remote = [];
+            $virtual_remote_conf = config('common.virtual_remote');
+            
+            foreach ($remote_list as $key => $remote) {
+                $kind =$virtual_remote_conf[$remote->kind]['name'] ?? '不明';
+                $my_remote[] = ['name' => $remote->name, 'kind' => $kind, 'library_flag' => $remote->library_flag, 'protocol' => $remote->protocol,'settings' => $remote->settings];
             }
 
             // ==========================================================================

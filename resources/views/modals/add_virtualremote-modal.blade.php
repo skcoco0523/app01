@@ -16,8 +16,8 @@
                         <label for="remote_kind" class="form-label">リモコンタイプ</label>
                         <select name="remote_kind" id="remote_kind_select" class="form-control">
                             <option value="">タイプを選択</option>
-                            @foreach (config('common.remote_kind') as $key => $value)
-                                <option value="{{ $value }}">{{ $key }}</option>
+                            @foreach (config('common.virtual_remote') as $id => $item)
+                                <option value="{{ $id }}">{{ $item['name'] }}</option>
                             @endforeach
                         </select>
                     </div>
