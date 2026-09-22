@@ -52,7 +52,7 @@ class VirtualRemoteUser extends Model
                         $sql_cmd = $sql_cmd->where('remote_u.stop_flag',$keyword['search_stop_flag']);
                     
                     if (isset($keyword['search_user_id'])) 
-                        $sql_cmd = $sql_cmd->where('remote_u.id',$keyword['search_user_id']);
+                        $sql_cmd = $sql_cmd->where('remote_u.user_id',$keyword['search_user_id']);
 
                 //ユーザーによる検索
                 }else{

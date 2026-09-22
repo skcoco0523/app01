@@ -193,8 +193,8 @@ class ApiAudioController extends Controller
             $totalSize   = strlen($audioData);
             $pcmDataSize = $totalSize - 44;
 
-            // 0.8秒未満はノイズ・誤押しと判断して即時リジェクト
-            if ($pcmDataSize < (32000 * 0.8)) {
+            // 0.5秒未満はノイズ・誤押しと判断して即時リジェクト
+            if ($pcmDataSize < (32000 * 0.5)) {
                 make_error_log($error_log, "Error: Audio data too short ({$pcmDataSize} bytes). Minimum 1 second required.");
                 return response()->json([
                     'status'  => 'error',
@@ -245,12 +245,12 @@ class ApiAudioController extends Controller
                         'message' => 'Speech-to-Text service unavailable'
                     ], 502); // 502 Bad Gateway
                 }
-            }finally {
-            // エラー・正常完了を問わず、生成したWAVファイルを確実に削除
-            if (isset($path) && Storage::exists($path)) {
-                Storage::delete($path);
+            } finally {
+                // エラー・正常完了を問わず、生成したWAVファイルを確実に削除
+                if (isset($path) && Storage::exists($path)) {
+                    Storage::delete($path);
+                }
             }
-        }
             // ==========================================================================
             // 文字起こし結果のクレンジング・ハルシネーション判定
             // ==========================================================================
@@ -280,20 +280,49 @@ class ApiAudioController extends Controller
             $virtual_remote_conf = config('common.virtual_remote');
             
             foreach ($remote_list as $key => $remote) {
-                $kind =$virtual_remote_conf[$remote->kind]['name'] ?? '不明';
-                $my_remote[] = ['name' => $remote->name, 'kind' => $kind, 'library_flag' => $remote->library_flag, 'protocol' => $remote->protocol,'settings' => $remote->settings];
+                
+                $my_remote[] = [
+                    'id'           => $remote->id,                             // リモコンID
+                    'name'         => $remote->name,                           // リモコン名 (例: エアコン)
+                    'kind'         => $virtual_remote_conf[$remote->kind]['name'] ?? 'その他', // 種別名 (例: エアコン)
+                    'device_id'    => $remote->device_id,                      // 紐づくIoTデバイスID
+                    'device_name'  => $remote->device_name ?? '',              // デバイス名 (例: ナナチ)
+                    'library_flag' => (int)$remote->library_flag,              // 1: ライブラリ型(動的制御可), 0: 学習型(RAW/単発)
+                    'protocol'     => $remote->protocol ?? null,               // プロトコル名 (例: PANASONIC_AC)
+                    'settings'     => $remote->settings,                        // 現在の状態 (配列 or null)
+                ];
             }
+            make_error_log($error_log, "my_remote:".print_r($my_remote,1));
+
+            //音声から意図を分析
+            $intentResult = $this->analyzeIntentWithLLM($transcript, $my_remote, $error_log);
+
+            make_error_log($error_log, "[AI Intent Analysis]: " . json_encode($intentResult, JSON_UNESCAPED_UNICODE));
 
             // ==========================================================================
             // モードに応じた処理
             // ==========================================================================
-            if ($mode === 'command') {
-                //$transcript = $this->xxxxxxx($transcript);
-                $transcript = "[コマンドモード] " . $transcript;
+            if (!empty($intentResult['matched'])) {
+                // 【リモコン操作の意図があった場合】
+                $remoteId = $intentResult['remote_id'] ?? null;
+                $action   = $intentResult['action'] ?? null;
+                $settings = $intentResult['settings'] ?? null;
 
-            } elseif ($mode === 'voice') {
-                //$transcript = $this->xxxxxxx($transcript);
-                $transcript = "[音声応答モード] " . $transcript;
+                // TODO: 対象機器へ MQTT 経由で赤外線送信命令を発行
+                // Mosquitto::publishMQTT($macAddress, "ir_send", json_encode([...]));
+
+                // 実行結果メッセージを発信テキストとして更新
+                $transcript = $intentResult['message'] ?? '操作を実行しました。';
+
+            } else {
+                // 【リモコン操作の意図がなかった場合】
+                if ($mode === 'command') {
+                    $transcript = '該当するリモコン操作が見つかりませんでした。';
+                } elseif ($mode === 'voice') {
+                    // 通常の会話応答を生成（※必要に応じて会話用LLMメソッドを呼ぶ）
+                    // $transcript = $this->generateVoiceResponseWithLLM($transcript);
+                    $transcript = "リモコン操作ではありませんでした: " . $transcript;
+                }
             }
             // ===========================================================================
             // 処理完了後にポイント減算 ＆ 利用回数カウントアップ
@@ -466,6 +495,100 @@ class ApiAudioController extends Controller
 
         return $text;
     }
+
+    /**
+     * 低原価LLM (Groq) を使用して、ユーザーの発話からリモコン操作の意図を解析する
+     *
+     * @param string $transcript
+     * @param array $myRemote
+     * @param string $error_log
+     * @return array
+     */
+    private function analyzeIntentWithLLM(string $transcript, array $myRemote, string $error_log = ''): array
+    {
+        $apiKey = config('services.groq.api_key', env('GROQ_API_KEY'));
+        if (empty($apiKey)) {
+            if ($error_log) make_error_log($error_log, "[AI Intent Error] GROQ_API_KEY が未設定です。");
+            return ['matched' => false, 'message' => 'AI APIキーが未設定です。'];
+        }
+
+        // リモコンリストのJSON変換
+        $remoteJson = json_encode($myRemote, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        // プロンプト文字列の作成
+        $systemPrompt = "You are a smart home control AI. "
+            . "Analyze the user's spoken input and compare it with the user's remote control list. "
+            . "Respond strictly in JSON format.\n\n"
+            . "【User Remote List】\n"
+            . $remoteJson . "\n\n"
+            . "【Rules】\n"
+            . "1. If the input matches a remote control in the list (e.g., 'リビングの照明つけて' matches 'リビングの照明'), set 'matched' to true and return the 'remote_id'.\n"
+            . "2. 'つけ' or '消して' or '点灯' means power control. Set 'action' to 'power_on' or 'power_off'.\n"
+            . "3. If no matching remote control is found, set 'matched' to false.\n\n"
+            . "【Output JSON Schema】\n"
+            . "{\n"
+            . "  \"matched\": true,\n"
+            . "  \"remote_id\": 31,\n"
+            . "  \"action\": \"power_on\",\n"
+            . "  \"settings\": null,\n"
+            . "  \"message\": \"リビングの照明をつけました\"\n"
+            . "}";
+
+        // Developerプランで現在確実に使えるアクティブモデルリスト（優先順）
+        $models = [
+            'openai/gpt-oss-20b',   // 最優先: 超爆速(1000 tps)・Developerプラン対応
+            'openai/gpt-oss-120b',  // 候補2: 高精度・Developerプラン対応
+            'qwen/qwen3.8-27b'      // 候補3: 予備
+        ];
+
+        foreach ($models as $model) {
+            try {
+                $response = Http::withToken($apiKey)
+                    ->timeout(10)
+                    ->post('https://api.groq.com/openai/v1/chat/completions', [
+                        'model'           => $model,
+                        'messages'        => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user', 'content' => $transcript]
+                        ],
+                        'response_format' => ['type' => 'json_object'],
+                        'temperature'     => 0.1,
+                    ]);
+
+                if ($response->successful()) {
+                    $content = $response->json('choices.0.message.content');
+                    $result  = json_decode($content, true);
+                    return is_array($result) ? $result : ['matched' => false, 'message' => 'JSON解析エラー'];
+                }
+
+                $status  = $response->status();
+                $resData = $response->json();
+                $errCode = $resData['error']['code'] ?? '';
+
+                // 権限なし(404/model_not_found) または 廃止(400/model_decommissioned) の場合は次のモデルへ
+                if ($status === 404 || $status === 400 || $errCode === 'model_decommissioned' || $errCode === 'model_not_found') {
+                    if ($error_log) {
+                        make_error_log($error_log, "[AI Intent Warning] Model '{$model}' unavailable (Status: {$status}, Code: {$errCode}). Trying next model...");
+                    }
+                    continue;
+                }
+
+                // その他のエラー（認証NGなど）はログに記録して打ち切り
+                if ($error_log) {
+                    make_error_log($error_log, "[AI Intent Failure] Model: {$model} Status: " . $status . " Response: " . $response->body());
+                }
+                break;
+
+            } catch (Exception $e) {
+                if ($error_log) {
+                    make_error_log($error_log, "[AI Intent Exception] Model: {$model} Error: " . $e->getMessage());
+                }
+            }
+        }
+
+        return ['matched' => false, 'message' => 'AI意図解析失敗'];
+    }
+
     // ========================================================================
     // mode別の処理
     // ========================================================================
