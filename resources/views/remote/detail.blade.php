@@ -155,20 +155,36 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         //===================================================================
-        // モード切り替え関数
+        // モード切り替え関数 & SmartRemote インスタンス初期化
         //===================================================================
         const DisplayArea = document.getElementById('DisplayArea');
         const EditArea = document.getElementById('EditArea');
         const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
         const buttonTextSpan = document.getElementById('buttonText');
 
-        // 共通インスタンスの初期化
+        // ★ $virtual_remote->device_id が無ければ $r_sig の最初の device_id を自動取得
+        @php
+            $firstSig = collect($r_sig ?? [])->first();
+            $defaultDeviceId = $virtual_remote->device_id ?? ($firstSig->device_id ?? '');
+        @endphp
+
         const remoteId = document.getElementById('remote_id')?.value || '';
+        const deviceId = '{{ $defaultDeviceId }}';
+
         window.smartRemoteInstance = new SmartRemote(
             remoteId,
             '{{ csrf_token() }}',
-            irSendSignalUrl
+            irSendSignalUrl,
+            deviceId
         );
+
+        // ライブラリ送信先プルダウンが変更されたらインスタンス内の deviceId も同期更新
+        const libDeviceSelect = document.getElementById('library_device_select');
+        if (libDeviceSelect) {
+            libDeviceSelect.addEventListener('change', function() {
+                window.smartRemoteInstance.setDeviceId(this.value);
+            });
+        }
 
         function setEditMode(enableEdit) {
             window.smartRemoteInstance.setEditMode(enableEdit);
@@ -179,7 +195,6 @@
                 buttonTextSpan.textContent = '閉じる';
                 designContainer.classList.add('is-edit-mode');
 
-                // サーバー側のフラグで直接呼び出す
                 @if($virtual_remote->library_flag)
                     initLibraryDeviceSelect();
                 @endif
@@ -205,6 +220,7 @@
             btn.addEventListener('click', function() {
                 const buttonNum = btn.dataset.buttonNum;
                 const buttonName = btn.dataset.buttonName;
+                const btnDeviceId = btn.dataset.deviceId; // ボタン個別にデバイスIDがある場合
 
                 if (window.smartRemoteInstance.isEditingMode) {
                     openModal('edit_virtualremote_signal-modal', {
@@ -219,6 +235,12 @@
                         console.warn(`ボタン[${buttonName}]は信号が未登録のため送信をスキップしました。`);
                         return; // HTTP POST を実行せずに終了
                     }
+
+                    // ボタン個別の device_id が指定されている場合は一時上書き
+                    if (btnDeviceId) {
+                        window.smartRemoteInstance.setDeviceId(btnDeviceId);
+                    }
+
                     window.smartRemoteInstance.sendSignal(buttonNum);
                 }
             });
@@ -226,7 +248,6 @@
 
         // ----------------------------------------------------------
         // ライブラリ送信用 (data-lib-protocol) 固定値ボタン用
-        // アクションがないボタンのみ、共通処理で送信する
         // ----------------------------------------------------------
         document.querySelectorAll('button[data-lib-protocol]:not([data-action])').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -242,6 +263,10 @@
                 const hex      = btn.dataset.libHex;
                 const bits     = btn.dataset.libBits;
                 
+                if (libDeviceSelect && libDeviceSelect.value > 0) {
+                    options.device_id = libDeviceSelect.value;
+                }
+
                 window.smartRemoteInstance.sendLibrary(protocol, hex, bits, options);
             });
         });
@@ -252,12 +277,11 @@
         async function initLibraryDeviceSelect() {
             const area = document.getElementById('LibraryDeviceSelectArea');
             const select = document.getElementById('library_device_select');
-            const currentDeviceId = '{{ $virtual_remote->device_id ?? 0 }}';
+            const currentDeviceId = '{{ $defaultDeviceId }}';
 
             if (!area || !select) return;
             area.style.display = 'block';
 
-            // 既にロード済みの場合はスキップ（または最新化したい場合はリロード）
             if (select.options.length > 1) return;
 
             try {
@@ -267,7 +291,10 @@
                         const option = document.createElement('option');
                         option.value = device.id;
                         option.textContent = device.name;
-                        if (device.id == currentDeviceId) option.selected = true;
+                        if (device.id == currentDeviceId) {
+                            option.selected = true;
+                            window.smartRemoteInstance.setDeviceId(device.id);
+                        }
                         select.appendChild(option);
                     });
                 }
@@ -276,7 +303,7 @@
             }
         }
 
-        // 登録済みデバイス取得 (ご提示いただいた関数)
+        // 登録済みデバイス取得
         async function get_iot_device() {
             return new Promise((resolve, reject) => {
                 $.ajax({
@@ -294,8 +321,5 @@
                 });
             });
         }
-
-            
-
     });
 </script>

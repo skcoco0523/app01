@@ -14,6 +14,7 @@ use App\Models\CommonConfig;
 use App\Models\VirtualRemoteUser;
 use App\Models\IotDeviceSignal;
 use App\Models\Ai;
+use App\Models\Ir;
 use Exception;
 
 class ApiAudioController extends Controller
@@ -267,15 +268,20 @@ class ApiAudioController extends Controller
             // モードおよび解析結果に応じた制御
             // ==========================================================================
             if (!empty($intentResult['matched'])) {
-                $remoteId = $intentResult['remote_id'] ?? null;
-                $action   = $intentResult['action'] ?? null;
-                $signalId = $intentResult['signal_id'] ?? null;
-                $settings = $intentResult['settings'] ?? null;
+                // 共通モデル Ir::sendSignal を使用して赤外線送信
+                $irResult = Ir::sendSignal([
+                    'user_id'      => $user->id,
+                    'remote_id'    => $intentResult['remote_id'] ?? null,
+                    'signal_id'    => $intentResult['signal_id'] ?? null,
+                    'action'       => $intentResult['action'] ?? null,
+                    'settings'     => $intentResult['settings'] ?? null,
+                    'device_id'    => $device->id ?? null,
+                ]);
+                make_error_log($error_log, "[IR Send Result]: " . json_encode($irResult, JSON_UNESCAPED_UNICODE));
 
-                // TODO: 対象機器へ MQTT 経由で赤外線送信命令を発行
-                // Mosquitto::publishMQTT($macAddress, "ir_send", json_encode([...]));
-
+                // 返答用メッセージを意図解析のメッセージで上書き
                 $transcript = $intentResult['message'] ?? '操作を実行しました。';
+                
 
             } else {
                 if ($mode === 'command') {
