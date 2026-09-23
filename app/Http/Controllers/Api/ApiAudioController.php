@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Mosquitto;
 use App\Models\CommonConfig;
 use App\Models\VirtualRemoteUser;
+use App\Models\IotDeviceSignal;
 use Exception;
 
 class ApiAudioController extends Controller
@@ -280,16 +281,24 @@ class ApiAudioController extends Controller
             $virtual_remote_conf = config('common.virtual_remote');
             
             foreach ($remote_list as $key => $remote) {
+                //ライブラリを利用しない学習型の場合信号を取得
+                $signals = null;
+                if(!$remote->library_flag){  
+                    // 仮想リモコンIDに紐づく信号を取得
+                    $signals = IotDeviceSignal::where('remote_id', $remote->remote_id)->get(['id', 'signal_name'])->toArray();;
+                }
+                $kind = $virtual_remote_conf[$remote->kind]['name'] ?? 'その他';
                 
                 $my_remote[] = [
-                    'id'           => $remote->id,                             // リモコンID
-                    'name'         => $remote->name,                           // リモコン名 (例: エアコン)
-                    'kind'         => $virtual_remote_conf[$remote->kind]['name'] ?? 'その他', // 種別名 (例: エアコン)
-                    'device_id'    => $remote->device_id,                      // 紐づくIoTデバイスID
-                    'device_name'  => $remote->device_name ?? '',              // デバイス名 (例: ナナチ)
-                    'library_flag' => (int)$remote->library_flag,              // 1: ライブラリ型(動的制御可), 0: 学習型(RAW/単発)
-                    'protocol'     => $remote->protocol ?? null,               // プロトコル名 (例: PANASONIC_AC)
-                    'settings'     => $remote->settings,                        // 現在の状態 (配列 or null)
+                    'id'            => $remote->remote_id,                      // リモコンID
+                    'name'          => $remote->name,                           // リモコン名 (例: エアコン)
+                    'kind'          => $kind,                                   // 種別名 (例: エアコン)
+                    'device_id'     => $remote->device_id,                      // 紐づくIoTデバイスID
+                    'device_name'   => $remote->device_name ?? '',              // デバイス名 (例: ナナチ)
+                    'library_flag'  => (int)$remote->library_flag,              // 1: ライブラリ型(動的制御可), 0: 学習型(RAW/単発)
+                    'signals'       => $signals,                                // 学習した信号
+                    'protocol'      => $remote->protocol ?? null,               // プロトコル名 (例: PANASONIC_AC)
+                    'settings'      => $remote->settings,                       // 現在の状態 (配列 or null)
                 ];
             }
             make_error_log($error_log, "my_remote:".print_r($my_remote,1));
