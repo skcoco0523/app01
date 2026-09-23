@@ -88,6 +88,7 @@
             'items' => [
                 ['url' => route('admin.system.config_maint'), 'label' => 'メンテナンス設定'],
                 ['url' => route('admin.system.config_mqtt'), 'label' => 'MQTT設定'],
+                ['url' => route('admin.system.ai_test'), 'label' => 'AIテスト'],
             ]
         ],
         'another' => [
@@ -175,6 +176,9 @@
         $view_right_file     = 'admin.admin_system_config';
     }elseif ($tab1 == 'system' && $tab2 == 'config_mqtt' && $tab3 == '') {
         $view_right_file     = 'admin.admin_system_config';
+    }elseif ($tab1 == 'system' && $tab2 == 'ai_test') {
+        $view_right_file     = 'admin.system.ai_test';
+
 
     }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {
         $view_left_file     = 'admin.admin_memo_search_left';

@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\AdminGameItemController;
 use App\Http\Controllers\Admin\AdminGameAssetController;
 use App\Http\Controllers\Admin\AdminAnotherController;
 use App\Http\Controllers\Admin\AdminConfigController;
+use App\Http\Controllers\Admin\AdminAiController;
 
 
 //ユーザー
@@ -299,10 +300,13 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //----------------------------------------------------------------------------------
         // システム設定
         //----------------------------------------------------------------------------------
+        //設定
         Route::get('system/config_maint', [AdminConfigController::class, 'config_maint'])->name('admin.system.config_maint');
         Route::get('system/config_mqtt', [AdminConfigController::class, 'config_mqtt'])->name('admin.system.config_mqtt');
         Route::post('system/config_update', [AdminConfigController::class, 'config_update'])->name('admin.system.config.update');
-
+        //テスト
+        Route::get('system/ai_test', [AdminAiController::class, 'ai_test'])->name('admin.system.ai_test');
+        Route::post('system/ai_test/exec', [AdminAiController::class, 'ai_test_exec'])->name('admin.system.ai_test.exec');
 
         //----------------------------------------------------------------------------------
         //その他
