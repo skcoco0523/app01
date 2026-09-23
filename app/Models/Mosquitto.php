@@ -62,7 +62,7 @@ class Mosquitto extends Model
                 throw new \Exception("MQTT接続に失敗しました。");
             }
             
-            $QoS_level = 0; // 0: 1回だけ送信(未接続時送信無し)
+            $QoS_level = 1;       // ESP32が受信完了（PUBACK）を返すまでブローカーがメッセージを保持する
             $retain_flag = false; // true：受信側未接続状態で保持させる
             
             // メッセージ送信

@@ -266,11 +266,6 @@ class ApiSmartRemoteController extends Controller
                 }
             }
 
-            // 3. それでもなければユーザーの最初の有効なデバイスを検索
-            if (!$device) {
-                $device = IotDevice::getIotDeviceList(1,false,null,['search_admin_uid'=>Auth::id(), 'search_status'=>config('common.iot_device_status.online')])->first();
-                if ($device) make_error_log($error_log, "fallback to user first device. device_id: ".$device->id);
-            }
 
             if (!$device) return response()->json(['success' => false, 'msg' => '送信デバイスが見つからないか権限がありません。'], 404);
 
