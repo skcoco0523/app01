@@ -95,7 +95,6 @@ class Ai
         $remoteJson = json_encode($my_remote, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         $nowData    = date('Y-m-d H:i:s (D)');
 
-        // ★ プロンプトに学習型(library_flag=0)とライブラリ型(library_flag=1)の明確な指示を追加
         $systemPrompt = "Current Date & Time: {$nowData}\n\n"
             . "You are a smart home control AI.\n"
             . "Analyze the user's spoken input and compare it with the user's remote control list.\n"
@@ -144,18 +143,80 @@ class Ai
                     $result  = json_decode($content, true);
 
                     if (is_array($result)) {
-                        // ★ 安全対策: 学習型(library_flag=0)で signal_id が未設定の場合の自動補完ロジック
+                        // ★ ここから: 学習型(library_flag=0)で signal_id が未設定の場合の自動補完ロジック
                         if (!empty($result['matched']) && !empty($result['remote_id']) && empty($result['signal_id'])) {
                             foreach ($my_remote as $remote) {
                                 if ($remote['id'] == $result['remote_id'] && (int)$remote['library_flag'] === 0 && !empty($remote['signals'])) {
-                                    $targetKeyword = $result['action'] ?? $transcript;
-                                    foreach ($remote['signals'] as $sig) {
-                                        if (mb_strpos($sig['signal_name'], $targetKeyword) !== false || mb_strpos($transcript, $sig['signal_name']) !== false) {
-                                            $result['signal_id'] = $sig['id'];
-                                            $result['action']    = null;
-                                            break;
+                                    
+                                    $actionText = mb_strtolower($result['action'] ?? '');
+                                    
+                                    // 意図フラグ判定
+                                    $isOff  = (mb_strpos($transcript, '消') !== false || mb_strpos($transcript, '切') !== false || mb_strpos($transcript, 'オフ') !== false || mb_strpos($actionText, 'off') !== false);
+                                    $isOn   = (mb_strpos($transcript, 'つけ') !== false || mb_strpos($transcript, '点') !== false || mb_strpos($transcript, 'オン') !== false || mb_strpos($actionText, 'on') !== false);
+                                    $isUp   = (mb_strpos($transcript, '上') !== false || mb_strpos($transcript, '大') !== false || mb_strpos($transcript, '強') !== false || mb_strpos($transcript, '明') !== false || mb_strpos($transcript, '+') !== false);
+                                    $isDown = (mb_strpos($transcript, '下') !== false || mb_strpos($transcript, '小') !== false || mb_strpos($transcript, '弱') !== false || mb_strpos($transcript, '暗') !== false || mb_strpos($transcript, '-') !== false);
+
+                                    // 1. 消灯・電源オフ系
+                                    if ($isOff) {
+                                        foreach ($remote['signals'] as $sig) {
+                                            $name = mb_strtolower($sig['signal_name']);
+                                            if (mb_strpos($name, '消') !== false || mb_strpos($name, '切') !== false || mb_strpos($name, 'オフ') !== false || mb_strpos($name, 'off') !== false) {
+                                                $result['signal_id'] = $sig['id'];
+                                                $result['action']    = null;
+                                                break;
+                                            }
                                         }
                                     }
+
+                                    // 2. 点灯・全灯・電源オン系
+                                    if (empty($result['signal_id']) && $isOn) {
+                                        foreach ($remote['signals'] as $sig) {
+                                            $name = mb_strtolower($sig['signal_name']);
+                                            if (mb_strpos($name, '全灯') !== false || mb_strpos($name, '点灯') !== false || mb_strpos($name, 'つけ') !== false || mb_strpos($name, 'オン') !== false || mb_strpos($name, 'on') !== false) {
+                                                $result['signal_id'] = $sig['id'];
+                                                $result['action']    = null;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // 3. 上げる・強く・大きく・明るく
+                                    if (empty($result['signal_id']) && $isUp) {
+                                        foreach ($remote['signals'] as $sig) {
+                                            $name = mb_strtolower($sig['signal_name']);
+                                            if (mb_strpos($name, '上') !== false || mb_strpos($name, '強') !== false || mb_strpos($name, '大') !== false || mb_strpos($name, '明') !== false || mb_strpos($name, '+') !== false || mb_strpos($name, 'up') !== false) {
+                                                $result['signal_id'] = $sig['id'];
+                                                $result['action']    = null;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // 4. 下げる・弱く・小さく・暗く
+                                    if (empty($result['signal_id']) && $isDown) {
+                                        foreach ($remote['signals'] as $sig) {
+                                            $name = mb_strtolower($sig['signal_name']);
+                                            if (mb_strpos($name, '下') !== false || mb_strpos($name, '弱') !== false || mb_strpos($name, '小') !== false || mb_strpos($name, '暗') !== false || mb_strpos($name, '-') !== false || mb_strpos($name, 'down') !== false) {
+                                                $result['signal_id'] = $sig['id'];
+                                                $result['action']    = null;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // 5. 電源（単一の電源トグルボタン）
+                                    if (empty($result['signal_id'])) {
+                                        foreach ($remote['signals'] as $sig) {
+                                            $name = mb_strtolower($sig['signal_name']);
+                                            if (mb_strpos($name, '電源') !== false || mb_strpos($name, 'パワー') !== false || mb_strpos($name, 'power') !== false) {
+                                                $result['signal_id'] = $sig['id'];
+                                                $result['action']    = null;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // 6. 最終フォールバック（最初のボタン）
                                     if (empty($result['signal_id']) && !empty($remote['signals'][0]['id'])) {
                                         $result['signal_id'] = $remote['signals'][0]['id'];
                                         $result['action']    = null;
@@ -184,10 +245,17 @@ class Ai
     /**
      * 文字起こし結果のクレンジング
      */
+    /**
+     * 文字起こし結果のクレンジング
+     */
     public static function cleanTranscript(?string $text): ?string
     {
         if (empty($text)) return null;
+        
+        // ★ 前後の空白および文末の句読点（。や .）を削除
         $text = trim($text);
+        $text = preg_replace('/[。\.！!？\?]+$/u', '', $text);
+        
         if (mb_strlen($text) <= 1) return null;
 
         $hallucinations = [
