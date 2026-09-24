@@ -93,11 +93,9 @@ class Ai
         }
 
         $remoteJson = json_encode($my_remote, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        
-        // ★現在日時の取得（現在日時・曜日）
-        $nowData = date('Y-m-d H:i:s (D)');
+        $nowData    = date('Y-m-d H:i:s (D)');
 
-        // ★システムプロンプトの先頭に現在日時を埋め込み
+        // ★ プロンプトに学習型(library_flag=0)とライブラリ型(library_flag=1)の明確な指示を追加
         $systemPrompt = "Current Date & Time: {$nowData}\n\n"
             . "You are a smart home control AI.\n"
             . "Analyze the user's spoken input and compare it with the user's remote control list.\n"
@@ -105,9 +103,15 @@ class Ai
             . "【User Remote List】\n"
             . $remoteJson . "\n\n"
             . "【Rules】\n"
-            . "1. If the input matches a remote control in the list, set 'matched' to true and return 'remote_id'.\n"
-            . "2. 'つけ' or '消して' means power control. Set 'action' to 'power_on' or 'power_off'.\n"
-            . "3. If no matching remote control is found, set 'matched' to false.\n\n"
+            . "1. If the input matches a remote control, set 'matched' to true and return 'remote_id'.\n"
+            . "2. For 'library_flag' = 0 (Learned / RAW Remote):\n"
+            . "   - You MUST match the user request with one of the items in the 'signals' array.\n"
+            . "   - Return the matched signal's 'id' as 'signal_id'.\n"
+            . "   - Set 'action' to null and 'settings' to null.\n"
+            . "3. For 'library_flag' = 1 (Library / Smart Remote):\n"
+            . "   - Set 'signal_id' to null.\n"
+            . "   - Set 'action' (e.g., 'power_on', 'power_off') or 'settings' (e.g., temp, mode, fan, power).\n"
+            . "4. If no matching remote or signal is found, set 'matched' to false.\n\n"
             . "【Output JSON Format】\n"
             . "{\n"
             . "  \"matched\": boolean,\n"
@@ -140,6 +144,26 @@ class Ai
                     $result  = json_decode($content, true);
 
                     if (is_array($result)) {
+                        // ★ 安全対策: 学習型(library_flag=0)で signal_id が未設定の場合の自動補完ロジック
+                        if (!empty($result['matched']) && !empty($result['remote_id']) && empty($result['signal_id'])) {
+                            foreach ($my_remote as $remote) {
+                                if ($remote['id'] == $result['remote_id'] && (int)$remote['library_flag'] === 0 && !empty($remote['signals'])) {
+                                    $targetKeyword = $result['action'] ?? $transcript;
+                                    foreach ($remote['signals'] as $sig) {
+                                        if (mb_strpos($sig['signal_name'], $targetKeyword) !== false || mb_strpos($transcript, $sig['signal_name']) !== false) {
+                                            $result['signal_id'] = $sig['id'];
+                                            $result['action']    = null;
+                                            break;
+                                        }
+                                    }
+                                    if (empty($result['signal_id']) && !empty($remote['signals'][0]['id'])) {
+                                        $result['signal_id'] = $remote['signals'][0]['id'];
+                                        $result['action']    = null;
+                                    }
+                                }
+                            }
+                        }
+
                         $result['usage'] = [
                             'prompt_tokens'     => $usage['prompt_tokens'] ?? 0,
                             'completion_tokens' => $usage['completion_tokens'] ?? 0,

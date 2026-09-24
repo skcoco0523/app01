@@ -94,8 +94,9 @@ class Ir extends Model
 
                 // 共有リモコン対応：操作ユーザー(user_id)がこのリモコン(remote_id)の利用権限を持っているか検証
                 $vRemoteUser = VirtualRemoteUser::getVirtualRemoteUserList(1, true, false, [
-                    'search_remote_id' => $remoteId,
-                    'search_user_id'   => $userId,
+                    'admin_flag'        => true,
+                    'search_remote_id'  => $remoteId,
+                    'search_user_id'    => $userId,
                 ])->first();
 
                 if (!$vRemoteUser) {

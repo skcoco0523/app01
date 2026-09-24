@@ -11,6 +11,7 @@ use App\Models\CommonConfig;
 use App\Models\VirtualRemoteUser;
 use App\Models\IotDeviceSignal;
 use App\Models\Ai;
+use App\Models\Ir;
 use Exception;
 
 class AdminAiController extends Controller
@@ -184,17 +185,32 @@ class AdminAiController extends Controller
 
                 // 2. ESP32用レスポンス生成
                 if ($flags['flag_response']) {
+                    $irParams = [
+                        'user_id'   => $user->id,
+                        'remote_id' => $intent_res['remote_id'] ?? null,
+                        'signal_id' => $intent_res['signal_id'] ?? null,
+                        'action'    => $intent_res['action'] ?? null,
+                    ];
+
+                    if (!empty($intent_res['settings']) && is_array($intent_res['settings'])) {
+                        $irParams = array_merge($irParams, $intent_res['settings']);
+                    }
+
+                    // ★ 実際に赤外線送信（MQTTパブリッシュ）を実行
+                    $irResult = Ir::sendSignal($irParams);
+
                     $api_response = [
-                        'status'     => 'success',
+                        'status'     => $irResult['success'] ? 'success' : 'error',
                         'code'       => 'REMOTE_ACTION',
-                        'message'    => $intent_res['message'] ?? '操作を実行します。',
+                        'message'    => $irResult['msg'] ?? ($intent_res['message'] ?? '操作を実行します。'),
                         'transcript' => $transcript,
                         'command'    => [
                             'remote_id' => $intent_res['remote_id'] ?? null,
                             'signal_id' => $intent_res['signal_id'] ?? null,
                             'action'    => $intent_res['action'] ?? null,
                             'settings'  => $intent_res['settings'] ?? null,
-                        ]
+                        ],
+                        'mqtt_result' => $irResult
                     ];
                 }
 
