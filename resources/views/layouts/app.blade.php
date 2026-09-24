@@ -239,7 +239,11 @@
                                 <div class="dropdown-divider"></div>
                                 <h6 class="dropdown-header fw-bold text-secondary" style="font-size: 11px;">ポータル / サイト案内</h6>
                                 <a class="dropdown-item" href="{{ route('guide.index') }}"><i class="fa-solid fa-book me-1"></i> ガイド・使い方</a>
+                                
+                            @auth
+                            @else
                                 <a class="dropdown-item" href="{{ route('contact.index') }}"><i class="fa-regular fa-envelope me-1"></i> お問い合わせ</a>
+                            @endauth
                                 <a class="dropdown-item" href="{{ route('privacy') }}">プライバシーポリシー</a>
                                 <a class="dropdown-item" href="{{ route('terms') }}">利用規約</a>
                                 <a class="dropdown-item" href="{{ route('tokushoho') }}">特定商取引法に基づく表記</a>
