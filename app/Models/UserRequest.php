@@ -13,7 +13,7 @@ class UserRequest extends Model
     use HasFactory;
     
     protected $table = 'user_requests';
-    protected $fillable = ['user_id', 'type', 'message'];     //一括代入の許可
+    protected $fillable = ['user_id', 'type', 'message', 'email', 'reply', 'status'];
 
     //ユーザーリクエスト情報取得
     public static function getRequestList($disp_cnt=null,$pageing=false,$page=1,$keyword=null) 
@@ -79,7 +79,9 @@ class UserRequest extends Model
         make_error_log($error_log,"-------start-------");
         try {
             $error_code = 0;
-            if(!isset($data['user_id']))   $error_code = 1;   //データ不足
+            if (empty($data['user_id']) && empty($data['email'])) {
+                $error_code = 1; // 連絡先不足
+            }
             if(!isset($data['type']))      $error_code = 2;   //データ不足
             if(!isset($data['message']))   $error_code = 3;   //データ不足
             

@@ -18,13 +18,13 @@
     <link rel="icon" href="{{ asset('img/icon/home_icon_32_32.png') }}" sizes="32x32" type="image/png">
     <link rel="icon" href="{{ asset('img/icon/home_icon_48_48.png') }}" sizes="48x48" type="image/png">
     
-    <meta name="description" content="簡易アプリのまとめ">
-    <meta name="keywords" content="スマートリモコン, 共有memo, ルーレット">
+    <meta name="description" content="自作IoTスマートリモコンの操作や、リアルタイム共有メモなど、日常を便利にするWebツールを公開しているプラットフォームです。">
+    <meta name="keywords" content="スマートリモコン, ESP32, MQTT, 共有メモ, IoT">
     
     <?//SNSで表示される際の説明?>
     <meta property="og:url" content="https://skcoco.com/app01">
     <meta property="og:title" content="{{ config('app.name', 'その他') }}">
-    <meta property="og:description" content="フレンド間でお気に入りに登録した曲などを共有するアプリケーション">
+    <meta property="og:description" content="IoTデバイス連携や共有ツールを提供するプラットフォーム">
     <meta property="og:type" content="website">
     
     @php
@@ -158,7 +158,7 @@
 </head>
 <div class="header"></div>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
     
     <div id="notification">
         <img src="" alt="">
@@ -182,75 +182,82 @@
     <!-- 共通ポップアップモーダル -->
     @include('modals.common-modal')
 
-    <div class="container">
-            <div id="app">
-                <div class="fixed-top">
-                    <div class="container-fluid fixed-top-menu mx-auto w-100">
-                        <nav class="navbar navbar-light d-flex flex-nowrap align-items-center">
-                        
-                            <!-- アプリ名 -->
-                            <a class="navbar-brand" href="{{ url('/') }}">{{ config('app.name', 'Application') }}</a>
-                            <!-- ユーザー名 -->
-                            <div class="flex-grow-1 d-flex justify-content-end overflow-hidden me-2" style="min-width: 0;">
-                                @auth
-                                    <span class="text-ellipsis">{{ Auth::user()->name }}</span>
-                                @else
-                                    <span class="text-ellipsis">ゲストユーザー</span>
-                                @endauth
-                            </div>
-                            <!-- ハンバーガーメニュー -->
-                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
-                                <span class="navbar-toggler-icon"></span>
-                            </button>
-                        </nav>
-                        <!-- ナビゲーションメニュー -->
-                        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                            <!-- Left Side Of Navbar -->
-                            <ul class="navbar-nav me-auto">
-
-                            </ul>
-
-                            <!-- Right Side Of Navbar -->
-                            <ul class="navbar-nav ms-auto">
-                                <!-- Authentication Links -->
-                                <li class="nav-item dropdown">
-                                @auth
-                                    @if (Auth::user()->admin_flag)
-                                        <a class="dropdown-item" href="{{ route('admin.home') }}">管理者画面</a>
-                                    @endif
-                                        <a class="dropdown-item" href="{{ route('profile.show') }}">プロフィール</a>
-                                        <a class="dropdown-item" href="{{ route('request.index') }}">要望・問い合わせ</a>
-                                        <a class="dropdown-item" href="{{ route('point.buy') }}">ポイント購入</a>
-                                        <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            ログアウト
-                                        </a>
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                            @csrf
-                                        </form>
-                                @else
-                                    @if (Route::has('login'))
-                                        <a class="dropdown-item" href="{{ route('login') }}">ログイン</a>
-                                    @endif
-                                    @if (Route::has('register'))
-                                        <a class="dropdown-item" href="{{ route('register') }}">会員登録</a>
-                                    @endif
-                                @endauth
-                                    <a id="add-to-home-screen" class="dropdown-item" href="#">アプリ インストール</a>
-                                </li>
-                            </ul>
+    <div class="container d-flex flex-column flex-grow-1">
+        <div id="app" class="d-flex flex-column flex-grow-1">
+            <div class="fixed-top">
+                <div class="container-fluid fixed-top-menu mx-auto w-100">
+                    <nav class="navbar navbar-light d-flex flex-nowrap align-items-center">
+                    
+                        <!-- アプリ名 -->
+                        <a class="navbar-brand" href="{{ url('/') }}">{{ config('app.name', 'Application') }}</a>
+                        <!-- ユーザー名 -->
+                        <div class="flex-grow-1 d-flex justify-content-end overflow-hidden me-2" style="min-width: 0;">
+                            @auth
+                                <span class="text-ellipsis">{{ Auth::user()->name }}</span>
+                            @else
+                                <span class="text-ellipsis">ゲストユーザー</span>
+                            @endauth
                         </div>
+                        <!-- ハンバーガーメニュー -->
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </nav>
+                    <!-- ナビゲーションメニュー -->
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <!-- Left Side Of Navbar -->
+                        <ul class="navbar-nav me-auto">
+
+                        </ul>
+
+                        <!-- Right Side Of Navbar -->
+                        <ul class="navbar-nav ms-auto">
+                            <!-- Authentication Links -->
+                            <li class="nav-item dropdown">
+                            @auth
+                                @if (Auth::user()->admin_flag)
+                                    <a class="dropdown-item" href="{{ route('admin.home') }}">管理者画面</a>
+                                @endif
+                                    <a class="dropdown-item" href="{{ route('profile.show') }}">プロフィール</a>
+                                    <a class="dropdown-item" href="{{ route('request.index') }}">要望・問い合わせ</a>
+                                    <a class="dropdown-item" href="{{ route('point.buy') }}">ポイント購入</a>
+                                    <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                        ログアウト
+                                    </a>
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                        @csrf
+                                    </form>
+                            @else
+                                @if (Route::has('login'))
+                                    <a class="dropdown-item" href="{{ route('login') }}">ログイン</a>
+                                @endif
+                                @if (Route::has('register'))
+                                    <a class="dropdown-item" href="{{ route('register') }}">会員登録</a>
+                                @endif
+                            @endauth
+                                <a id="add-to-home-screen" class="dropdown-item" href="#">アプリ インストール</a>
+                                <div class="dropdown-divider"></div>
+                                <h6 class="dropdown-header fw-bold text-secondary" style="font-size: 11px;">ポータル / サイト案内</h6>
+                                <a class="dropdown-item" href="{{ route('guide.index') }}"><i class="fa-solid fa-book me-1"></i> ガイド・使い方</a>
+                                <a class="dropdown-item" href="{{ route('contact.index') }}"><i class="fa-regular fa-envelope me-1"></i> お問い合わせ</a>
+                                <a class="dropdown-item" href="{{ route('privacy') }}">プライバシーポリシー</a>
+                                <a class="dropdown-item" href="{{ route('terms') }}">利用規約</a>
+                                <a class="dropdown-item" href="{{ route('tokushoho') }}">特定商取引法に基づく表記</a>
+                                <a class="dropdown-item" href="{{ route('about') }}">運営者情報</a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <main class="py-3">
-                    <div class="container-fluid fixed-main">
-                    @yield('content')
-                    </div>
-                </main>
             </div>
-            <div class="footer">
-                <?//ナビ?>   
-                @include('layouts.nav_menu')
-            </div>
+            <main class="py-3 flex-grow-1">
+                <div class="container-fluid fixed-main">
+                @yield('content')
+                </div>
+            </main>
+        </div>
+        <div class="footer mt-auto">
+            <?//ナビ?>   
+            @include('layouts.nav_menu')
         </div>
     
     </div>

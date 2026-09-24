@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 
+use App\Http\Controllers\Portal\GuideController;    // ガイド・ナレッジ記事用
+use App\Http\Controllers\Portal\LegalController;    // 規約・特定商取引法・ポリシー用
+use App\Http\Controllers\Portal\ContactController;  // 未認証向けお問い合わせ用
+
 //管理者
 use App\Http\Middleware\AdminMiddleware;
 
@@ -40,13 +44,14 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PointController;
 
-
 Auth::routes();
 
-// 未認証ユーザー向け
+//-------------------------------------------------------------------------------------------------------
+// 未ログインユーザー向けルート
+//-------------------------------------------------------------------------------------------------------
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-
+//ラインログイン
 Route::get('linelogin', [LineLoginController::class, 'lineLogin'])->name('linelogin');
 Route::get('callback', [LineLoginController::class, 'callback'])->name('callback');
 
@@ -56,10 +61,28 @@ Route::post('devices/check', [UserDeviceController::class, 'device_update'])->na
 //パスワードリセット
 Route::post('password/reset/mailsend', [UserController::class, 'password_reset_mailsend'])->name('password.reset');
 
+//その他適当な機能
 Route::get('roulette/show', [RouletteController::class, 'show'])->name('roulette.show');
-
 // 共通ゲーム基盤（データドリブン用）
 Route::get('play/{gameKey}', [GameController::class, 'play'])->name('games.play');
+
+
+//-------------------------------------------------------------------------------------------------------
+// 未認証ユーザー向け（AdSense審査対策・公開コンテンツ）
+//-------------------------------------------------------------------------------------------------------
+// ガイド・解説記事（審査対策用コンテンツ）
+Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');               // ガイド一覧
+Route::get('/guide/{id}', [GuideController::class, 'show'])->name('guide.show');            // 記事詳細
+
+// 規約・法的事項・サービス情報
+Route::get('/privacy', [LegalController::class, 'privacy'])->name('privacy');               // プライバシーポリシー
+Route::get('/terms', [LegalController::class, 'terms'])->name('terms');                     // 利用規約
+Route::get('/tokushoho', [LegalController::class, 'tokushoho'])->name('tokushoho');         // 特定商取引法に基づく表記
+Route::get('/about', [LegalController::class, 'about'])->name('about');                     // 運営者情報・サービス概要
+
+// 一般お問い合わせ（未ログインでも送信可能）
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');         // 問い合わせフォーム
+Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.send');     // 問い合わせ送信処理
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -372,6 +395,12 @@ Route::get('/sitemap.xml', function () {
     // 検索エンジンにインデックスさせたい公開ページ（ログイン不要なURLなど）を指定
     $urls = [
         url('/'),                   // トップページ
+        route('guide.index'),       // ガイド一覧ページ（審査対策）
+        route('privacy'),
+        route('terms'),
+        route('tokushoho'),
+        route('about'),
+        route('contact.index'),
         //route('roulette.show'),     // ルーレット画面（公開ページ）
         // 今後増える公開ページのURL（ルーティング名またはurl()）をここに追加
     ];

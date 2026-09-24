@@ -16,7 +16,9 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'SK_HOME'),
+    'name'          => env('APP_NAME', 'SK_HOME'),
+    'base_domain'   => env('BASE_DOMAIN', 'skcoco.com'),
+    'sub_domain'    => env('SUB_DOMAIN', 'app01.skcoco.com'),
 
     /*
     |--------------------------------------------------------------------------
