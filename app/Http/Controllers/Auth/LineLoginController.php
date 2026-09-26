@@ -54,10 +54,10 @@ class LineLoginController extends Controller
      */
     public function lineLogin(?Request $request = null)
     {
-        $action = $request ? $request->input('action', session('line_auth_action', 'login')) : session('line_auth_action', 'login');
-        session(['line_auth_action' => $action]);
-
-        $state = Str::random(32);
+        $action = $request ? $request->input('action', 'login') : 'login';
+        
+        // stateに action 情報を埋め込む（例: login_xxxx または register_xxxx）
+        $state = $action . '_' . Str::random(32);
         $nonce  = Str::random(32);
 
         $uri = "https://access.line.me/oauth2/v2.1/authorize?";
@@ -147,9 +147,12 @@ class LineLoginController extends Controller
         $accessToken = $this->getAccessToken($request);
         $profile = $this->getProfile($accessToken);
 
-        // セッションからアクションを取得（デフォルトはlogin）
-        $action = session('line_auth_action', 'login');
-        session()->forget('line_auth_action');
+        // state パラメータからアクションを復元する
+        $state = $request->input('state');
+        $action = 'login';
+        if ($state && str_starts_with($state, 'register_')) {
+            $action = 'register';
+        }
 
         // ユーザー情報あるか確認
         $user=User::where('line_id', $profile->userId)->first();
