@@ -54,7 +54,9 @@ class LineLoginController extends Controller
      */
     public function lineLogin(?Request $request = null)
     {
-        $action = $request ? $request->input('action', 'login') : 'login';
+        // $request が null の場合は helper から取得
+        $request = $request ?? request();
+        $action = $request->input('action', 'login');
         
         // stateに action 情報を埋め込む（例: login_xxxx または register_xxxx）
         $state = $action . '_' . Str::random(32);
@@ -125,91 +127,85 @@ class LineLoginController extends Controller
     public function callback(Request $request)
     {
         $error_log = "linelogin.log";
-        // 認証エラーがあれば再ログイン
-        if ($request->has('error')) {
-            // セッションにエラーカウントがあるか確認
-            $retry_cnt = session('login_retry_count', 0); // デフォルト0
-            make_error_log($error_log, "error_description=" . json_encode($request->error_description));
 
-            // 5回以上エラーが発生していたら、homeへリダイレクト
-            if ($retry_cnt >= 5) {
-                make_error_log($error_log, "login_retry_count=".$retry_cnt);
-                session()->forget('login_retry_count'); // カウントをリセット
-                return redirect()->route('home')->with('message', 'ログインに失敗しました。');
-            }
-
-            // カウントを増やしてセッションに保存
-            session(['login_retry_count' => $retry_cnt + 1]);
-
-            // エラーのため、再度ログインを試す
-            return $this->lineLogin($request);
-        }
-        $accessToken = $this->getAccessToken($request);
-        $profile = $this->getProfile($accessToken);
-
-        // state パラメータからアクションを復元する
+        // 【修正箇所1】先に state パラメータから action を復元する
         $state = $request->input('state');
         $action = 'login';
         if ($state && str_starts_with($state, 'register_')) {
             $action = 'register';
         }
 
+        // 認証エラーがあれば再ログイン
+        if ($request->has('error')) {
+            $retry_cnt = session('login_retry_count', 0);
+            make_error_log($error_log, "error_description=" . json_encode($request->error_description));
+
+            if ($retry_cnt >= 5) {
+                make_error_log($error_log, "login_retry_count=".$retry_cnt);
+                session()->forget('login_retry_count');
+                return redirect()->route('home')->with('message', 'ログインに失敗しました。');
+            }
+
+            session(['login_retry_count' => $retry_cnt + 1]);
+
+            // 【修正箇所2】action 情報を引き継いで再ログインへ
+            $request->merge(['action' => $action]);
+            return $this->lineLogin($request);
+        }
+
+        $accessToken = $this->getAccessToken($request);
+        $profile = $this->getProfile($accessToken);
+
         // ユーザー情報あるか確認
-        $user=User::where('line_id', $profile->userId)->first();
+        $user = User::where('line_id', $profile->userId)->first();
 
         // あったらログイン
-        if($user) {
+        if ($user) {
             // 新規登録フローなのにすでに登録されている場合
             if ($action === 'register') {
                 return redirect()->route('register')->with('line_error', 'このLINEアカウントはすでに登録されています。ログインしてください。');
             }
 
-            // 第二引数(remember)を使ってログイン
-            //Auth::login($user);
             Auth::login($user, true); 
-            UserLog::create_user_log(Auth::id(),"line_login");
+            UserLog::create_user_log(Auth::id(), "line_login");
 
         // なければ登録してからログイン
-        }else {
+        } else {
             // ログインフローからの場合は、新規登録を行わずにログイン画面へ戻す
             if ($action === 'login') {
                 return redirect()->route('login')->with('line_error', 'このLINEアカウントは登録されていません。新規登録を行ってください。');
             }
 
-            $user=new User();
-            $user->provider='line';
-            $user->line_id=$profile->userId;
-            $user->name=$profile->displayName;
+            $user = new User();
+            $user->provider = 'line';
+            $user->line_id = $profile->userId;
+            $user->name = $profile->displayName;
             $user->friend_code = User::generateUniqueFriendCode();
-            $user->email_verified_at = now();   // メール認証を「現在時刻」で完了状態にする
+            $user->email_verified_at = now();
             $user->save();
-            // 第二引数(remember)を使ってログイン
-            //Auth::login($user);
-            Auth::login($user, true); 
-            UserLog::create_user_log(Auth::id(),"line_user_reg");
-            UserLog::create_user_log(Auth::id(),"line_login");
 
-            //自身に通知する
+            Auth::login($user, true); 
+            UserLog::create_user_log(Auth::id(), "line_user_reg");
+            UserLog::create_user_log(Auth::id(), "line_login");
+
+            // 通知処理...
             $now_user_cnt = User::count();
-    
+
             $send_info = new \stdClass();
             $send_info->user_name = $profile->displayName;
             $send_info->now_user_cnt = $now_user_cnt;
             $mess = get_MailMessage($send_info, "user_reg_notice");
-            mail_send($send_info, $mess, $mail=null, true); //管理者全員へ送信
-             
+            mail_send($send_info, $mess, $mail=null, true);
+
             $send_info = new \stdClass();
             $send_info->title = "新規ユーザー登録";
             $send_info->body = "ユーザー名：".$profile->displayName."\n現在ユーザー数:". $now_user_cnt;
             $send_info->url = route('admin-user-search');
 
-            push_send($send_info, null, true); //管理者全員へ送信
-            
+            push_send($send_info, null, true);
         }
 
-        //return redirect('/home/?login=success');
         return redirect('/');
-        
     }
     
 
