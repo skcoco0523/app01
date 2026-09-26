@@ -5,6 +5,20 @@
     <div class="card-header">{{ __('Register') }}</div>
 
     <div class="card-body">
+        @if (session('line_error'))
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof openModal === 'function') {
+                        openModal('common-modal', {
+                            title: 'お知らせ',
+                            mess: @json(session('line_error')),
+                            user_chk: false
+                        });
+                    }
+                });
+            </script>
+        @endif
+
         <form method="POST" action="{{ route('register') }}">
             @csrf
 
@@ -151,7 +165,7 @@
 </div>
 
 <?//外部ログイン用?>
-@include('layouts.social_login')
+@include('layouts.social_login', ['loginAction' => 'register'])
 
 @endsection
 

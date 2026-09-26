@@ -13,7 +13,7 @@
             </div>
             <div class="login-container">
                 <div class="line-login-container">
-                    <a href="{{ route('linelogin') }}" class="login-button">
+                    <a href="{{ route('linelogin', ['action' => $loginAction ?? 'login']) }}" class="login-button">
                         <img src="{{ asset('img/line/btn_login_base.png') }}" class="social-login-button-img" loading="eager">
                         <div class="overlay"></div>
                     </a>
