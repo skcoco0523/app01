@@ -5,6 +5,20 @@
     <div class="card-header">{{ __('Login') }}</div>
 
     <div class="card-body">
+        @if (session('line_error'))
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof openModal === 'function') {
+                        openModal('common-modal', {
+                            title: 'お知らせ',
+                            mess: @json(session('line_error')),
+                            user_chk: false
+                        });
+                    }
+                });
+            </script>
+        @endif
+
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
