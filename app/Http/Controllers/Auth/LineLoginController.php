@@ -46,9 +46,17 @@ class LineLoginController extends Controller
 
     // LINE Developers: https://developers.line.biz/ja/
 
-    // Lineログイン画面を表示
-    public function lineLogin()
+    /**
+     * Lineログイン画面を表示
+     *
+     * @param \Illuminate\Http\Request|null $request
+     * @return \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+     */
+    public function lineLogin(?Request $request = null)
     {
+        $action = $request ? $request->input('action', session('line_auth_action', 'login')) : session('line_auth_action', 'login');
+        session(['line_auth_action' => $action]);
+
         $state = Str::random(32);
         $nonce  = Str::random(32);
 
@@ -134,10 +142,14 @@ class LineLoginController extends Controller
             session(['login_retry_count' => $retry_cnt + 1]);
 
             // エラーのため、再度ログインを試す
-            return $this->lineLogin();
+            return $this->lineLogin($request);
         }
         $accessToken = $this->getAccessToken($request);
         $profile = $this->getProfile($accessToken);
+
+        // セッションからアクションを取得（デフォルトはlogin）
+        $action = session('line_auth_action', 'login');
+        session()->forget('line_auth_action');
 
         // ユーザー情報あるか確認
         $user=User::where('line_id', $profile->userId)->first();
@@ -151,6 +163,11 @@ class LineLoginController extends Controller
 
         // なければ登録してからログイン
         }else {
+            // ログインフローからの場合は、新規登録を行わずにログイン画面へ戻す
+            if ($action === 'login') {
+                return redirect()->route('login')->with('line_error', 'このLINEアカウントは登録されていません。新規登録を行ってください。');
+            }
+
             $user=new User();
             $user->provider='line';
             $user->line_id=$profile->userId;
