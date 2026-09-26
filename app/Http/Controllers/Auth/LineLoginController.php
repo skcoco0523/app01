@@ -156,6 +156,11 @@ class LineLoginController extends Controller
 
         // あったらログイン
         if($user) {
+            // 新規登録フローなのにすでに登録されている場合
+            if ($action === 'register') {
+                return redirect()->route('register')->with('line_error', 'このLINEアカウントはすでに登録されています。ログインしてください。');
+            }
+
             // 第二引数(remember)を使ってログイン
             //Auth::login($user);
             Auth::login($user, true); 
