@@ -1,0 +1,438 @@
+<div class="container-fluid py-2">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="m-0">OLED パーツ切り出し・管理</h3>
+        @if(isset($selectedSheet))
+        <form action="{{ route('admin.oled.parts.destroy_sheet', $selectedSheet->id) }}" method="POST" onsubmit="return confirm('スプライトシートおよび関連パーツをすべて削除しますか？');">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> シート削除</button>
+        </form>
+        @endif
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger py-2"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+    @endif
+
+    @if(isset($selectedSheet))
+    <div class="row m-0">
+        {{-- 左側: スプライトシート画像 & ズームエリア --}}
+        <div class="col-md-8 ps-0 pe-2">
+            <div class="card shadow-sm mb-3 border-secondary">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+                    <span class="small font-monospace">シート: {{ $selectedSheet->name }} (<span id="lbl-natural-size">?×?</span>px)</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-light font-monospace" id="lbl-zoom">200%</span>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" id="btn-zoom-out" class="btn btn-outline-light py-0 px-2">-</button>
+                            <button type="button" id="btn-zoom-reset" class="btn btn-outline-light py-0 px-2">100%</button>
+                            <button type="button" id="btn-zoom-in" class="btn btn-outline-light py-0 px-2">+</button>
+                        </div>
+                    </div>
+                </div>
+                {{-- 市松模様背景コンテナ --}}
+                <div class="card-body bg-secondary p-0 text-center scroll-container overflow-auto position-relative" style="height: 480px;">
+                    <div id="pixel-canvas-container" class="position-relative d-inline-block m-4 shadow" style="user-select: none; cursor: crosshair; transform-origin: 0 0; background-color: #e5e5e5; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%), linear-gradient(45deg, #ccc 25%, #e5e5e5 25%, #e5e5e5 75%, #ccc 75%); background-size: 20px 20px; background-position: 0 0, 10px 10px;">
+                        <img id="pixel-target-img" src="{{ asset($selectedSheet->file_path) }}" class="d-block" style="pointer-events: none; max-width: none !important; image-rendering: pixelated; position: relative; z-index: 1;" alt="スプライトシート">
+                        
+                        {{-- 青い選択枠オーバーレイ --}}
+                        <div id="pixel-drag-selector" class="part-frame-overlay">
+                            <span class="custom-edge-handle handle-nw"></span>
+                            <span class="custom-edge-handle handle-ne"></span>
+                            <span class="custom-edge-handle handle-sw"></span>
+                            <span class="custom-edge-handle handle-se"></span>
+                            <span class="custom-edge-handle handle-n"></span>
+                            <span class="custom-edge-handle handle-s"></span>
+                            <span class="custom-edge-handle handle-w"></span>
+                            <span class="custom-edge-handle handle-e"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-muted small py-1">
+                    💡 マウスドラッグで新規囲み選択。青枠の移動・端の丸ポッチをドラッグしてリサイズできます。（Ctrl+ホイールで拡大縮小）
+                </div>
+            </div>
+
+            {{-- 登録済みパーツ一覧 --}}
+            <div class="card shadow-sm border-secondary">
+                <div class="card-header bg-secondary text-white py-1 small fw-bold">登録済みパーツ一覧</div>
+                <div class="card-body p-0 overflow-auto" style="max-height: 220px;">
+                    <div class="list-group list-group-flush" id="oled-parts-list">
+                        @forelse($parts ?? $selectedSheet->parts ?? [] as $p)
+                        <div class="list-group-item list-group-item-action p-2 oled-part-item" 
+                             style="cursor:pointer;"
+                             data-id="{{ $p->id }}"
+                             data-name="{{ $p->name }}"
+                             data-category="{{ $p->category }}"
+                             data-x="{{ $p->src_x ?? $p->x ?? 0 }}"
+                             data-y="{{ $p->src_y ?? $p->y ?? 0 }}"
+                             data-w="{{ $p->src_width ?? $p->w ?? 16 }}"
+                             data-h="{{ $p->src_height ?? $p->h ?? 16 }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ asset($p->file_path) }}" class="me-2 bg-dark border rounded" style="width:28px; height:28px; image-rendering: pixelated;">
+                                    <div>
+                                        <span class="badge bg-info text-dark me-1">{{ $p->category }}</span>
+                                        <strong>{{ $p->name }}</strong>
+                                        <small class="text-muted ms-2">({{ $p->src_x ?? $p->x }}, {{ $p->src_y ?? $p->y }}) {{ $p->src_width ?? $p->w }}x{{ $p->src_height ?? $p->h }}px</small>
+                                    </div>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary btn-edit-oled-part"><i class="bi bi-pencil"></i> 編集</button>
+                                    <form action="{{ route('admin.oled.parts.destroy_part', $p->id) }}" method="POST" onsubmit="return confirm('削除しますか？');" class="d-inline">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="p-3 text-center text-muted small">パーツが登録されていません</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 右側: 登録・プレビューフォーム --}}
+        <div class="col-md-4 ps-2 pe-0">
+            <div class="card shadow-sm sticky-top" style="top: 10px;">
+                <div class="card-header bg-primary text-white py-2">
+                    <h5 class="card-title m-0 small fw-bold" id="form-title">パーツ新規登録</h5>
+                </div>
+                <div class="card-body p-3">
+                    <form id="oled-part-form" action="{{ route('admin.oled.parts.store_part') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="_method" id="form-method-field" value="POST">
+                        <input type="hidden" name="oled_sprite_sheet_id" value="{{ $selectedSheet->id }}">
+
+                        <div class="mb-3">
+                            <label class="form-label small mb-1 fw-bold">パーツ名</label>
+                            <input type="text" name="name" id="part-name" class="form-control form-control-sm" required placeholder="例: 目(通常)">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small mb-1 fw-bold">カテゴリ</label>
+                            <select name="category" id="part-category" class="form-select form-select-sm">
+                                <option value="eye">目 (eye)</option>
+                                <option value="mouth">口 (mouth)</option>
+                                <option value="brow">眉 (brow)</option>
+                                <option value="accessory">飾り (accessory)</option>
+                                <option value="other">その他 (other)</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small mb-1">X 座標</label>
+                                <input type="number" name="src_x" id="part-x" class="form-control form-control-sm text-center" min="0" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">Y 座標</label>
+                                <input type="number" name="src_y" id="part-y" class="form-control form-control-sm text-center" min="0" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">幅 (W)</label>
+                                <input type="number" name="src_width" id="part-w" class="form-control form-control-sm text-center" min="1" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small mb-1">高さ (H)</label>
+                                <input type="number" name="src_height" id="part-h" class="form-control form-control-sm text-center" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 text-center bg-dark p-2 rounded">
+                            <div class="text-light small mb-2">切り出し拡大プレビュー</div>
+                            <canvas id="preview-canvas" width="120" height="120" class="border" style="image-rendering: pixelated; width: 120px; height: 120px; background-color: #eee; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0px;"></canvas>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary fw-bold" id="btn-submit-part">登録する</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-reset-mode" style="display: none;">新規登録へ戻る</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @else
+    <div class="alert alert-info mt-3">左メニューからスプライトシートを選択するかアップロードしてください。</div>
+    @endif
+</div>
+
+<style>
+/* 青枠＆ポッチ スタイル */
+.part-frame-overlay {
+    position: absolute !important;
+    display: block !important;
+    z-index: 1000 !important;
+    cursor: move;
+    box-sizing: border-box !important;
+    background-color: rgba(0, 0, 255, 0.2) !important;
+    border: none !important;
+    box-shadow: 
+        inset 0 0 0 3px #0000ff, 
+        0 0 0 2px #ffffff,
+        0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.custom-edge-handle {
+    position: absolute !important;
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #ffffff !important;
+    border: 1px solid #0000ff !important;
+    border-radius: 50% !important;
+    box-sizing: border-box !important;
+    z-index: 1010 !important;
+    display: block !important;
+}
+
+.handle-nw { top: -5px !important; left: -5px !important; cursor: nw-resize !important; }
+.handle-ne { top: -5px !important; right: -5px !important; cursor: ne-resize !important; }
+.handle-sw { bottom: -5px !important; left: -5px !important; cursor: sw-resize !important; }
+.handle-se { bottom: -5px !important; right: -5px !important; cursor: se-resize !important; }
+.handle-n  { top: -5px !important; left: calc(50% - 5px) !important; cursor: n-resize !important; }
+.handle-s  { bottom: -5px !important; left: calc(50% - 5px) !important; cursor: s-resize !important; }
+.handle-w  { top: calc(50% - 5px) !important; left: -5px !important; cursor: w-resize !important; }
+.handle-e  { top: calc(50% - 5px) !important; right: -5px !important; cursor: e-resize !important; }
+</style>
+
+@if(isset($selectedSheet))
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('oled-part-form');
+    const formTitle = document.getElementById('form-title');
+    const formMethodField = document.getElementById('form-method-field');
+    const inpName = document.getElementById('part-name');
+    const inpCategory = document.getElementById('part-category');
+    const inpX = document.getElementById('part-x');
+    const inpY = document.getElementById('part-y');
+    const inpW = document.getElementById('part-w');
+    const inpH = document.getElementById('part-h');
+    const btnSubmit = document.getElementById('btn-submit-part');
+    const btnResetMode = document.getElementById('btn-reset-mode');
+    
+    const targetImg = document.getElementById('pixel-target-img');
+    const canvasContainer = document.getElementById('pixel-canvas-container');
+    const dragSelector = document.getElementById('pixel-drag-selector');
+    const previewCanvas = document.getElementById('preview-canvas');
+    const ctx = previewCanvas ? previewCanvas.getContext('2d') : null;
+    
+    const lblZoom = document.getElementById('lbl-zoom');
+    const lblNaturalSize = document.getElementById('lbl-natural-size');
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    const btnZoomOut = document.getElementById('btn-zoom-out');
+    const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+    let zoomLevel = 2.0;
+    let mode = 'idle';
+    let activeHandle = null;
+    let startMouseX = 0, startMouseY = 0;
+    let initialBoxRect = { x: 0, y: 0, w: 0, h: 0 };
+    let isEditMode = false;
+    let editPartId = null;
+
+    function applyZoom(newZoom) {
+        zoomLevel = Math.max(0.5, Math.min(8.0, newZoom));
+        canvasContainer.style.zoom = zoomLevel;
+        if (lblZoom) lblZoom.textContent = Math.round(zoomLevel * 100) + '%';
+    }
+
+    if (btnZoomIn) btnZoomIn.onclick = () => applyZoom(zoomLevel + 0.5);
+    if (btnZoomOut) btnZoomOut.onclick = () => applyZoom(zoomLevel - 0.5);
+    if (btnZoomReset) btnZoomReset.onclick = () => applyZoom(2.0);
+
+    canvasContainer.parentElement.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) { 
+            e.preventDefault(); 
+            applyZoom(e.deltaY < 0 ? zoomLevel * 1.15 : zoomLevel / 1.15); 
+        }
+    }, { passive: false });
+
+    function getCanvasPos(e) {
+        const rect = canvasContainer.getBoundingClientRect();
+        return {
+            x: Math.floor((e.clientX - rect.left) / zoomLevel),
+            y: Math.floor((e.clientY - rect.top) / zoomLevel)
+        };
+    }
+
+    function drawPreview() {
+        if (!ctx || !targetImg || targetImg.naturalWidth === 0) return;
+        const x = parseInt(inpX.value) || 0;
+        const y = parseInt(inpY.value) || 0;
+        const w = parseInt(inpW.value) || 1;
+        const h = parseInt(inpH.value) || 1;
+
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        try {
+            ctx.drawImage(targetImg, x, y, w, h, 0, 0, previewCanvas.width, previewCanvas.height);
+        } catch(e) {}
+    }
+
+    function updateSelector(x, y, w, h) {
+        const imgW = targetImg.naturalWidth || 9999;
+        const imgH = targetImg.naturalHeight || 9999;
+
+        x = Math.max(0, Math.min(imgW - 1, Math.floor(x)));
+        y = Math.max(0, Math.min(imgH - 1, Math.floor(y)));
+        w = Math.max(1, Math.min(imgW - x, Math.floor(w)));
+        h = Math.max(1, Math.min(imgH - y, Math.floor(h)));
+
+        inpX.value = x;
+        inpY.value = y;
+        inpW.value = w;
+        inpH.value = h;
+
+        dragSelector.style.left = x + 'px';
+        dragSelector.style.top = y + 'px';
+        dragSelector.style.width = w + 'px';
+        dragSelector.style.height = h + 'px';
+        drawPreview();
+    }
+
+    [inpX, inpY, inpW, inpH].forEach(inp => {
+        if (inp) {
+            inp.addEventListener('input', () => {
+                const x = parseInt(inpX.value) || 0;
+                const y = parseInt(inpY.value) || 0;
+                const w = parseInt(inpW.value) || 1;
+                const h = parseInt(inpH.value) || 1;
+                dragSelector.style.left = x + 'px';
+                dragSelector.style.top = y + 'px';
+                dragSelector.style.width = w + 'px';
+                dragSelector.style.height = h + 'px';
+                drawPreview();
+            });
+        }
+    });
+
+    canvasContainer.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        const pos = getCanvasPos(e);
+        const target = e.target;
+
+        if (target.classList.contains('custom-edge-handle')) {
+            mode = 'resizing';
+            const handleClass = Array.from(target.classList).find(c => c.startsWith('handle-'));
+            activeHandle = handleClass ? handleClass.replace('handle-', '') : 'se';
+            startMouseX = pos.x;
+            startMouseY = pos.y;
+            initialBoxRect = {
+                x: parseInt(dragSelector.style.left) || 0,
+                y: parseInt(dragSelector.style.top) || 0,
+                w: parseInt(dragSelector.style.width) || 16,
+                h: parseInt(dragSelector.style.height) || 16
+            };
+            e.stopPropagation();
+            return;
+        }
+
+        if (target === dragSelector || dragSelector.contains(target)) {
+            mode = 'moving';
+            startMouseX = pos.x;
+            startMouseY = pos.y;
+            initialBoxRect = {
+                x: parseInt(dragSelector.style.left) || 0,
+                y: parseInt(dragSelector.style.top) || 0,
+                w: parseInt(dragSelector.style.width) || 16,
+                h: parseInt(dragSelector.style.height) || 16
+            };
+            e.stopPropagation();
+            return;
+        }
+
+        mode = 'creating';
+        startMouseX = pos.x;
+        startMouseY = pos.y;
+        updateSelector(startMouseX, startMouseY, 1, 1);
+        e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (mode === 'idle') return;
+        const pos = getCanvasPos(e);
+
+        if (mode === 'creating') {
+            let x = Math.min(startMouseX, pos.x);
+            let y = Math.min(startMouseY, pos.y);
+            let w = Math.abs(pos.x - startMouseX) + 1;
+            let h = Math.abs(pos.y - startMouseY) + 1;
+            updateSelector(x, y, w, h);
+        } else if (mode === 'moving') {
+            let dx = pos.x - startMouseX;
+            let dy = pos.y - startMouseY;
+            updateSelector(initialBoxRect.x + dx, initialBoxRect.y + dy, initialBoxRect.w, initialBoxRect.h);
+        } else if (mode === 'resizing') {
+            let rx = initialBoxRect.x, ry = initialBoxRect.y, rw = initialBoxRect.w, rh = initialBoxRect.h;
+            let dx = pos.x - startMouseX, dy = pos.y - startMouseY;
+
+            if (activeHandle.includes('n')) { ry += dy; rh -= dy; }
+            if (activeHandle.includes('s')) { rh += dy; }
+            if (activeHandle.includes('w')) { rx += dx; rw -= dx; }
+            if (activeHandle.includes('e')) { rw += dx; }
+            updateSelector(rx, ry, rw, rh);
+        }
+    });
+
+    window.addEventListener('mouseup', () => { mode = 'idle'; activeHandle = null; });
+
+    document.querySelectorAll('.oled-part-item').forEach(item => {
+        item.addEventListener('click', function() {
+            loadPart(this);
+        });
+    });
+
+    function loadPart(item) {
+        isEditMode = true;
+        editPartId = item.dataset.id;
+        inpName.value = item.dataset.name;
+        inpCategory.value = item.dataset.category;
+        
+        updateSelector(item.dataset.x, item.dataset.y, item.dataset.w, item.dataset.h);
+
+        formTitle.textContent = 'パーツ編集: ' + item.dataset.name;
+        form.action = "{{ url('admin/oled-face/parts/update-part') }}/" + editPartId;
+        formMethodField.value = 'PUT';
+        btnSubmit.textContent = '更新する';
+        btnResetMode.style.display = 'block';
+
+        document.querySelectorAll('.oled-part-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+    }
+
+    if (btnResetMode) {
+        btnResetMode.addEventListener('click', function() {
+            isEditMode = false;
+            editPartId = null;
+            inpName.value = '';
+            inpCategory.value = 'eye';
+            formTitle.textContent = 'パーツ新規登録';
+            form.action = "{{ route('admin.oled.parts.store_part') }}";
+            formMethodField.value = 'POST';
+            btnSubmit.textContent = '登録する';
+            btnResetMode.style.display = 'none';
+            document.querySelectorAll('.oled-part-item').forEach(i => i.classList.remove('active'));
+        });
+    }
+
+    function init() {
+        if (lblNaturalSize && targetImg) lblNaturalSize.textContent = targetImg.naturalWidth + '×' + targetImg.naturalHeight;
+        applyZoom(2.0);
+        updateSelector(0, 0, 16, 16);
+    }
+
+    if (targetImg) {
+        if (targetImg.complete && targetImg.naturalWidth > 0) init();
+        else targetImg.onload = init;
+    }
+});
+</script>
+@endif
