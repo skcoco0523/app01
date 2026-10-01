@@ -116,8 +116,8 @@ app.mount('#app');
 
 let deferredPrompt;
 
-const user_id = window.Laravel.user_id;
-const vapidPublicKey = window.Laravel.vapidPublicKey;    // Base64 URLエンコード形式の公開鍵
+const user_id = window.Laravel?.user_id ?? 0;
+const vapidPublicKey = window.Laravel?.vapidPublicKey ?? '';    // Base64 URLエンコード形式の公開鍵
 //アプリインストールメニューの表示切替
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // ログイン中かつデバイス未登録の場合にデバイス登録処理を実行
-    if (window.Laravel.user_id > 0 && window.Laravel.hasRegisteredDevice == false) {
+    if (window.Laravel?.user_id > 0 && window.Laravel?.hasRegisteredDevice === false) {
         console.log('デバイス登録(自動)');
         registerDevice();
     }
@@ -189,6 +189,8 @@ function showAddToHomeScreenButton() {
     //notification_request();
     // ボタンのクリックイベントリスナーを設定
     const addToHomeScreenButton = document.querySelector('#add-to-home-screen');
+    // 要素が存在しないページ（管理画面等）でのクラッシュを防止
+    if (!addToHomeScreenButton) return;
     addToHomeScreenButton.addEventListener('click', () => {
 
   
