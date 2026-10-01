@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (inpcategory) {
         inpcategory.addEventListener('change', () => {
             const name = inpName.value;
-            const frame = findFrame(name);
+            const frame = findPart(name);
             if (frame) {
                 frame.category = inpcategory.value;
                 updateAtlasTextarea();
@@ -703,20 +703,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // 削除ボタンのロジック
-    document.getElementById('btn-delete-oled-part').addEventListener('click', () => {
-        const name = inpName.value;
-        if (name && confirm(`[${name}] を削除しますか？`)) {
-            const frames = currentAtlasObj.textures[0].frames;
-            const idx = frames.findIndex(f => f.filename === name);
-            if (idx >= 0) { 
-                frames.splice(idx, 1); 
-                updateAtlasTextarea(); 
-                renderExistingFrames(); 
-                inpName.value = '';
-                resetFields();
+    const btnDelete = document.getElementById('btn-delete-oled-part');
+    if (btnDelete) {
+        btnDelete.addEventListener('click', () => {
+            const name = inpName.value;
+            if (name && confirm(`[${name}] を削除しますか？`)) {
+                const idx = currentParts.findIndex(p => p.name === name);
+                if (idx >= 0) { 
+                    currentParts.splice(idx, 1); 
+                    updateAtlasTextarea(); 
+                    renderExistingFrames(); 
+                    if (typeof drawAtlasThumbnails === 'function') drawAtlasThumbnails();
+                    inpName.value = '';
+                    resetFields();
+                }
             }
-        }
-    });
+        });
+    }
 
     function resetFields() {
         inpX.value = ''; inpY.value = ''; inpW.value = ''; inpH.value = '';

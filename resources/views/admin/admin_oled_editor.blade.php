@@ -810,9 +810,15 @@
 
         function saveFace() {
             updateFormStateFromInputs();
-            const editorJsonInput = getEl('editor-json-input');
             const form = getEl('oled-form');
 
+            // 🌟 フォームの必須入力（required）チェックを実行
+            // 未入力があればブラウザが警告を出して処理を中断する
+            if (form && !form.reportValidity()) {
+                return;
+            }
+
+            const editorJsonInput = getEl('editor-json-input');
             if (editorJsonInput && form) {
                 editorJsonInput.value = JSON.stringify(state.form);
                 form.submit();
