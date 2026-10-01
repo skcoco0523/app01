@@ -24,7 +24,18 @@
         'iotdevice' => [
             'title' => 'デバイス',
             'items' => [
+                ['label' => '<br>ESP'],
                 ['url' => route('admin.iotdevice.index'), 'label' => '検索/変更/削除'],
+                ['label' => '<br>OLED'],
+                ['url' => route('admin.oled.index'), 'label' => '検索/変更/削除'],
+            ]
+        ],
+        'oled-face' => [
+            'title' => 'OLED',
+            'items' => [
+                ['url' => route('admin.oled.parts.index'), 'label' => 'パーツ管理 (切出)'],
+                ['url' => route('admin.oled.create'), 'label' => '顔アニメ新規登録'],
+                ['url' => route('admin.oled.index'), 'label' => '顔アニメ一覧・検索'],
             ]
         ],
         'virtualremote-blade' => [
@@ -102,87 +113,97 @@
     $current_menu = $menu_configs[$tab1] ?? null;
 
     //=============================================================
-    // 各画面へのマッピング分岐
-    if ($tab1 == 'iotdevice' && $tab2 == 'create' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_iotdevice_create';
-    }elseif ($tab1 == 'iotdevice' && $tab2 == 'search' && $tab3 == '') {
-        $view_left_file     = 'admin.admin_iotdevice_search_left';
-        $view_right_file    = 'admin.admin_iotdevice_search';
-    }elseif ($tab1 == 'virtualremote-blade' && $tab2 == 'create' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_virtualremoteblade_create';
-    }elseif ($tab1 == 'virtualremote-blade' && $tab2 == 'search' && $tab3 == '') {
-        $view_left_file     = 'admin.admin_virtualremoteblade_search_left';
-        $view_right_file    = 'admin.admin_virtualremoteblade_search';
-    }elseif ($tab1 == 'user' && $tab2 == 'create' && $tab3 == '') {
-    }elseif ($tab1 == 'user' && $tab2 == 'search' && $tab3 == '') {
-        $view_left_file     = 'admin.admin_user_search_left';
-        $view_right_file    = 'admin.admin_user_search';
-    }elseif ($tab1 == 'user' && $tab2 == 'request' && $tab3 == 'create') {
-    }elseif ($tab1 == 'user' && $tab2 == 'request' && $tab3 == 'search') {
-        $view_left_file     = 'admin.admin_request_search_left';
-        $view_right_file    = 'admin.admin_request_search';
-    }elseif ($tab1 == 'adv' && $tab2 == 'create' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_adv_create';
-    }elseif ($tab1 == 'adv' && $tab2 == 'search' && $tab3 == '') {
-        $view_left_file     = 'admin.admin_adv_search_left';
-        $view_right_file    = 'admin.admin_adv_search';
-    }elseif ($tab1 == 'adv' && $tab2 == 'config' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_adv_config';
-    }elseif ($tab1 == 'point' && $tab2 == 'config_pack' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_point_config';
-    }elseif ($tab1 == 'point' && $tab2 == 'config_free' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_point_config';
-    }elseif ($tab1 == 'point' && $tab2 == 'config_amount' && $tab3 == '') {
-        $view_right_file    = 'admin.admin_point_config';
-    }elseif ($tab1 == 'notification' && $tab2 == 'search' && $tab3 == '') {
-        $view_left_file     = 'admin.admin_notification_left';
-        $view_right_file    = 'admin.admin_notification';
-    
+    // 各画面へのマッピング分岐（$tab1 優先の階層型構造）
     //=============================================================
-    // ゲーム関連画面の分岐
-    }elseif ($tab1 == 'game' && $tab2 == 'common' && $tab3 == 'search') {
-        $view_left_file     = 'admin.game.admin_game_list_left';
-        $view_right_file    = 'admin.game.admin_game_list';
-    }elseif ($tab1 == 'game' && $tab2 == 'character' && $tab3 == 'search') {
-        $view_left_file     = 'admin.game.admin_character_left';
-        $view_right_file    = 'admin.game.admin_character';
-    }elseif ($tab1 == 'game' && $tab2 == 'map' && $tab3 == 'search') {
-        $view_left_file     = 'admin.game.admin_map_left';
-        $view_right_file    = 'admin.game.admin_map';
-    }elseif ($tab1 == 'game' && $tab2 == 'stage' && $tab3 == 'search') {
-        $view_left_file     = 'admin.game.admin_stage_left';
-        $view_right_file    = 'admin.game.admin_stage';
-    }elseif ($tab1 == 'game' && $tab2 == 'item' && $tab3 == 'search') {
-        $view_left_file     = 'admin.game.admin_item_left';
-        $view_right_file    = 'admin.game.admin_item';      
-    }elseif ($tab1 == 'game' && $tab2 == 'sprite-sheet' && $tab3 == '') {
-        // 🌟【修正】スプライトシート管理 ＝ 純粋な画像倉庫
-        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
-        $view_right_file    = 'admin.game.admin_game_sprite_sheet';
-    }elseif ($tab1 == 'game' && $tab2 == 'pixel-parts' && $tab3 == '') {
-        // 🌟【新設】ピクセルパーツ管理
-        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
-        $view_right_file    = 'admin.game.admin_game_pixel_parts';
-    }elseif ($tab1 == 'game' && $tab2 == 'grid-parts' && $tab3 == '') {
-        // 🌟【新設】グリッドパーツ管理
-        $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
-        $view_right_file    = 'admin.game.admin_game_grid_parts';
-    }elseif ($tab1 == 'game' && $tab2 == 'asset' && $tab3 == '') {
-        // 🌟【修正】画像アセット管理 ＝ 職人部屋エディタ本体
-        $view_left_file     = 'admin.game.admin_game_asset_left';
-        $view_right_file    = 'admin.game.admin_game_asset';
-
-    }elseif ($tab1 == 'system' && $tab2 == 'config_maint' && $tab3 == '') {
-        $view_right_file     = 'admin.admin_system_config';
-    }elseif ($tab1 == 'system' && $tab2 == 'config_mqtt' && $tab3 == '') {
-        $view_right_file     = 'admin.admin_system_config';
-    }elseif ($tab1 == 'system' && $tab2 == 'ai_test') {
-        $view_right_file     = 'admin.system.ai_test';
-
-
-    }elseif ($tab1 == 'another' && $tab2 == 'memo' && $tab3 == 'search') {
-        $view_left_file     = 'admin.admin_memo_search_left';
-        $view_right_file    = 'admin.admin_memo_search';
+    if ($tab1 == 'iotdevice') {
+        if ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_iotdevice_search_left';
+            $view_right_file    = 'admin.admin_iotdevice_search';
+        }
+    } elseif ($tab1 == 'oled-face') {
+        if ($tab2 == 'parts' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_oled_parts_left';
+            $view_right_file    = 'admin.admin_oled_parts_manager';
+        } elseif ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_oled_search_left';
+            $view_right_file    = 'admin.admin_oled_search';
+        } elseif ($tab2 == 'create' || $tab3 == 'edit' || $tab2 == 'parts') {
+            $view_left_file     = 'admin.admin_oled_search_left';
+            $view_right_file    = 'admin.admin_oled_editor';
+        }
+    } elseif ($tab1 == 'virtualremote-blade') {
+        if ($tab2 == 'create' && $tab3 == '') {
+            $view_right_file    = 'admin.admin_virtualremoteblade_create';
+        } elseif ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_virtualremoteblade_search_left';
+            $view_right_file    = 'admin.admin_virtualremoteblade_search';
+        }
+    } elseif ($tab1 == 'user') {
+        if ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_user_search_left';
+            $view_right_file    = 'admin.admin_user_search';
+        } elseif ($tab2 == 'request' && $tab3 == 'search') {
+            $view_left_file     = 'admin.admin_request_search_left';
+            $view_right_file    = 'admin.admin_request_search';
+        }
+    } elseif ($tab1 == 'adv') {
+        if ($tab2 == 'create' && $tab3 == '') {
+            $view_right_file    = 'admin.admin_adv_create';
+        } elseif ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_adv_search_left';
+            $view_right_file    = 'admin.admin_adv_search';
+        } elseif ($tab2 == 'config' && $tab3 == '') {
+            $view_right_file    = 'admin.admin_adv_config';
+        }
+    } elseif ($tab1 == 'point') {
+        if (in_array($tab2, ['config_pack', 'config_free', 'config_amount']) && $tab3 == '') {
+            $view_right_file    = 'admin.admin_point_config';
+        }
+    } elseif ($tab1 == 'notification') {
+        if ($tab2 == 'search' && $tab3 == '') {
+            $view_left_file     = 'admin.admin_notification_left';
+            $view_right_file    = 'admin.admin_notification';
+        }
+    } elseif ($tab1 == 'game') {
+        if ($tab2 == 'common' && $tab3 == 'search') {
+            $view_left_file     = 'admin.game.admin_game_list_left';
+            $view_right_file    = 'admin.game.admin_game_list';
+        } elseif ($tab2 == 'character' && $tab3 == 'search') {
+            $view_left_file     = 'admin.game.admin_character_left';
+            $view_right_file    = 'admin.game.admin_character';
+        } elseif ($tab2 == 'map' && $tab3 == 'search') {
+            $view_left_file     = 'admin.game.admin_map_left';
+            $view_right_file    = 'admin.game.admin_map';
+        } elseif ($tab2 == 'stage' && $tab3 == 'search') {
+            $view_left_file     = 'admin.game.admin_stage_left';
+            $view_right_file    = 'admin.game.admin_stage';
+        } elseif ($tab2 == 'item' && $tab3 == 'search') {
+            $view_left_file     = 'admin.game.admin_item_left';
+            $view_right_file    = 'admin.game.admin_item';      
+        } elseif ($tab2 == 'sprite-sheet' && $tab3 == '') {
+            $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+            $view_right_file    = 'admin.game.admin_game_sprite_sheet';
+        } elseif ($tab2 == 'pixel-parts' && $tab3 == '') {
+            $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+            $view_right_file    = 'admin.game.admin_game_pixel_parts';
+        } elseif ($tab2 == 'grid-parts' && $tab3 == '') {
+            $view_left_file     = 'admin.game.admin_game_sprite_sheet_left';
+            $view_right_file    = 'admin.game.admin_game_grid_parts';
+        } elseif ($tab2 == 'asset' && $tab3 == '') {
+            $view_left_file     = 'admin.game.admin_game_asset_left';
+            $view_right_file    = 'admin.game.admin_game_asset';
+        }
+    } elseif ($tab1 == 'system') {
+        if (in_array($tab2, ['config_maint', 'config_mqtt']) && $tab3 == '') {
+            $view_right_file    = 'admin.admin_system_config';
+        } elseif ($tab2 == 'ai_test') {
+            $view_right_file    = 'admin.system.ai_test';
+        }
+    } elseif ($tab1 == 'another') {
+        if ($tab2 == 'memo' && $tab3 == 'search') {
+            $view_left_file     = 'admin.admin_memo_search_left';
+            $view_right_file    = 'admin.admin_memo_search';
+        }
     }
 
 

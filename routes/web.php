@@ -28,6 +28,8 @@ use App\Http\Controllers\Admin\AdminGameAssetController;
 use App\Http\Controllers\Admin\AdminAnotherController;
 use App\Http\Controllers\Admin\AdminConfigController;
 use App\Http\Controllers\Admin\AdminAiController;
+use App\Http\Controllers\Admin\OledFaceController;
+use App\Http\Controllers\Admin\OledPartController;
 
 
 //ユーザー
@@ -319,6 +321,35 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         Route::post('game/sprite-sheet/destroy', [AdminGameAssetController::class, 'sprite_sheet_destroy'])->name('admin.game.sprite_sheet.destroy');
         Route::post('game/sprite-sheet/rename', [AdminGameAssetController::class, 'sprite_sheet_rename'])->name('admin.game.sprite_sheet.rename');
 
+
+        //----------------------------------------------------------------------------------
+        // OLEDフェイスエディタ (SSD1306用パーツ組み立て & 1KB HEXコンパイラ)
+        //----------------------------------------------------------------------------------
+        Route::get('oled-face/search', [OledFaceController::class, 'index'])->name('admin.oled.index');
+        Route::get('oled-face/create', [OledFaceController::class, 'create'])->name('admin.oled.create');
+        Route::post('oled-face/store', [OledFaceController::class, 'store'])->name('admin.oled.store');
+        Route::get('oled-face/{id}/edit', [OledFaceController::class, 'edit'])->name('admin.oled.edit');
+        Route::put('oled-face/{id}/update', [OledFaceController::class, 'update'])->name('admin.oled.update');
+        Route::delete('oled-face/{id}/destroy', [OledFaceController::class, 'destroy'])->name('admin.oled.destroy');
+
+        //----------------------------------------------------------------------------------
+        // OLEDパーツ管理（スプライトシート ＆ JSONパーツデータ定義）
+        //----------------------------------------------------------------------------------
+        // シート一覧 兼 パーツ編集画面
+        Route::get('oled-face/parts', [OledPartController::class, 'index'])->name('admin.oled.parts.index');
+        
+        // スプライトシート画像のアップロード
+        Route::post('oled-face/parts/upload-sheet', [OledPartController::class, 'uploadSheet'])->name('admin.oled.parts.upload_sheet');
+        // スプライトシート本体の削除
+        Route::delete('oled-face/parts/destroy-sheet/{id}', [OledPartController::class, 'destroySheet'])->name('admin.oled.parts.destroy_sheet');
+        
+        // スプライトシート内のJSONパーツデータ操作
+        Route::post('oled-face/parts/store-part', [OledPartController::class, 'storePart'])->name('admin.oled.parts.store_part');
+        
+        // 【変更】更新と削除は「どのシートの、どのパーツか」を指定できるように変更
+        Route::put('oled-face/parts/sheets/{sheetId}/parts/{partId}', [OledPartController::class, 'updatePart'])->name('admin.oled.parts.update_part');
+        Route::delete('oled-face/parts/sheets/{sheetId}/parts/{partId}', [OledPartController::class, 'destroyPart'])->name('admin.oled.parts.destroy_part');
+        //----------------------------------------------------------------------------------
 
         //----------------------------------------------------------------------------------
         // システム設定
