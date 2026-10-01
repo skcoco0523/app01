@@ -127,7 +127,7 @@
         } elseif ($tab2 == 'search' && $tab3 == '') {
             $view_left_file     = 'admin.admin_oled_search_left';
             $view_right_file    = 'admin.admin_oled_search';
-        } elseif ($tab2 == 'create' || $tab2 == 'edit' || $tab2 == 'parts') {
+        } elseif ($tab2 == 'create' || $tab3 == 'edit' || $tab2 == 'parts') {
             $view_left_file     = 'admin.admin_oled_search_left';
             $view_right_file    = 'admin.admin_oled_editor';
         }

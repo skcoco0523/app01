@@ -11,10 +11,10 @@ class OledFace extends Model
 
     protected $table = 'oled_faces';
 
-    protected $fillable = ['title', 'event_type', 'interval_ms', 'editor_json', 'compiled_bitmaps', 'point_cost',];
+    protected $fillable = ['title', 'event_type', 'interval_ms', 'editor_json', 'compiled_device_json', 'point_cost',];
 
     protected $casts = [
         'editor_json' => 'array',
-        'compiled_bitmaps' => 'array',
+        'compiled_device_json' => 'array',
     ];
 }

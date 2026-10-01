@@ -3,7 +3,6 @@
         <div class="col-12 d-flex justify-content-between align-items-center">
             <h3>{{ isset($face) ? 'OLEDフェイス編集' : 'OLEDフェイス新規作成' }}</h3>
             <div>
-                <a href="{{ route('admin.oled.index') }}" class="btn btn-secondary">戻る</a>
                 <button type="button" class="btn btn-success" id="save-face-btn">保存する</button>
             </div>
         </div>
@@ -47,31 +46,61 @@
     <div class="row">
         {{-- 左側: パーツパレット ＋ コマ一覧 --}}
         <div class="col-md-4">
+            {{-- パーツパレット (デフォルト折りたたみ) --}}
             <div class="card shadow-sm mb-3">
-                <div class="card-header bg-dark text-white">パーツパレット (カテゴリ別)</div>
-                <div class="card-body p-2" style="max-height: 350px; overflow-y: auto;" id="parts-palette"></div>
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#parts-palette-collapse" 
+                    aria-expanded="false" 
+                    style="cursor: pointer;">
+                    <span>パーツパレット (カテゴリ別)</span>
+                    <span class="small text-white-50">▼</span>
+                </div>
+                <div class="collapse" id="parts-palette-collapse">
+                    <div class="card-body p-2" style="max-height: 350px; overflow-y: auto;" id="parts-palette"></div>
+                </div>
             </div>
 
             {{-- コマ（フレーム）一覧 --}}
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-                    <span>コマ一覧</span>
-                    <button type="button" class="btn btn-sm btn-light py-0 px-2" id="add-frame-btn">+ 追加</button>
+                    <span class="flex-grow-1" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#frame-list-collapse" 
+                        aria-expanded="false" 
+                        style="cursor: pointer;">
+                        コマ一覧 <span class="small text-white-50 ms-1">▼</span>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-light py-0 px-2 ms-2" id="add-frame-btn">+ 追加</button>
                 </div>
-                <div class="card-body p-2 d-flex gap-2 flex-wrap" id="frame-list"></div>
+                <div class="collapse" id="frame-list-collapse">
+                    <div class="card-body p-2 d-flex gap-2 flex-wrap" id="frame-list"></div>
+                </div>
             </div>
         </div>
 
         {{-- 中央: キャンバス (128x64) --}}
         <div class="col-md-5">
             <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white py-2">
-                    キャンバス (128x64) - コマ #<span id="current-frame-label">1</span>
+                {{-- 🌟 ヘッダーを flex にして右側にプレビューと再生ボタンを追加 --}}
+                <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                    <span>キャンバス (128x64) - コマ #<span id="current-frame-label">1</span></span>
+                    
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-white-50">プレビュー:</span>
+                        {{-- 1倍実寸（128x64）のプレビュー領域 --}}
+                        <div id="oled-preview" 
+                            class="border border-secondary bg-black position-relative" 
+                            style="width: 128px; height: 64px; overflow: hidden; background-color: #000;">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary py-0 px-2" id="preview-play-btn">▶ 再生</button>
+                    </div>
                 </div>
+
                 <div class="card-body d-flex justify-content-center align-items-center bg-secondary bg-opacity-25 p-3">
                     <div id="oled-canvas"
-                         class="position-relative border shadow-sm"
-                         style="width: 256px; height: 128px; overflow: hidden; background-color: #eee; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0px;">
+                        class="position-relative border shadow-sm"
+                        style="width: 256px; height: 128px; overflow: hidden; background-color: #eee; background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0px;">
                     </div>
                 </div>
             </div>
@@ -151,16 +180,122 @@
         };
 
         const categoryNames = {
-            eye: 'eye',
-            mouth: 'mouth',
-            brow: 'brow',
-            accessory: 'accessory',
-            other: 'other'
+            eye: '目',
+            mouth: '口',
+            brow: '眉',
+            accessory: 'アクセサリー',
+            other: 'その他'
         };
 
         // 🌟 DOM取得用ヘルパー (常に最新のDOMを取得)
         const getEl = id => document.getElementById(id);
 
+        // ---------------------------------------------------------------------------
+        // 🌟 プレビュー制御用変数・関数（呼び出し元より前に定義）
+        // ---------------------------------------------------------------------------
+        let previewIntervalId = null;
+        let previewFrameIndex = 0;
+
+        // 指定フレームをプレビュー枠（1倍サイズ）に描画
+        function renderPreviewFrame(frameIndex) {
+            const preview = getEl('oled-preview');
+            if (!preview) return;
+
+            preview.querySelectorAll('.oled-preview-layer').forEach(el => el.remove());
+
+            const frame = state.form.frames[frameIndex];
+            if (!frame || !Array.isArray(frame.layers)) return;
+
+            frame.layers.forEach(function (rawLayer) {
+                const layer = normalizeLayer(rawLayer);
+
+                const layerElement = document.createElement('div');
+                layerElement.className = 'oled-preview-layer position-absolute';
+
+                const posX = Number(layer.x);
+                const posY = Number(layer.y);
+                const width = Number(layer.w);
+                const height = Number(layer.h);
+
+                layerElement.style.cssText = `
+                    position: absolute !important;
+                    left: ${posX}px !important;
+                    top: ${posY}px !important;
+                    width: ${width}px !important;
+                    height: ${height}px !important;
+                    z-index: ${layer.zIndex || 1} !important;
+                    display: block !important;
+                `;
+
+                const image = document.createElement('div');
+                image.style.cssText = `
+                    width: ${layer.w}px !important;
+                    height: ${layer.h}px !important;
+                    image-rendering: pixelated !important;
+                    background-repeat: no-repeat !important;
+                    background-size: auto !important;
+                    display: block !important;
+                `;
+
+                const path = getPartFilePath(layer);
+                if (path) {
+                    const url = getImageUrl(path);
+                    image.style.backgroundImage = "url('" + url + "')";
+                    image.style.backgroundPosition = '-' + layer.src_x + 'px -' + layer.src_y + 'px';
+                }
+
+                layerElement.appendChild(image);
+                preview.appendChild(layerElement);
+            });
+        }
+
+        // プレビュー再生開始
+        function startPreview() {
+            stopPreview();
+            if (state.form.frames.length === 0) return;
+
+            updateFormStateFromInputs();
+            previewFrameIndex = 0;
+            renderPreviewFrame(previewFrameIndex);
+
+            const interval = Math.max(20, state.form.interval_ms || 150);
+            previewIntervalId = setInterval(function () {
+                previewFrameIndex = (previewFrameIndex + 1) % state.form.frames.length;
+                renderPreviewFrame(previewFrameIndex);
+            }, interval);
+
+            const btn = getEl('preview-play-btn');
+            if (btn) {
+                btn.textContent = '⏹ 停止';
+                btn.classList.replace('btn-primary', 'btn-warning');
+            }
+        }
+
+        // プレビュー再生停止
+        function stopPreview() {
+            if (previewIntervalId !== null) {
+                clearInterval(previewIntervalId);
+                previewIntervalId = null;
+            }
+            const btn = getEl('preview-play-btn');
+            if (btn) {
+                btn.textContent = '▶ 再生';
+                btn.classList.replace('btn-warning', 'btn-primary');
+            }
+            renderPreviewFrame(state.currentFrame);
+        }
+
+        function togglePreview() {
+            if (previewIntervalId !== null) {
+                stopPreview();
+            } else {
+                startPreview();
+            }
+        }
+
+        // ---------------------------------------------------------------------------
+        // ドラッグ状態
+        // ---------------------------------------------------------------------------
         let dragging = false;
         let dragIndex = null;
         let dragStartMouseX = 0;
@@ -239,78 +374,98 @@
             Object.keys(groups).forEach(function (category) {
                 const categoryParts = groups[category];
                 const wrapper = document.createElement('div');
-                wrapper.className = 'mb-3';
+                wrapper.className = 'mb-2 border-bottom pb-1';
 
-                const title = document.createElement('h6');
-                title.className = 'text-uppercase text-muted small fw-bold border-bottom pb-1 mb-2';
-                title.textContent = categoryNames[category] || category;
+                const collapseId = 'palette-cat-' + category;
+
+                // 🌟 カテゴリヘッダー（クリックで折りたたみ切替・デフォルトは閉じ状態）
+                const title = document.createElement('div');
+                title.className = 'd-flex justify-content-between align-items-center py-1 fw-bold text-dark small user-select-none';
+                title.style.cssText = 'cursor: pointer;';
+                title.setAttribute('data-bs-toggle', 'collapse');
+                title.setAttribute('data-bs-target', '#' + collapseId);
+                title.setAttribute('aria-expanded', 'false');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = (categoryNames[category] || category) + ' (' + categoryParts.length + ')';
+
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'small text-muted';
+                iconSpan.textContent = '▼';
+
+                title.appendChild(nameSpan);
+                title.appendChild(iconSpan);
                 wrapper.appendChild(title);
+
+                // 🌟 折りたたみコンテンツ領域 (初期状態は collapse のみ＝デフォルト折りたたみ)
+                const content = document.createElement('div');
+                content.className = 'collapse mt-1';
+                content.id = collapseId;
 
                 if (categoryParts.length === 0) {
                     const empty = document.createElement('div');
                     empty.className = 'text-muted small ps-2 mb-2';
                     empty.textContent = 'パーツなし';
-                    wrapper.appendChild(empty);
+                    content.appendChild(empty);
+                } else {
+                    categoryParts.forEach(function (part) {
+                        const row = document.createElement('div');
+                        row.className = 'mb-2 d-flex align-items-center border p-1 rounded bg-light btn-add-part user-select-none';
+                        row.style.cssText = 'cursor: pointer; transition: background-color 0.15s;';
+                        row.setAttribute('data-part-id', String(part.id || part.name));
+
+                        row.addEventListener('mouseenter', function () { row.classList.replace('bg-light', 'bg-white'); });
+                        row.addEventListener('mouseleave', function () { row.classList.replace('bg-white', 'bg-light'); });
+
+                        const info = document.createElement('div');
+                        info.className = 'd-flex align-items-center text-truncate w-100';
+                        info.style.minWidth = '0';
+
+                        const thumbBox = document.createElement('div');
+                        thumbBox.className = 'me-2 rounded border bg-dark flex-shrink-0 d-flex align-items-center justify-content-center';
+                        thumbBox.style.cssText = 'width:48px;height:48px;overflow:hidden;';
+
+                        const thumb = document.createElement('div');
+                        applyThumbStyle(thumb, part);
+                        thumbBox.appendChild(thumb);
+
+                        const textBox = document.createElement('div');
+                        textBox.className = 'text-truncate';
+
+                        const titleLine = document.createElement('div');
+                        titleLine.className = 'd-flex align-items-center gap-1 mb-1';
+
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-info text-dark';
+                        badge.style.fontSize = '10px';
+                        badge.textContent = categoryNames[part.category] || part.category || 'その他';
+
+                        const name = document.createElement('strong');
+                        name.className = 'text-truncate small';
+                        name.textContent = part.name || '';
+
+                        titleLine.appendChild(badge);
+                        titleLine.appendChild(name);
+
+                        const size = document.createElement('div');
+                        size.className = 'text-muted';
+                        size.style.fontSize = '11px';
+                        size.textContent =
+                            '(' + getPartX(part) + ', ' + getPartY(part) + ') ' +
+                            getPartW(part) + '×' + getPartH(part) + 'px';
+
+                        textBox.appendChild(titleLine);
+                        textBox.appendChild(size);
+
+                        info.appendChild(thumbBox);
+                        info.appendChild(textBox);
+
+                        row.appendChild(info);
+                        content.appendChild(row);
+                    });
                 }
 
-                categoryParts.forEach(function (part) {
-                    const row = document.createElement('div');
-                    // 🌟 行全体をクリック可能（btn-add-part）にし、カーソルを pointer に設定
-                    row.className = 'mb-2 d-flex align-items-center border p-1 rounded bg-light btn-add-part user-select-none';
-                    row.style.cssText = 'cursor: pointer; transition: background-color 0.15s;';
-                    row.setAttribute('data-part-id', String(part.id || part.name));
-
-                    // ホバー時に背景色を変えてクリックできることを視覚化
-                    row.addEventListener('mouseenter', function () { row.classList.replace('bg-light', 'bg-white'); });
-                    row.addEventListener('mouseleave', function () { row.classList.replace('bg-white', 'bg-light'); });
-
-                    const info = document.createElement('div');
-                    info.className = 'd-flex align-items-center text-truncate w-100';
-                    info.style.minWidth = '0';
-
-                    const thumbBox = document.createElement('div');
-                    thumbBox.className = 'me-2 rounded border bg-dark flex-shrink-0 d-flex align-items-center justify-content-center';
-                    thumbBox.style.cssText = 'width:48px;height:48px;overflow:hidden;';
-
-                    const thumb = document.createElement('div');
-                    applyThumbStyle(thumb, part);
-                    thumbBox.appendChild(thumb);
-
-                    const textBox = document.createElement('div');
-                    textBox.className = 'text-truncate';
-
-                    const titleLine = document.createElement('div');
-                    titleLine.className = 'd-flex align-items-center gap-1 mb-1';
-
-                    const badge = document.createElement('span');
-                    badge.className = 'badge bg-info text-dark';
-                    badge.style.fontSize = '10px';
-                    badge.textContent = part.category || 'other';
-
-                    const name = document.createElement('strong');
-                    name.className = 'text-truncate small';
-                    name.textContent = part.name || '';
-
-                    titleLine.appendChild(badge);
-                    titleLine.appendChild(name);
-
-                    const size = document.createElement('div');
-                    size.className = 'text-muted';
-                    size.style.fontSize = '11px';
-                    size.textContent =
-                        '(' + getPartX(part) + ', ' + getPartY(part) + ') ' +
-                        getPartW(part) + '×' + getPartH(part) + 'px';
-
-                    textBox.appendChild(titleLine);
-                    textBox.appendChild(size);
-
-                    info.appendChild(thumbBox);
-                    info.appendChild(textBox);
-
-                    row.appendChild(info);
-                    wrapper.appendChild(row);
-                });
-
+                wrapper.appendChild(content);
                 palette.appendChild(wrapper);
             });
         }
@@ -486,6 +641,11 @@
             });
 
             renderPropertyPanel();
+
+            // プレビュー停止中なら、現在のコマをプレビュー枠にも反映
+            if (previewIntervalId === null) {
+                renderPreviewFrame(state.currentFrame);
+            }
         }
 
         function renderPropertyPanel() {
@@ -516,7 +676,6 @@
             renderCanvas();
         }
 
-        // 🌟 修正: 実行時に最新の入力フォーム要素を取得するように変更
         function updateSelectedLayerPosition() {
             if (state.selectedLayer === null) return;
 
@@ -569,7 +728,6 @@
             dragStartLayerY = Number(layer.y) || 0;
         }
 
-        // 🌟 修正: リアルタイム追従時にも最新の canvas を検索
         function onMouseMove(event) {
             if (!dragging || dragIndex === null) return;
 
@@ -666,7 +824,7 @@
             renderCanvas();
         }
 
-        // 🌟 イベントリスナーも毎回最新DOMを取得して安全に登録（イベント委譲/動的アタッチ）
+        // イベントリスナーの登録
         document.addEventListener('click', function (event) {
             if (event.target.closest('#add-frame-btn')) {
                 event.preventDefault();
@@ -677,6 +835,9 @@
             } else if (event.target.closest('#save-face-btn')) {
                 event.preventDefault();
                 saveFace();
+            } else if (event.target.closest('#preview-play-btn')) {
+                event.preventDefault();
+                togglePreview();
             }
         });
 

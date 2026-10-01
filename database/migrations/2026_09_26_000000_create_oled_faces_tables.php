@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('event_type')->unique(); 
             $table->integer('interval_ms')->default(150);
             $table->longText('editor_json')->nullable();
-            $table->longText('compiled_bitmaps')->nullable(); // JSON array of 2048 hex chars per frame
+            $table->longText('compiled_device_json')->nullable(); 
             $table->integer('point_cost')->default(0);
             $table->timestamps();
         });
