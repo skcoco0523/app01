@@ -46,11 +46,13 @@ class OledFaceController extends Controller
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
-        // 全てのスプライトシート（とそれに含まれるpart_data）を取得してエディタに渡す
+        // 全てのスプライトシートを取得し、全パーツ配列を作成
         $sheets = OledSpriteSheet::all();
+        $allParts = $this->getAllPartsFromSheets($sheets);
 
         return view('admin.admin_home', [
-            'sheets' => $sheets,
+            'sheets'   => $sheets,
+            'allParts' => $allParts, // 🌟 追加: Vueパレット用パーツデータ
         ]);
     }
 
@@ -88,10 +90,12 @@ class OledFaceController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         $face = OledFace::findOrFail($id);
         $sheets = OledSpriteSheet::all();
+        $allParts = $this->getAllPartsFromSheets($sheets);
 
         return view('admin.admin_home', [
-            'face'   => $face,
-            'sheets' => $sheets,
+            'face'     => $face,
+            'sheets'   => $sheets,
+            'allParts' => $allParts, // 🌟 追加: Vueパレット用パーツデータ
         ]);
     }
 
@@ -130,5 +134,19 @@ class OledFaceController extends Controller
         $face->delete();
 
         return redirect()->route('admin.oled.index')->with('success', 'OLEDフェイスを削除しました。');
+    }
+    
+    private function getAllPartsFromSheets($sheets)
+    {
+        $allParts = [];
+        foreach ($sheets as $sheet) {
+            $sheetParts = $sheet->part_data ?? [];
+            foreach ($sheetParts as $p) {
+                $p['sheet_id'] = $sheet->id;
+                $p['sheet_file_path'] = $sheet->file_path; // 🌟 CSS切り抜きに必須
+                $allParts[] = $p;
+            }
+        }
+        return $allParts;
     }
 }
