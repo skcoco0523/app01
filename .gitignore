@@ -5,6 +5,10 @@
 /node_modules
 #/public/build
 /public/hot
+##プライベート用
+/public/img/half-birthday
+/public/audio/half-birthday
+
 /public/storage
 /storage/*.key
 /vendor

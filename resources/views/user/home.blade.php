@@ -139,6 +139,24 @@
                 </div>
             </div>
         </div>
+        {{-- ハーフバースデー --}}
+        @if ($isPrivateUser)
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm hover-shadow transition-all"
+                    onclick="window.location.href='{{ route('private.half-birthday') }}'"
+                    style="cursor: pointer;">
+                    <div class="card-body p-3 text-center">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-cake-candles fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title fs-6 fw-bold mb-2">ハーフバースデー</h5>
+                        <p class="card-text text-muted mb-0" style="font-size: 11px;">
+                            ハーフバースデー記念ページ
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- 動的なゲームリスト --}}
         @if (isset($games) && count($games) > 0)
