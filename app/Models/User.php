@@ -208,7 +208,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         //production:本番
         if (config('app.env') === 'production') {
-            return $this->id === 1 || $this->id === 4;
+            return $this->id === 1 || $this->id === 2 || $this->id === 4;
         }
         //local:検証
         return $this->id === 1;
