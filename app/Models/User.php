@@ -200,6 +200,20 @@ class User extends Authenticatable implements MustVerifyEmail
             return ['error_code' => -1];   //更新失敗
         }
     }
+    /**
+     * プライベートユーザーかチェック
+     * @return bool
+     */
+    public function isPrivateUser(): bool
+    {
+        //production:本番
+        if (config('app.env') === 'production') {
+            return $this->id === 1 || $this->id === 4;
+        }
+        //local:検証
+        return $this->id === 1;
+    }
+
 
     //フレンドコード生成
     public static function generateUniqueFriendCode()

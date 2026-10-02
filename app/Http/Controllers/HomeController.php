@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Home;
 use App\Models\GameList;
 
@@ -32,7 +33,10 @@ class HomeController extends Controller
         $keyword['search_dummy'] = true;
         $games = GameList::getGameList(99, false, 1, $keyword);
 
-        return view('user.home', compact('games'));
+        $user = Auth::user();
+        $isPrivateUser = $user?->isPrivateUser() ?? false;
+
+        return view('user.home', compact('games', 'isPrivateUser'));
 
     }
     public function dashboard()

@@ -46,7 +46,19 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PointController;
 
+//用 プライベート用
+use App\Http\Controllers\privateController;
+
 Auth::routes();
+
+
+//-------------------------------------------------------------------------------------------------------
+// プライベート用
+//-------------------------------------------------------------------------------------------------------
+Route::middleware(['auth'])->group(function () {
+    Route::get('/private/half-birthday', [privateController::class, 'half_birthday'])->name('private.half-birthday');
+});
+
 
 //-------------------------------------------------------------------------------------------------------
 // 未ログインユーザー向けルート
