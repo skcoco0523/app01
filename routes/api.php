@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ApiNoteController;
 use App\Http\Controllers\Api\ApiGameController; // Added for game data API
 use App\Http\Controllers\Api\ApiAudioController;
 use App\Http\Controllers\Api\ApiIotDeviceController;
+use App\Http\Controllers\Api\ApiS3MediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,6 +71,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // 今後追加する場合も同様
     Route::post('/note/enable-edit', [ApiNoteController::class, 'api_note_manage'])->defaults('type', 'enable_edit');
     Route::post('/note/disable-edit', [ApiNoteController::class, 'api_note_manage'])->defaults('type', 'disable_edit');
+
+    // S3署名付きURL発行API
+    Route::get('/s3/upload-url', [ApiS3MediaController::class, 'getUploadUrl']);
+    Route::get('/s3/download-url', [ApiS3MediaController::class, 'getDownloadUrl']);
+    
 });
 
 //未認証ユーザー
