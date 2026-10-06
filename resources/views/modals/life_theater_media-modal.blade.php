@@ -433,7 +433,7 @@ async function uploadCroppedMediaFile() {
             headers: { 'Content-Type': 'image/jpeg' },
             body: uploadBlob
         });
-        if (!uploadResponse.ok) throw new Error('S3への送信に失敗しました。');
+        if (!uploadResponse.ok) throw new Error('送信に失敗しました。');
 
         // 3. DBへ新規作成（idは渡さないため新規登録）
         const saveName = currentEditMediaItem 
