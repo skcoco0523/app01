@@ -28,14 +28,19 @@ class ApiLifeTheaterController extends Controller
     public function api_life_theater_manage(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        $input     = $request->all();
-        $type      = $request->route('type');
-        make_error_log($error_log, "type:" . $type);
+        make_error_log($error_log, "-------start-------");
+
+        $input = $request->all();
+        $type  = $request->route('type');
+        make_error_log($error_log, "type:" . $type . " input:" . print_r($input, true));
 
         // 1. 所有者チェック（操作対象の作品がログインユーザーの所有物か確認）
         $input['search_life_theater_id'] = get_proc_data($input, "life_theater_id");
         $theater                         = LifeTheater::getLifeTheaterList(null, false, null, $input)->first();
-        if (!$theater) return false;
+        if (!$theater) {
+            make_error_log($error_log, "Theater not found or access denied. life_theater_id:" . get_proc_data($input, "life_theater_id"));
+            return false;
+        }
 
         // 2. 共有状態の確認
         $life_theater_id = get_proc_data($input, "life_theater_id");
@@ -46,10 +51,22 @@ class ApiLifeTheaterController extends Controller
             ->first();
 
         // 操作タイプ別の事前ガードチェック
-        if ($type == 'share'        && $sharing_theater)  return false;
-        if ($type == 'unshare'      && !$sharing_theater) return false;
-        if ($type == 'enable_edit'  && !$sharing_theater) return false;
-        if ($type == 'disable_edit' && !$sharing_theater) return false;
+        if ($type == 'share' && $sharing_theater) {
+            make_error_log($error_log, "Already shared. friend_id:" . $friend_id);
+            return false;
+        }
+        if ($type == 'unshare' && !$sharing_theater) {
+            make_error_log($error_log, "Not shared yet. friend_id:" . $friend_id);
+            return false;
+        }
+        if ($type == 'enable_edit' && !$sharing_theater) {
+            make_error_log($error_log, "Not shared item. Cannot enable edit. friend_id:" . $friend_id);
+            return false;
+        }
+        if ($type == 'disable_edit' && !$sharing_theater) {
+            make_error_log($error_log, "Not shared item. Cannot disable edit. friend_id:" . $friend_id);
+            return false;
+        }
 
         $input['user_id']         = $friend_id;
         $input['life_theater_id'] = $life_theater_id;
@@ -72,11 +89,14 @@ class ApiLifeTheaterController extends Controller
             }
         } elseif ($type == 'unshare') {
             $input['id'] = $sharing_theater->id;
-            LifeTheaterShare::delShareLifeTheater($input);
+            $ret = LifeTheaterShare::delShareLifeTheater($input);
+            make_error_log($error_log, "Unshare executed. error_code=" . ($ret['error_code'] ?? 0));
         } elseif ($type == 'enable_edit') {
             LifeTheaterShare::where('id', $sharing_theater->id)->update(['admin_flag' => true]);
+            make_error_log($error_log, "Enabled edit permission. share_id:" . $sharing_theater->id);
         } elseif ($type == 'disable_edit') {
             LifeTheaterShare::where('id', $sharing_theater->id)->update(['admin_flag' => false]);
+            make_error_log($error_log, "Disabled edit permission. share_id:" . $sharing_theater->id);
         }
 
         return true;
@@ -88,9 +108,13 @@ class ApiLifeTheaterController extends Controller
     public function getSlideObjects(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
         try {
             $slide_id = $request->input('slide_id');
+            make_error_log($error_log, "slide_id:" . $slide_id);
+
             if (!$slide_id) {
+                make_error_log($error_log, "Validation error: slide_id is missing.");
                 return response()->json(['status' => 'error', 'message' => 'スライドIDが必要です。'], 400);
             }
 
@@ -99,6 +123,7 @@ class ApiLifeTheaterController extends Controller
                 ->orderBy('sort_order', 'asc')
                 ->get();
 
+            make_error_log($error_log, "Success. Objects count: " . count($objects));
             return response()->json(['status' => 'success', 'data' => $objects]);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -112,20 +137,27 @@ class ApiLifeTheaterController extends Controller
     public function saveSlideObject(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
         try {
             $input = $request->all();
+            make_error_log($error_log, "input:" . print_r($input, true));
 
             if (!empty($input['id'])) {
                 // 更新
+                make_error_log($error_log, "Action: update object_id:" . $input['id']);
                 $ret = LifeTheaterSlideObject::chgObject($input);
             } else {
                 // 新規作成
+                make_error_log($error_log, "Action: create slide_id:" . ($input['life_theater_slide_id'] ?? 'null'));
                 $ret = LifeTheaterSlideObject::createObject($input);
             }
 
             if ($ret['error_code'] == 0) {
+                make_error_log($error_log, "Success saved object.");
                 return response()->json(['status' => 'success', 'message' => 'オブジェクトを保存しました。']);
             }
+
+            make_error_log($error_log, "Failed to save object. error_code=" . $ret['error_code']);
             return response()->json(['status' => 'error', 'message' => '保存に失敗しました。'], 400);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -139,17 +171,24 @@ class ApiLifeTheaterController extends Controller
     public function destroySlideObject(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
         try {
             $input = $request->all();
+            make_error_log($error_log, "input:" . print_r($input, true));
+
             if (empty($input['id'])) {
+                make_error_log($error_log, "Validation error: object id is missing.");
                 return response()->json(['status' => 'error', 'message' => 'オブジェクトIDが必要です。'], 400);
             }
 
             $ret = LifeTheaterSlideObject::delObject($input);
 
             if ($ret['error_code'] == 0) {
+                make_error_log($error_log, "Success deleted object_id:" . $input['id']);
                 return response()->json(['status' => 'success', 'message' => 'オブジェクトを削除しました。']);
             }
+
+            make_error_log($error_log, "Failed to delete object. error_code=" . $ret['error_code']);
             return response()->json(['status' => 'error', 'message' => '削除に失敗しました。'], 400);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
