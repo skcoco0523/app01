@@ -45,6 +45,7 @@ use App\Http\Controllers\IotDeviceController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PointController;
+use App\Http\Controllers\LifeTheaterController;
 
 //用 プライベート用
 use App\Http\Controllers\privateController;
@@ -201,6 +202,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/point/about', [PointController::class, 'about'])->name('point.about');
     // 広告視聴用ルーティングの追加
     Route::post('/point/ad', [PointController::class, 'ad'])->name('point.ad');
+
+    //-------------------------------------------------------------------------------------------------------
+    // ライフシアター (Life Theater)
+    //-------------------------------------------------------------------------------------------------------
+    // 一覧画面
+    Route::get('life-theater', [LifeTheaterController::class, 'index'])->name('life_theater.index');
+    // 詳細画面（表示・編集モード）
+    Route::get('life-theater/{id}', [LifeTheaterController::class, 'show'])->name('life_theater.show');
+    // 作品新規登録
+    Route::post('life-theater', [LifeTheaterController::class, 'store'])->name('life_theater.store');
+    // 作品基本情報更新
+    Route::post('life-theater/update', [LifeTheaterController::class, 'update'])->name('life_theater.update');
+    // 作品削除
+    Route::post('life-theater/destroy', [LifeTheaterController::class, 'destroy'])->name('life_theater.destroy');
+    // 共有解除（共有された側から離脱）
+    Route::post('life-theater/unshare', [LifeTheaterController::class, 'unshare'])->name('life_theater.unshare');
+
+    // スライド操作（コマの追加・変更・削除・並び順変更）
+    Route::post('life-theater/slide/store', [LifeTheaterController::class, 'slide_store'])->name('life_theater.slide.store');
+    Route::post('life-theater/slide/update', [LifeTheaterController::class, 'slide_update'])->name('life_theater.slide.update');
+    Route::post('life-theater/slide/destroy', [LifeTheaterController::class, 'slide_destroy'])->name('life_theater.slide.destroy');
+    Route::post('life-theater/slide/sort', [LifeTheaterController::class, 'slide_sort'])->name('life_theater.slide.sort');
+
+    // 画像ライブラリ操作（Webフォーム送信・削除用）
+    Route::post('life-theater/media/store', [LifeTheaterController::class, 'media_store'])->name('life_theater.media.store');
+    Route::post('life-theater/media/destroy', [LifeTheaterController::class, 'media_destroy'])->name('life_theater.media.destroy');
+    Route::get('/life_theater/play/{id}', [LifeTheaterController::class, 'play'])->name('life_theater.play');
 
 });
 

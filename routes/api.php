@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\ApiGameController; // Added for game data API
 use App\Http\Controllers\Api\ApiAudioController;
 use App\Http\Controllers\Api\ApiIotDeviceController;
 use App\Http\Controllers\Api\ApiS3MediaController;
+use App\Http\Controllers\Api\ApiLifeTheaterController;
+use App\Http\Controllers\Api\ApiLifeTheaterMediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,6 +77,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // S3署名付きURL発行API
     Route::get('/s3/upload-url', [ApiS3MediaController::class, 'getUploadUrl']);
     Route::get('/s3/download-url', [ApiS3MediaController::class, 'getDownloadUrl']);
+
+    // --------------------------------------------------
+    // ライフシアター関連 API
+    // --------------------------------------------------
+    Route::prefix('life-theater')->name('api.life_theater.')->group(function () {
+        
+        // 共有管理
+        Route::post('/share', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'share')->name('share');
+        Route::post('/unshare', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'unshare')->name('unshare');
+        Route::post('/enable-edit', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'enable_edit')->name('enable_edit');
+        Route::post('/disable-edit', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'disable_edit')->name('disable_edit');
+
+        // 画像ライブラリ (S3ダイレクト送信対応)
+        Route::get('/{life_theater_id}/media', [ApiLifeTheaterMediaController::class, 'index'])->name('media.index');
+        Route::post('/media/presigned', [ApiLifeTheaterMediaController::class, 'getPresignedUrl'])->name('media.presigned'); // ★追加: S3署名URL発行
+        Route::post('/media/store', [ApiLifeTheaterMediaController::class, 'store'])->name('media.store');                 // ★追加: DBメタデータ登録
+        Route::delete('/media/{id}', [ApiLifeTheaterMediaController::class, 'destroy'])->name('media.destroy');
+
+        // スライドオブジェクト操作
+        Route::get('/slide/objects', [ApiLifeTheaterController::class, 'getSlideObjects'])->name('slide_object.index');
+        Route::post('/slide/object/save', [ApiLifeTheaterController::class, 'saveSlideObject'])->name('slide_object.save');
+        Route::delete('/slide/object/destroy', [ApiLifeTheaterController::class, 'destroySlideObject'])->name('slide_object.destroy');
+    });
     
 });
 

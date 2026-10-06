@@ -124,6 +124,23 @@
                 </div>
             </div>
         </div>
+        
+        <!-- ライフシアター -->
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm hover-shadow transition-all" onclick="window.location.href='{{ route('life_theater.index') }}'" style="cursor: pointer;">
+                <div class="card-body p-3 text-center">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-film fa-3x text-primary" style="font-size: 42px; margin-top: 6px;"></i>
+                        {{-- 専用アイコン画像を使う場合はこちら --}}
+                        {{-- <img src="{{ asset('img/icon/life_theater_icon_64_64.png') }}" alt="ライフシアター" class="img-fluid" style="width: 55px; height: 55px;"> --}}
+                    </div>
+                    <h5 class="card-title fs-6 fw-bold mb-2">ライフシアター</h5>
+                    <p class="card-text text-muted mb-0" style="font-size: 11px;">
+                        思い出の写真や動画をスライド形式で管理・共有。
+                    </p>
+                </div>
+            </div>
+        </div>
 
         {{-- ルーレット --}}
         <div class="col">
