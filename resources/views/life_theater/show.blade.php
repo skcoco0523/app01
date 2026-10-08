@@ -69,31 +69,37 @@
                                         </div>
 
                                         <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
+                                            {{-- 画像ありマーク（高さ・サイズをボタンと統一） --}}
                                             @if($slide->media)
-                                                <span class="badge bg-success"><i class="fa-solid fa-image"></i></span>
+                                                <span class="badge bg-success d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 32px; padding: 0;">
+                                                    <i class="fa-solid fa-image"></i>
+                                                </span>
                                             @endif
 
                                             @if(($theater->owner_flag || $theater->admin_flag ?? false))
-                                                <button type="button" class="btn btn-outline-primary btn-sm p-1 px-2"
+                                                {{-- 鉛筆ボタン --}}
+                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;"
                                                     data-slide="{{ json_encode([
-                                                        'edit_slide_id' => (string)$slide->id,
-                                                        'edit_slide_label' => (string)($slide->label ?? ''),
-                                                        'edit_slide_slide_date' => (string)($slide->slide_date ?? ''),
-                                                        'edit_slide_title' => (string)($slide->title ?? ''),
-                                                        'edit_slide_subtitle' => (string)($slide->subtitle ?? ''),
-                                                        'edit_slide_content' => (string)($slide->content ?? ''),
-                                                        'edit_slide_media_id' => (string)($slide->life_theater_media_id ?? ''),
-                                                        'edit_slide_media_name' => (string)($slide->media->name ?? '未設定'),
-                                                        'edit_slide_media_url' => (string)($slide->media->image_s3_key ?? '')
+                                                        'edit_slide_id'          => (string)$slide->id,
+                                                        'edit_slide_label'       => (string)($slide->label ?? ''),
+                                                        'edit_slide_slide_date'  => (string)($slide->slide_date ?? ''),
+                                                        'edit_slide_title'       => (string)($slide->title ?? ''),
+                                                        'edit_slide_subtitle'    => (string)($slide->subtitle ?? ''),
+                                                        'edit_slide_content'     => (string)($slide->content ?? ''),
+                                                        'edit_slide_media_id'    => (string)($slide->life_theater_media_id ?? ''),
+                                                        'edit_slide_media_name'  => (string)($slide->media->name ?? '未設定'),
+                                                        'edit_slide_media_url'   => (string)($slide->media->image_s3_key ?? ''),
+                                                        'edit_slide_config_data' => $slide->parsed_config ?? []
                                                     ]) }}"
                                                     onclick="openModal('life_theater_slide_edit-modal', JSON.parse(this.dataset.slide));">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </button>
 
-                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このコマを削除しますか？');" class="d-inline">
+                                                {{-- 削除ボタン（formに flex ＆ m-0 を指定して高さを一致させる） --}}
+                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このコマを削除しますか？');" class="d-inline-flex align-items-center m-0">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $slide->id }}">
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </form>

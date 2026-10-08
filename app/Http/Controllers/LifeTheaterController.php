@@ -62,13 +62,21 @@ class LifeTheaterController extends Controller
             $slides = LifeTheaterSlide::getSlideList($theater_id);
             $media_list = LifeTheaterMedia::where('life_theater_id', $theater_id)->latest()->get();
 
-            // 設定フォーム用のデータ準備（parseConfig 経由で補正済みの設定配列を取得）
-            $config_definitions = LifeTheater::getConfigDefinitions();
-            $config_values      = LifeTheater::parseConfig($theater->config_data ?? null);
-            $is_premium         = ($theater->plan_type ?? '') === 'premium';
+            // foreach で各スライドの設定値を安全に事前パースして保持
+            foreach ($slides as $slide) {
+                $slide->parsed_config = LifeTheaterSlide::parseConfig($slide->config_data);
+            }
+
+            // 設定フォーム用のデータ準備
+            $config_definitions       = LifeTheater::getConfigDefinitions();
+            $config_values            = LifeTheater::parseConfig($theater->config_data ?? null);
+            $is_premium               = ($theater->plan_type ?? '') === 'premium';
+            $slide_config_definitions = LifeTheaterSlide::getConfigDefinitions();
 
             return view('life_theater.show', compact(
-                'theater', 'slides', 'media_list', 'share_flag', 'config_definitions', 'config_values', 'is_premium'
+                'theater', 'slides', 'media_list', 'share_flag', 
+                'config_definitions', 'config_values', 'is_premium',
+                'slide_config_definitions'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -116,7 +124,6 @@ class LifeTheaterController extends Controller
 
             $isPremium = ($theater->plan_type ?? '') === 'premium';
 
-            // 現在設定されている値を取得し、プランに応じてフィルタリング
             $currentConfig        = LifeTheater::parseConfig($theater->config_data ?? null);
             $inputConfig          = $input['config_data'] ?? [];
             $input['config_data'] = LifeTheater::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
@@ -171,11 +178,21 @@ class LifeTheaterController extends Controller
         }
     }
 
+    /**
+     * スライドの新規追加
+     */
     public function slide_store(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
+
+            // ★ 追加: 親作品のプランタイプを確認し、新規追加時の config_data をフィルタリング
+            $theater = LifeTheater::find($input['life_theater_id'] ?? null);
+            $isPremium = ($theater->plan_type ?? '') === 'premium';
+            $inputConfig = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium);
+
             $ret = LifeTheaterSlide::createSlide($input);
 
             if ($ret['error_code'] == 0) {
@@ -189,11 +206,26 @@ class LifeTheaterController extends Controller
         }
     }
 
+    /**
+     * スライドの更新
+     */
     public function slide_update(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
+
+            $slide = LifeTheaterSlide::with('lifeTheater')->find($input['id'] ?? null);
+            if (!$slide) {
+                return redirect()->back()->with('error_msg', '対象のスライドが存在しません。');
+            }
+
+            $isPremium = ($slide->lifeTheater->plan_type ?? '') === 'premium';
+
+            $currentConfig        = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+            $inputConfig          = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+
             $ret = LifeTheaterSlide::chgSlide($input);
 
             if ($ret['error_code'] == 0) {
@@ -323,6 +355,9 @@ class LifeTheaterController extends Controller
                     }
                 }
 
+                // ★ 追加: 再生画面側へコマ個別設定（parseConfig適用済）を追加
+                $slideConfig = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+
                 $timeline[] = [
                     'label'    => $slide->label ?? ($index + 1) . 'コマ',
                     'month'    => $index,
@@ -332,10 +367,10 @@ class LifeTheaterController extends Controller
                     'image'    => $slide->media->image_s3_key ?? null,
                     'date'     => $slide->slide_date ?? '',
                     'objects'  => $objectsData,
+                    'config'   => $slideConfig, // ★ 追加
                 ];
             }
 
-            // parseConfig 経由で現在値（またはデフォルト補正値）を取得
             $configData     = LifeTheater::parseConfig($theater->config_data ?? null);
             $titleSize      = $configData['title_size'];
             $subtitleSize   = $configData['subtitle_size'];
