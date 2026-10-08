@@ -26,7 +26,7 @@ return new class extends Migration
 
             // 見た目の装飾データのみJSON化（座標、サイズ、カラー、フォント等）
             // 例: {"x": 100, "y": 200, "width": 80, "color": "#ffffff", "font_size": 14}
-            $table->json('object_config')->nullable(); 
+            $table->json('config_data')->nullable(); 
 
             $table->timestamps();
         });

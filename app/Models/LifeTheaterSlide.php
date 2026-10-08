@@ -4,13 +4,95 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\LifeTheater;
-use App\Models\LifeTheaterMedia;
-use App\Models\LifeTheaterSlideObject;
 
 class LifeTheaterSlide extends Model
 {
     use HasFactory;
+
+    /**
+     * スライド（コマ）個別設定の定義
+     */
+    public static function getConfigDefinitions(): array
+    {
+        return [
+            'duration_override' => [
+                'label'       => 'コマ表示時間',
+                'description' => 'このコマの表示時間を個別指定します（未指定時は全体設定）。',
+                'type'        => 'select',
+                'options'     => ['' => '作品全体の設定を継承', '3000' => '3秒 (速め)', '5000' => '5秒 (標準)', '8000' => '8秒 (ゆったり)', '12000' => '12秒 (じっくり)'],
+                'default'     => '',
+                'premium'     => true,
+            ],
+            'transition_type' => [
+                'label'       => '切り替えアニメーション',
+                'description' => '次のコマへ切り替わる際のエフェクトを設定します。',
+                'type'        => 'select',
+                'options'     => ['fade' => 'フェードイン', 'slide' => 'スライドイン', 'zoom' => 'ズームイン', 'none' => '切り替えなし'],
+                'default'     => 'fade',
+                'premium'     => false,
+            ],
+            'text_position' => [
+                'label'       => 'メッセージ表示位置',
+                'description' => 'テキストメッセージの配置位置を設定します。',
+                'type'        => 'select',
+                'options'     => ['center' => '中央表示', 'bottom' => '下部表示', 'top' => '上部表示'],
+                'default'     => 'center',
+                'premium'     => false,
+            ],
+        ];
+    }
+
+    /**
+     * デフォルト設定値のみを抽出して取得
+     */
+    public static function getDefaultConfig(): array
+    {
+        $defaults = [];
+        foreach (self::getConfigDefinitions() as $key => $def) {
+            $defaults[$key] = $def['default'];
+        }
+        return $defaults;
+    }
+
+    /**
+     * 二重エンコードされた文字列でも確実に配列へパースする
+     */
+    public static function parseConfig($rawConfigData): array
+    {
+        $defaults = self::getDefaultConfig();
+        $configData = $rawConfigData;
+
+        // 文字列のうちは配列になるまでデコードを繰り返す（二重エンコード対策）
+        while (is_string($configData) && $configData !== '') {
+            $decoded = json_decode($configData, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                break;
+            }
+            $configData = $decoded;
+        }
+
+        if (!is_array($configData)) {
+            $configData = [];
+        }
+
+        return array_merge($defaults, $configData);
+    }
+
+    /**
+     * プランに応じた設定値の補正
+     */
+    public static function filterConfigByPlan(array $inputConfig, bool $isPremium, array $currentConfig = []): array
+    {
+        $filtered = [];
+        foreach (self::getConfigDefinitions() as $key => $def) {
+            if (($def['premium'] ?? false) && !$isPremium) {
+                $filtered[$key] = $currentConfig[$key] ?? $def['default'];
+            } else {
+                $filtered[$key] = $inputConfig[$key] ?? $currentConfig[$key] ?? $def['default'];
+            }
+        }
+        return $filtered;
+    }
 
     protected $fillable = [
         'life_theater_id',
@@ -29,27 +111,20 @@ class LifeTheaterSlide extends Model
         'config_data' => 'array',
     ];
 
-    // リレーション: 親作品
     public function lifeTheater()
     {
         return $this->belongsTo(LifeTheater::class);
     }
 
-    // リレーション: メイン画像
     public function media()
     {
         return $this->belongsTo(LifeTheaterMedia::class, 'life_theater_media_id');
     }
 
-    // リレーション: スライド上のオブジェクト（キャスト・吹き出し等）
     public function objects()
     {
         return $this->hasMany(LifeTheaterSlideObject::class, 'life_theater_slide_id')->orderBy('sort_order', 'asc');
     }
-
-    // =========================================================================
-    // データ操作メソッド
-    // =========================================================================
 
     public static function getSlideList($life_theater_id)
     {
@@ -68,23 +143,19 @@ class LifeTheaterSlide extends Model
     public static function createSlide($data)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log, "-------start-------");
         try {
-            $error_code = 0;
-            if (!isset($data['life_theater_id'])) $error_code = 1;
-
-            if ($error_code) {
-                make_error_log($error_log, "error_code=" . $error_code);
-                return ['id' => null, 'error_code' => $error_code];
-            }
+            if (!isset($data['life_theater_id'])) return ['id' => null, 'error_code' => 1];
 
             if (!isset($data['step_order'])) {
                 $maxOrder = self::where('life_theater_id', $data['life_theater_id'])->max('step_order');
                 $data['step_order'] = is_null($maxOrder) ? 0 : $maxOrder + 1;
             }
 
+            if (!isset($data['config_data'])) {
+                $data['config_data'] = self::getDefaultConfig();
+            }
+
             $request = self::create($data);
-            make_error_log($error_log, "success id=" . $request->id);
             return ['id' => $request->id, 'error_code' => 0];
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -95,28 +166,24 @@ class LifeTheaterSlide extends Model
     public static function chgSlide($data)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log, "-------start-------");
         try {
-            $slide = self::where('id', $data['id'])->first();
+            $slide = self::find($data['id'] ?? null);
             if (!$slide) {
-                make_error_log($error_log, ".not found id:" . $data['id']);
                 return ['id' => null, 'error_code' => -1];
             }
 
-            $updateData = [];
-            if (isset($data['step_order']))                       $updateData['step_order']            = $data['step_order'];
-            if (isset($data['label']))                            $updateData['label']                 = $data['label'];
-            if (isset($data['line']))                             $updateData['line']                  = $data['line'];
-            if (isset($data['title']))                            $updateData['title']                 = $data['title'];
-            if (isset($data['subtitle']))                         $updateData['subtitle']              = $data['subtitle'];
-            if (isset($data['content']))                          $updateData['content']               = $data['content'];
-            if (isset($data['slide_date']))                       $updateData['slide_date']            = $data['slide_date'];
-            if (array_key_exists('life_theater_media_id', $data)) $updateData['life_theater_media_id'] = $data['life_theater_media_id'];
-            if (isset($data['config_data']))                      $updateData['config_data']           = $data['config_data'];
+            if (isset($data['step_order']))                       $slide->step_order            = $data['step_order'];
+            if (isset($data['label']))                            $slide->label                 = $data['label'];
+            if (isset($data['line']))                             $slide->line                  = $data['line'];
+            if (isset($data['title']))                            $slide->title                 = $data['title'];
+            if (isset($data['subtitle']))                         $slide->subtitle              = $data['subtitle'];
+            if (isset($data['content']))                          $slide->content               = $data['content'];
+            if (isset($data['slide_date']))                       $slide->slide_date            = $data['slide_date'];
+            if (array_key_exists('life_theater_media_id', $data)) $slide->life_theater_media_id = $data['life_theater_media_id'];
+            if (isset($data['config_data']))                      $slide->config_data           = $data['config_data'];
 
-            self::where('id', $data['id'])->update($updateData);
+            $slide->save(); // Eloquentモデル経由でキャストを正常に動作させて保存
 
-            make_error_log($error_log, "success");
             return ['error_code' => 0];
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -128,10 +195,7 @@ class LifeTheaterSlide extends Model
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
-            make_error_log($error_log, "delete_id=" . $data['id']);
             self::where('id', $data['id'])->delete();
-
-            make_error_log($error_log, "success");
             return ['id' => null, 'error_code' => 0];
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());

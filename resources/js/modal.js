@@ -20,10 +20,24 @@ window.openModal = function openModal(modal_id, params = {}) {
     // params のキーに対応する要素に値をセット
     Object.keys(params).forEach(function(key) {
         const elements = modal.querySelectorAll("#" + key);
+
         elements.forEach(function(el) {
             if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-                el.value = params[key];
-            } else if (el.tagName === "H5" || el.tagName === "LABEL" || el.tagName === "BUTTON" || el.tagName === "SPAN" || el.tagName === "DIV") {
+                const value = params[key];
+
+                // オブジェクト・配列はJSON文字列として保持する
+                if (typeof value === "object" && value !== null) {
+                    el.value = JSON.stringify(value);
+                } else {
+                    el.value = value;
+                }
+            } else if (
+                el.tagName === "H5" ||
+                el.tagName === "LABEL" ||
+                el.tagName === "BUTTON" ||
+                el.tagName === "SPAN" ||
+                el.tagName === "DIV"
+            ) {
                 el.textContent = params[key];
             }
         });

@@ -15,11 +15,104 @@ class LifeTheater extends Model
 {
     use HasFactory;
 
-    public const DEFAULT_CONFIG = [
-        'title_size'     => 'md',   // 標準タイトルサイズ
-        'subtitle_size'  => 'md',   // 標準サブタイトルサイズ
-        'slide_duration' => 7500,  // 標準再生速度（7.5秒）
-    ];
+    /**
+     * 設定項目の定義（ラベル・説明文・選択肢・初期値・プレミアム制限）
+     */
+    public static function getConfigDefinitions(): array
+    {
+        return [
+            'title_size' => [
+                'label'       => 'タイトル文字サイズ',
+                'description' => 'スライドタイトルの表示サイズを設定します。',
+                'type'        => 'select',
+                'options'     => ['sm' => '控えめ (小)', 'md' => '標準 (中)', 'lg' => '強調 (大)'],
+                'default'     => 'md',
+                'premium'     => false,
+            ],
+            'subtitle_size' => [
+                'label'       => 'サブタイトル文字サイズ',
+                'description' => 'サブタイトルの表示サイズを設定します。',
+                'type'        => 'select',
+                'options'     => ['sm' => '控えめ (小)', 'md' => '標準 (中)', 'lg' => '強調 (大)'],
+                'default'     => 'md',
+                'premium'     => false,
+            ],
+            'slide_duration' => [
+                'label'       => 'スライド自動切り替え速度',
+                'description' => 'AUTO再生時に次のコマへ進む間隔です。',
+                'type'        => 'select',
+                'options'     => [3000 => '3秒 (速い)', 5000 => '5秒 (テンポよく)', 7500 => '7.5秒 (標準)', 10000 => '10秒 (ゆっくり)', 15000 => '15秒 (じっくり)'],
+                'default'     => 7500,
+                'premium'     => true,
+            ],
+            'show_brand_badge' => [
+                'label'       => 'ブランドバッジの表示',
+                'description' => '画面左上の「✨ Life Theater」ロゴを表示するか設定します。',
+                'type'        => 'select',
+                'options'     => [1 => '表示する', 0 => '非表示 (オリジナル作品化)'],
+                'default'     => 1,
+                'premium'     => true,
+            ],
+            'auto_loop' => [
+                'label'       => '自動ループ再生',
+                'description' => '最後のコマまで再生した後に最初に戻って繰り返し再生します。',
+                'type'        => 'select',
+                'options'     => [0 => '1回で停止', 1 => '永久ループ'],
+                'default'     => 0,
+                'premium'     => true,
+            ],
+            'particle_effect' => [
+                'label'       => '背景アニメーション効果',
+                'description' => '再生中の画面全体に舞い散る演出を追加します。',
+                'type'        => 'select',
+                'options'     => ['none' => 'なし', 'sparkle' => 'キラキラ', 'sakura' => '桜吹雪', 'snow' => '雪'],
+                'default'     => 'none',
+                'premium'     => true,
+            ],
+        ];
+    }
+
+    /**
+     * デフォルト設定値のみを抽出して取得
+     */
+    public static function getDefaultConfig(): array
+    {
+        $defaults = [];
+        foreach (self::getConfigDefinitions() as $key => $def) {
+            $defaults[$key] = $def['default'];
+        }
+        return $defaults;
+    }
+
+    /**
+     * rawな config_data（文字列 or 配列 or null）をパースしてデフォルト値と合成する
+     */
+    public static function parseConfig($rawConfigData): array
+    {
+        $saved = is_array($rawConfigData) 
+            ? $rawConfigData 
+            : json_decode($rawConfigData ?? '[]', true);
+
+        return array_merge(self::getDefaultConfig(), $saved ?? []);
+    }
+
+    /**
+     * プランに応じた設定値の補正（disabled項目の欠損防止・保護）
+     */
+    public static function filterConfigByPlan(array $inputConfig, bool $isPremium, array $currentConfig = []): array
+    {
+        $filtered = [];
+        foreach (self::getConfigDefinitions() as $key => $def) {
+            if (($def['premium'] ?? false) && !$isPremium) {
+                // 非プレミアムの場合、プレミアム項目は既存値（無ければデフォルト値）を強制固定
+                $filtered[$key] = $currentConfig[$key] ?? $def['default'];
+            } else {
+                // 許可されている項目は送信値（送信が無ければ既存値／デフォルト値）を採用
+                $filtered[$key] = $inputConfig[$key] ?? $currentConfig[$key] ?? $def['default'];
+            }
+        }
+        return $filtered;
+    }
 
     protected $fillable = [
         'user_id',
@@ -35,28 +128,24 @@ class LifeTheater extends Model
 
     protected $casts = [
         'edit_lock_flag' => 'boolean',
-        'config_data' => 'array',
+        'config_data'    => 'array',
     ];
 
-    // リレーション: 作成者
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // リレーション: スライド一覧
     public function slides()
     {
         return $this->hasMany(LifeTheaterSlide::class)->orderBy('step_order', 'asc');
     }
 
-    // リレーション: 共有情報
     public function shares()
     {
         return $this->hasMany(LifeTheaterShare::class);
     }
 
-    // リレーション: 画像ライブラリ
     public function media()
     {
         return $this->hasMany(LifeTheaterMedia::class)->orderBy('created_at', 'desc');
@@ -127,9 +216,8 @@ class LifeTheater extends Model
                 return ['id' => null, 'error_code' => $error_code];
             }
 
-            // ★ config_data が未指定の場合はデフォルト値をセット
             if (!isset($data['config_data'])) {
-                $data['config_data'] = self::DEFAULT_CONFIG;
+                $data['config_data'] = self::getDefaultConfig();
             }
 
             $request = self::create($data);

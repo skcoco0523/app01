@@ -11,32 +11,20 @@ use App\Models\LifeTheaterMedia;
 
 class LifeTheaterController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
     }
 
-    /**
-     * ライフシアター一覧画面
-     */
     public function index(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
 
-            // 自分の作品一覧取得
             $my_theater_list = LifeTheater::getLifeTheaterList(null, false, null, $input);
-
-            // 共有されている作品一覧取得
             $shared_theater_list = LifeTheaterShare::getSharedLifeTheaterList(null, false, null, $input);
 
-            // ナビ用の「色ごとの件数」を集計
             $my_theater_counts    = collect($my_theater_list)->groupBy('theme_color_num')->map->count();
             $share_theater_counts = collect($shared_theater_list)->groupBy('theme_color_num')->map->count();
 
@@ -58,11 +46,9 @@ class LifeTheaterController extends Controller
             $share_flag = get_proc_data($input, "share_flag");
 
             if ($share_flag) {
-                // 共有作品の取得と所有権チェック
                 $input['search_life_theater_id'] = $id;
                 $theater = LifeTheaterShare::getSharedLifeTheaterList(null, false, null, $input)->first();
             } else {
-                // 自分の作品の取得
                 $input['search_life_theater_id'] = $id;
                 $theater = LifeTheater::getLifeTheaterList(null, false, null, $input)->first();
             }
@@ -73,23 +59,31 @@ class LifeTheaterController extends Controller
             }
 
             $theater_id = $theater->id ?? $theater->life_theater_id;
-
-            // スライド一覧の取得（リレーションで objects や media も一緒に取得可能）
             $slides = LifeTheaterSlide::getSlideList($theater_id);
-
-            // ★ 作品固有の画像ライブラリ一覧を取得してビューへ渡す
             $media_list = LifeTheaterMedia::where('life_theater_id', $theater_id)->latest()->get();
 
-            return view('life_theater.show', compact('theater', 'slides', 'media_list', 'share_flag'));
+            // foreach で各スライドの設定値を安全に事前パースして保持
+            foreach ($slides as $slide) {
+                $slide->parsed_config = LifeTheaterSlide::parseConfig($slide->config_data);
+            }
+
+            // 設定フォーム用のデータ準備
+            $config_definitions       = LifeTheater::getConfigDefinitions();
+            $config_values            = LifeTheater::parseConfig($theater->config_data ?? null);
+            $is_premium               = ($theater->plan_type ?? '') === 'premium';
+            $slide_config_definitions = LifeTheaterSlide::getConfigDefinitions();
+
+            return view('life_theater.show', compact(
+                'theater', 'slides', 'media_list', 'share_flag', 
+                'config_definitions', 'config_values', 'is_premium',
+                'slide_config_definitions'
+            ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return redirect()->route('life_theater.index')->with('error_msg', '詳細の表示に失敗しました。');
         }
     }
 
-    /**
-     * 作品の新規登録
-     */
     public function store(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -124,11 +118,15 @@ class LifeTheaterController extends Controller
             $input = $request->all();
 
             $theater = LifeTheater::find($input['id'] ?? null);
-
-            // freeプラン（非プレミアム）の場合は、強制的に標準デフォルト値をセット
-            if (!$theater || ($theater->plan_type ?? '') !== 'premium') {
-                $input['config_data'] = LifeTheater::DEFAULT_CONFIG;
+            if (!$theater) {
+                return redirect()->back()->with('error_msg', '対象データが存在しません。');
             }
+
+            $isPremium = ($theater->plan_type ?? '') === 'premium';
+
+            $currentConfig        = LifeTheater::parseConfig($theater->config_data ?? null);
+            $inputConfig          = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheater::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
 
             $ret = LifeTheater::chgLifeTheater($input);
 
@@ -144,9 +142,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * 作品の削除
-     */
     public function destroy(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -165,9 +160,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * 共有解除（共有された側からの離脱）
-     */
     public function unshare(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -187,13 +179,20 @@ class LifeTheaterController extends Controller
     }
 
     /**
-     * スライドの新規追加（life_theater_media_id を受容）
+     * スライドの新規追加
      */
     public function slide_store(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
+
+            // ★ 追加: 親作品のプランタイプを確認し、新規追加時の config_data をフィルタリング
+            $theater = LifeTheater::find($input['life_theater_id'] ?? null);
+            $isPremium = ($theater->plan_type ?? '') === 'premium';
+            $inputConfig = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium);
+
             $ret = LifeTheaterSlide::createSlide($input);
 
             if ($ret['error_code'] == 0) {
@@ -208,13 +207,25 @@ class LifeTheaterController extends Controller
     }
 
     /**
-     * スライドの更新（life_theater_media_id を受容）
+     * スライドの更新
      */
     public function slide_update(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
+
+            $slide = LifeTheaterSlide::with('lifeTheater')->find($input['id'] ?? null);
+            if (!$slide) {
+                return redirect()->back()->with('error_msg', '対象のスライドが存在しません。');
+            }
+
+            $isPremium = ($slide->lifeTheater->plan_type ?? '') === 'premium';
+
+            $currentConfig        = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+            $inputConfig          = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+
             $ret = LifeTheaterSlide::chgSlide($input);
 
             if ($ret['error_code'] == 0) {
@@ -228,9 +239,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * スライドの削除
-     */
     public function slide_destroy(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -249,9 +257,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * スライドの並び順一括更新（AJAX / POST用）
-     */
     public function slide_sort(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -272,9 +277,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * ★ メディア（画像ライブラリ）のフォーム送信追加
-     */
     public function media_store(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -295,9 +297,6 @@ class LifeTheaterController extends Controller
         }
     }
 
-    /**
-     * ★ メディア（画像ライブラリ）の削除
-     */
     public function media_destroy(Request $request)
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
@@ -327,11 +326,9 @@ class LifeTheaterController extends Controller
             $share_flag = get_proc_data($input, "share_flag");
 
             if ($share_flag) {
-                // 共有作品の取得と権限チェック
                 $input['search_life_theater_id'] = $id;
                 $theater = LifeTheaterShare::getSharedLifeTheaterList(null, false, null, $input)->first();
             } else {
-                // 自分の作品の取得
                 $input['search_life_theater_id'] = $id;
                 $theater = LifeTheater::getLifeTheaterList(null, false, null, $input)->first();
             }
@@ -342,15 +339,10 @@ class LifeTheaterController extends Controller
             }
 
             $theater_id = $theater->id ?? $theater->life_theater_id;
-
-            // モデルのメソッド経由でスライド一覧を取得
             $slides = LifeTheaterSlide::getSlideList($theater_id);
 
-            // 再生画面用のタイムラインデータ構造に整形
-            $timeline = [];
             $timeline = [];
             foreach ($slides as $index => $slide) {
-                // スライドに紐づくオブジェクト（キャスト・吹き出し）の整形
                 $objectsData = [];
                 if ($slide->objects) {
                     foreach ($slide->objects as $obj) {
@@ -363,6 +355,9 @@ class LifeTheaterController extends Controller
                     }
                 }
 
+                // ★ 追加: 再生画面側へコマ個別設定（parseConfig適用済）を追加
+                $slideConfig = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+
                 $timeline[] = [
                     'label'    => $slide->label ?? ($index + 1) . 'コマ',
                     'month'    => $index,
@@ -371,21 +366,23 @@ class LifeTheaterController extends Controller
                     'text'     => $slide->content ?? '',
                     'image'    => $slide->media->image_s3_key ?? null,
                     'date'     => $slide->slide_date ?? '',
-                    'objects'  => $objectsData, // ★ オブジェクト配列を追加
+                    'objects'  => $objectsData,
+                    'config'   => $slideConfig, // ★ 追加
                 ];
             }
 
-            // ▼▼ config_dataの補正・初期値適用（Controller側で実施） ▼▼
-            $defaultConfig = LifeTheater::DEFAULT_CONFIG;
-            $configData    = is_array($theater->config_data) ? $theater->config_data : json_decode($theater->config_data ?? '[]', true);
-
-            $titleSize     = $configData['title_size'] ?? $defaultConfig['title_size'];
-            $subtitleSize  = $configData['subtitle_size'] ?? $defaultConfig['subtitle_size'];
-            $slideDuration = (int)($configData['slide_duration'] ?? $defaultConfig['slide_duration']);
+            $configData     = LifeTheater::parseConfig($theater->config_data ?? null);
+            $titleSize      = $configData['title_size'];
+            $subtitleSize   = $configData['subtitle_size'];
+            $slideDuration  = (int) $configData['slide_duration'];
+            $showBrandBadge = (bool) $configData['show_brand_badge'];
+            $autoLoop       = (bool) $configData['auto_loop'];
+            $particleEffect = $configData['particle_effect'];
 
             return view('life_theater.play', compact(
                 'theater', 'timeline', 'slides', 'share_flag',
-                'titleSize', 'subtitleSize', 'slideDuration'
+                'titleSize', 'subtitleSize', 'slideDuration',
+                'showBrandBadge', 'autoLoop', 'particleEffect'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
