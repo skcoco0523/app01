@@ -27,6 +27,8 @@ export default defineConfig({
     server: {
         host: '0.0.0.0', // 外部からのアクセスを許可
         port: 5173,     // app01 プロジェクトのViteポート
+        origin: 'http://localhost:5173', // Laravel側にViteの配信元URLを明記
+        cors: true,                     // Apache(localhost/app01)からのクロスアクセスを許可
         hmr: {
             host: host, // HMR のホストをサブドメイン名に設定
             protocol:protocol, // HTTPS対応
@@ -41,6 +43,11 @@ export default defineConfig({
                 'resources/css/app.css',   // CSSファイル
                 //ここからはゲームのエントリーポイントを追加していく
                 'resources/js/games/game_engine/main.js',
+
+                // ライフシアター再生用
+                'resources/js/life_theater_play.js',
+                'resources/css/life_theater_play.css',
+
             ],
             refresh: true,
             detectTls: false,

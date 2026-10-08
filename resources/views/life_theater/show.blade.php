@@ -30,29 +30,25 @@
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}コマ)</h5>
-                            
                         </div>
                         
-                            <div class="d-flex gap-2 align-items-center mb-3">
-                                {{-- ▼▼ 追加：再生ボタン ▼▼ --}}
-                                <a href="{{ route('life_theater.play', ['id' => $theater->id ?? $theater->life_theater_id, 'share_flag' => $share_flag]) }}" 
-                                   target="_blank" class="btn btn-primary btn-sm">
-                                    <i class="fa-solid fa-play me-1"></i> 再生
-                                </a>
-                                
-
-                                {{-- 画像ライブラリ管理ボタン  --}}
-                                <button type="button" class="btn btn-success btn-sm"
-                                    onclick="openModal('life_theater_media-modal', {
-                                        media_manage_mode: '1',
-                                        media_modal_title_text: '画像ライブラリ（画像を選択して編集）'
-                                    });" title="ライブラリ"> 
-                                    <i class="fa-solid fa-plus me-1"></i> ライブラリ
-                                </button>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="openModal('life_theater_slide_add-modal');">
-                                    <i class="fa-solid fa-plus me-1"></i> コマ追加
-                                </button>
-                            </div>
+                        <div class="d-flex gap-2 align-items-center mb-3">
+                            <a href="{{ route('life_theater.play', ['id' => $theater->id ?? $theater->life_theater_id, 'share_flag' => $share_flag]) }}" 
+                               target="_blank" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-play me-1"></i> 再生
+                            </a>
+                            
+                            <button type="button" class="btn btn-success btn-sm"
+                                onclick="openModal('life_theater_media-modal', {
+                                    media_manage_mode: '1',
+                                    media_modal_title_text: '画像ライブラリ（画像を選択して編集）'
+                                });" title="ライブラリ"> 
+                                <i class="fa-solid fa-plus me-1"></i> ライブラリ
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="openModal('life_theater_slide_add-modal');">
+                                <i class="fa-solid fa-plus me-1"></i> コマ追加
+                            </button>
+                        </div>
 
                         {{-- タイムライン・コマリスト --}}
                         <div class="d-flex flex-column gap-2">
@@ -73,26 +69,27 @@
                                         </div>
 
                                         <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
-                                            {{-- 画像がある場合（リレーション経由） --}}
                                             @if($slide->media)
                                                 <span class="badge bg-success"><i class="fa-solid fa-image"></i></span>
                                             @endif
 
                                             @if(($theater->owner_flag || $theater->admin_flag ?? false))
                                                 <button type="button" class="btn btn-outline-primary btn-sm p-1 px-2"
-                                                    onclick="openModal('life_theater_slide_edit-modal', {
-                                                        edit_slide_id: '{{ $slide->id }}',
-                                                        edit_slide_label: '{{ $slide->label }}',
-                                                        edit_slide_slide_date: '{{ $slide->slide_date }}',
-                                                        edit_slide_title: '{{ $slide->title }}',
-                                                        edit_slide_subtitle: '{{ $slide->subtitle }}',
-                                                        edit_slide_content: '{{ $slide->content }}',
-                                                        edit_slide_media_id: '{{ $slide->life_theater_media_id }}',
-                                                        edit_slide_media_name: '{{ $slide->media->name ?? '未設定' }}',
-                                                        edit_slide_media_url: '{{ $slide->media->image_s3_key ?? '' }}' {{-- ★ キー名を edit_slide_media_url に変更 --}}
-                                                    });">
+                                                    data-slide="{{ json_encode([
+                                                        'edit_slide_id' => (string)$slide->id,
+                                                        'edit_slide_label' => (string)($slide->label ?? ''),
+                                                        'edit_slide_slide_date' => (string)($slide->slide_date ?? ''),
+                                                        'edit_slide_title' => (string)($slide->title ?? ''),
+                                                        'edit_slide_subtitle' => (string)($slide->subtitle ?? ''),
+                                                        'edit_slide_content' => (string)($slide->content ?? ''),
+                                                        'edit_slide_media_id' => (string)($slide->life_theater_media_id ?? ''),
+                                                        'edit_slide_media_name' => (string)($slide->media->name ?? '未設定'),
+                                                        'edit_slide_media_url' => (string)($slide->media->image_s3_key ?? '')
+                                                    ]) }}"
+                                                    onclick="openModal('life_theater_slide_edit-modal', JSON.parse(this.dataset.slide));">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </button>
+
                                                 <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このコマを削除しますか？');" class="d-inline">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $slide->id }}">
@@ -128,7 +125,6 @@
                         @endif
 
                         @if($theater->owner_flag)
-                            {{-- 共有ボタン  --}}
                             <button type="button" class="btn btn-primary btn-sm"
                                 onclick="openModal('life_theater_share-modal',{ life_theater_id: '{{ $theater->id ?? '' }}', theater_title: '{{ $theater->title ?? '' }}'});">
                                 <i class="fa-solid fa-user-plus"></i>
@@ -188,59 +184,48 @@
                             <input type="hidden" name="theme_color_num" id="theme_color_num" value="{{ $theater->theme_color_num ?? 0 }}">
                         </div>
 
-                        {{-- ▼▼ 追加：プレミアム設定（再生カスタマイズ） ▼▼ --}}
-                        @php
-                            $isPremium = ($theater->plan_type ?? '') === 'premium'; // プレミアムプラン判定
-                            $config = $theater->config_data ?? [];
-                            $titleSize = $config['title_size'] ?? 'md';
-                            $subtitleSize = $config['subtitle_size'] ?? 'md';
-                            $slideDuration = $config['slide_duration'] ?? 7500;
-                        @endphp
-
+                        {{-- 再生表示設定（モデル定義をコントローラー経由で動的描画） --}}
                         <hr class="my-4">
                         <div class="mb-3">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <label class="form-label fw-bold mb-0">
-                                    <i class="fa-solid fa-crown text-warning me-1"></i> 再生表示設定
+                                    再生表示設定
                                 </label>
-                                <span class="badge bg-secondary">プレミアム機能</span>
+                                <span class="badge bg-secondary">再生カスタマイズ</span>
                             </div>
 
                             <div class="p-3 border rounded bg-light">
-                                {{-- タイトルサイズ --}}
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold mb-1">タイトル文字サイズ</label>
-                                    <select class="form-select form-select-sm" name="config_data[title_size]" {{ !$isPremium ? 'disabled' : '' }}>
-                                        <option value="sm" {{ $titleSize == 'sm' ? 'selected' : '' }}>控えめ (小)</option>
-                                        <option value="md" {{ $titleSize == 'md' ? 'selected' : '' }}>標準 (中)</option>
-                                        <option value="lg" {{ $titleSize == 'lg' ? 'selected' : '' }}>強調 (大)</option>
-                                    </select>
-                                </div>
+                                @foreach ($config_definitions as $key => $def)
+                                    @php
+                                        $currentVal = $config_values[$key] ?? $def['default'];
+                                        $isDisabled = ($def['premium'] ?? false) && !$is_premium;
+                                    @endphp
 
-                                {{-- サブタイトルサイズ --}}
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold mb-1">サブタイトル文字サイズ</label>
-                                    <select class="form-select form-select-sm" name="config_data[subtitle_size]" {{ !$isPremium ? 'disabled' : '' }}>
-                                        <option value="sm" {{ $subtitleSize == 'sm' ? 'selected' : '' }}>控えめ (小)</option>
-                                        <option value="md" {{ $subtitleSize == 'md' ? 'selected' : '' }}>標準 (中)</option>
-                                        <option value="lg" {{ $subtitleSize == 'lg' ? 'selected' : '' }}>強調 (大)</option>
-                                    </select>
-                                </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold mb-1">
+                                            @if($def['premium'] ?? false)
+                                                <i class="fa-solid fa-crown text-warning me-1"></i>
+                                            @endif
+                                            {{ $def['label'] }}
+                                        </label>
+                                        <select class="form-select form-select-sm" name="config_data[{{ $key }}]" {{ $isDisabled ? 'disabled' : '' }}>
+                                            @foreach ($def['options'] as $val => $label)
+                                                <option value="{{ $val }}" {{ (string)$currentVal === (string)$val ? 'selected' : '' }}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @if (!empty($def['description']))
+                                            <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                                                {{ $def['description'] }}
+                                            </small>
+                                        @endif
+                                    </div>
+                                @endforeach
 
-                                {{-- 切り替え間隔 --}}
-                                <div class="mb-2">
-                                    <label class="form-label small fw-bold mb-1">スライド自動切り替え速度</label>
-                                    <select class="form-select form-select-sm" name="config_data[slide_duration]" {{ !$isPremium ? 'disabled' : '' }}>
-                                        <option value="5000" {{ $slideDuration == 5000 ? 'selected' : '' }}>5秒（テンポよく）</option>
-                                        <option value="7500" {{ $slideDuration == 7500 ? 'selected' : '' }}>7.5秒（標準）</option>
-                                        <option value="10000" {{ $slideDuration == 10000 ? 'selected' : '' }}>10秒（ゆっくり）</option>
-                                        <option value="15000" {{ $slideDuration == 15000 ? 'selected' : '' }}>15秒（じっくり）</option>
-                                    </select>
-                                </div>
-
-                                @if(!$isPremium)
+                                @if (!$is_premium)
                                     <small class="text-muted d-block mt-2" style="font-size: 11px;">
-                                        <i class="fa-solid fa-circle-info me-1"></i> プレミアムパックの購入で利用可能になります。<br>
+                                        <i class="fa-solid fa-circle-info me-1"></i> 一部機能はプレミアムパックの購入で利用可能になります。<br>
                                     </small>
                                 @endif
                             </div>

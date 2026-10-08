@@ -4,6 +4,11 @@
     "src": "resources/css/app.css",
     "isEntry": true
   },
+  "resources/css/life_theater_play.css": {
+    "file": "life_theater_play.B5yi95k4.css",
+    "src": "resources/css/life_theater_play.css",
+    "isEntry": true
+  },
   "resources/js/app.js": {
     "file": "app.o6VYst17.js",
     "name": "app",
@@ -44,6 +49,12 @@
     "imports": [
       "resources/js/games/game_engine/view_modes/BaseModeHandler.js"
     ]
+  },
+  "resources/js/life_theater_play.js": {
+    "file": "life_theater_play.BbbYURjF.js",
+    "name": "life_theater_play",
+    "src": "resources/js/life_theater_play.js",
+    "isEntry": true
   },
   "resources/sass/app.scss": {
     "file": "app.pXc9c6cI.css",

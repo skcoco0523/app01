@@ -11,6 +11,12 @@ use App\Models\LifeTheaterSlideObject;
 class LifeTheaterSlide extends Model
 {
     use HasFactory;
+    public const DEFAULT_CONFIG = [
+        'duration_override' => null,     // このコマ専用の表示時間 (null時は全体設定を継承)
+        'transition_type'   => 'fade',    // 次のコマへの切り替え効果 (fade / slide / zoom / none)
+        'text_position'     => 'center',  // メッセージテキスト配置 (top / center / bottom)
+        'bgm_action'        => 'continue',// このコマでのBGM挙動 (continue / fade_out / stop)
+    ];
 
     protected $fillable = [
         'life_theater_id',
