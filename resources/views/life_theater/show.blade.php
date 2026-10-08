@@ -35,10 +35,11 @@
                         
                             <div class="d-flex gap-2 align-items-center mb-3">
                                 {{-- ▼▼ 追加：再生ボタン ▼▼ --}}
-                                <a href="{{ route('life_theater.play', ['id' => $theater->id ?? $theater->life_theater_id]) }}" 
+                                <a href="{{ route('life_theater.play', ['id' => $theater->id ?? $theater->life_theater_id, 'share_flag' => $share_flag]) }}" 
                                    target="_blank" class="btn btn-primary btn-sm">
                                     <i class="fa-solid fa-play me-1"></i> 再生
                                 </a>
+                                
 
                                 {{-- 画像ライブラリ管理ボタン  --}}
                                 <button type="button" class="btn btn-success btn-sm"

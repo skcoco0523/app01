@@ -72,12 +72,15 @@ class LifeTheaterController extends Controller
                 return redirect()->route('life_theater.index')->with('error_msg', '対象のデータが存在しないか、アクセス権限がありません。');
             }
 
-            $theater_id = $theater->id ?? $theater->life_theater_id;
-
+            if ($share_flag) {
+                $theater_id = $theater->id ?? $theater->life_theater_id;
+            } else {
+                $theater_id = $theater->id;
+            }
             // スライド一覧の取得（リレーションで objects や media も一緒に取得可能）
             $slides = LifeTheaterSlide::getSlideList($theater_id);
 
-            // ★ 作品固有の画像ライブラリ一覧を取得してビューへ渡す
+            // 作品固有の画像ライブラリ一覧を取得してビューへ渡す
             $media_list = LifeTheaterMedia::where('life_theater_id', $theater_id)->latest()->get();
 
             return view('life_theater.show', compact('theater', 'slides', 'media_list', 'share_flag'));
@@ -273,7 +276,7 @@ class LifeTheaterController extends Controller
     }
 
     /**
-     * ★ メディア（画像ライブラリ）のフォーム送信追加
+     * メディア（画像ライブラリ）のフォーム送信追加
      */
     public function media_store(Request $request)
     {
@@ -296,7 +299,7 @@ class LifeTheaterController extends Controller
     }
 
     /**
-     * ★ メディア（画像ライブラリ）の削除
+     * メディア（画像ライブラリ）の削除
      */
     public function media_destroy(Request $request)
     {
@@ -335,6 +338,7 @@ class LifeTheaterController extends Controller
                 $input['search_life_theater_id'] = $id;
                 $theater = LifeTheater::getLifeTheaterList(null, false, null, $input)->first();
             }
+
 
             if (!$theater) {
                 make_error_log($error_log, "Theater not found or permission denied. id:" . $id);
