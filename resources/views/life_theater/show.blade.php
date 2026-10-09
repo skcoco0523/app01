@@ -41,7 +41,7 @@
                             <button type="button" class="btn btn-success btn-sm"
                                 onclick="openModal('life_theater_media-modal', {
                                     media_manage_mode: '1',
-                                    media_modal_title_text: '画像ライブラリ（画像を選択して編集）'
+                                    media_modal_title_text: '画像ライブラリ（選択して編集）'
                                 });" title="ライブラリ"> 
                                 <i class="fa-solid fa-plus me-1"></i> ライブラリ
                             </button>

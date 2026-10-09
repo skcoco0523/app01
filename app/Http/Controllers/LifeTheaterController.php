@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterShare;
+use App\Models\LifeTheaterSlideObject;
 use App\Models\LifeTheaterMedia;
 
 class LifeTheaterController extends Controller
@@ -72,11 +73,12 @@ class LifeTheaterController extends Controller
             $config_values            = LifeTheater::parseConfig($theater->config_data ?? null);
             $is_premium               = ($theater->plan_type ?? '') === 'premium';
             $slide_config_definitions = LifeTheaterSlide::getConfigDefinitions();
+            $object_config_definitions = LifeTheaterSlideObject::getConfigDefinitions();
 
             return view('life_theater.show', compact(
                 'theater', 'slides', 'media_list', 'share_flag', 
                 'config_definitions', 'config_values', 'is_premium',
-                'slide_config_definitions'
+                'slide_config_definitions','object_config_definitions'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());

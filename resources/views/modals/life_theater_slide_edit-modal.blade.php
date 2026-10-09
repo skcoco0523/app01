@@ -28,7 +28,7 @@
                         <li class="nav-item">
                             <button type="button" class="nav-link py-1 small fw-bold text-primary edit-slide-tab-btn" 
                                 id="edit-config-tab-btn" onclick="switchEditSlideTab('config', this)">
-                                <i class="fa-solid fa-sliders me-1"></i> スライド個別設定
+                                <i class="fa-solid fa-sliders me-1"></i> 個別設定
                             </button>
                         </li>
                     </ul>
@@ -83,7 +83,7 @@
                         {{-- キャスト編集ボタン --}}
                         <div class="border-top pt-2 mt-3">
                             <div class="d-flex align-items-center justify-content-between bg-light p-2 border rounded">
-                                <small class="text-muted">人物や吹き出しの編集</small>
+                                <small class="text-muted">人物や吹き出し編集</small>
                                 <button type="button" class="btn btn-outline-primary btn-sm"
                                     onclick="
                                         const slideId = document.getElementById('edit_slide_id').value;
@@ -91,7 +91,7 @@
                                             object_target_slide_id: slideId
                                         });
                                     ">
-                                    <i class="fa-solid fa-pen-to-square me-1"></i> キャスト・吹き出し編集
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> 吹き出し編集
                                 </button>
                             </div>
                         </div>

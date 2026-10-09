@@ -153,7 +153,7 @@ class ApiLifeTheaterController extends Controller
     }
 
     /**
-     * スライドオブジェクト一覧の取得
+     * スライドオブジェクト一覧の取得 (parsed_config を付与)
      */
     public function getSlideObjects(Request $request)
     {
@@ -172,6 +172,11 @@ class ApiLifeTheaterController extends Controller
                 ->with('media')
                 ->orderBy('sort_order', 'asc')
                 ->get();
+
+            // パース済み設定オブジェクトをアタッチ
+            foreach ($objects as $obj) {
+                $obj->parsed_config = LifeTheaterSlideObject::parseConfig($obj->config_data);
+            }
 
             make_error_log($error_log, "Success. Objects count: " . count($objects));
             return response()->json(['status' => 'success', 'data' => $objects]);
@@ -192,6 +197,22 @@ class ApiLifeTheaterController extends Controller
             $input = $request->all();
             make_error_log($error_log, "input:" . print_r($input, true));
 
+            // ★ 親シアターのプレミアムプラン判定と設定のフィルタリング
+            $slideId = $input['life_theater_slide_id'] ?? null;
+            if (!$slideId && !empty($input['id'])) {
+                $targetObj = LifeTheaterSlideObject::find($input['id']);
+                $slideId   = $targetObj->life_theater_slide_id ?? null;
+            }
+
+            $slide     = LifeTheaterSlide::with('lifeTheater')->find($slideId);
+            $isPremium = ($slide->lifeTheater->plan_type ?? '') === 'premium';
+
+            $currentObj    = !empty($input['id']) ? LifeTheaterSlideObject::find($input['id']) : null;
+            $currentConfig = $currentObj ? LifeTheaterSlideObject::parseConfig($currentObj->config_data) : [];
+            $inputConfig   = $input['config_data'] ?? [];
+
+            $input['config_data'] = LifeTheaterSlideObject::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+
             if (!empty($input['id'])) {
                 // 更新
                 make_error_log($error_log, "Action: update object_id:" . $input['id']);
@@ -204,11 +225,19 @@ class ApiLifeTheaterController extends Controller
 
             if ($ret['error_code'] == 0) {
                 make_error_log($error_log, "Success saved object.");
-                return response()->json(['status' => 'success', 'message' => 'オブジェクトを保存しました。']);
+                return response()->json([
+                    'status'       => 'success', 
+                    'message'      => 'オブジェクトを保存しました。',
+                    'notification' => make_message('キャスト・吹き出しを保存しました。', 'success', '2000')
+                ]);
             }
 
             make_error_log($error_log, "Failed to save object. error_code=" . $ret['error_code']);
-            return response()->json(['status' => 'error', 'message' => '保存に失敗しました。'], 400);
+            return response()->json([
+                'status'       => 'error', 
+                'message'      => '保存に失敗しました。',
+                'notification' => make_message('保存に失敗しました。', 'error', '3000')
+            ], 400);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => '保存中にエラーが発生しました: ' . $e->getMessage()], 500);

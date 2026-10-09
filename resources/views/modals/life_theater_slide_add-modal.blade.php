@@ -20,13 +20,13 @@
                         <li class="nav-item">
                             <button type="button" class="nav-link active py-1 small fw-bold add-slide-tab-btn" 
                                 id="add-basic-tab-btn" onclick="switchAddSlideTab('basic', this)">
-                                <i class="fa-solid fa-file-lines me-1"></i> 基本情報
+                                <i class="fa-solid fa-file-lines me-1"></i> 基本設定
                             </button>
                         </li>
                         <li class="nav-item">
                             <button type="button" class="nav-link py-1 small fw-bold text-primary add-slide-tab-btn" 
                                 id="add-config-tab-btn" onclick="switchAddSlideTab('config', this)">
-                                <i class="fa-solid fa-sliders me-1"></i> スライド個別設定
+                                <i class="fa-solid fa-sliders me-1"></i> 個別設定
                             </button>
                         </li>
                     </ul>
