@@ -1,3 +1,32 @@
+/*
+==========================================================================
+ 【ライフシアター 再生画面 スタイル調整ガイド】
+==========================================================================
+ 変数を変更したい場合は、すぐ下の :root 内の値を調整してください。
+==========================================================================
+*/
+
+/* 外部調整用変数（CSS Variables） */
+:root {
+    /* パーティクル関連 */
+    --particle-fall-distance: calc(100dvh + 50px); /* 最下部までの落下距離 */
+
+    /* キャスト・吹き出しポワン演出 */
+    --pop-duration: 2.5s;                 /* 主張時間・切り替え間隔 */
+    --pop-scale: 1.25;                    /* 浮き出た時の拡大率 */
+    --pop-translate-y: -10px;             /* 浮き出た時の移動量 */
+    --pop-details-max-width: 220px;       /* 吹き出しの最大横幅 */
+
+    /* 写真レイアウト */
+    --photo-max-height: 38vh;             /* 通常表示時の写真の最大高さ */
+
+    /* スマホのURLバー・ノッチ・セーフエリア回避用マージン（上下左右） */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+}
+
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
 
@@ -11,13 +40,13 @@ body {
     justify-content: center;
 }
 
-/* 基本レイアウト：PC・スマホ横画面 (Landscape / 16:9) */
+/* 基本レイアウト：PC・タブレット標準表示 (16:9) */
 .birthday { 
     position: relative; 
     width: 100vw;
     height: calc(100vw * 9 / 16);
-    max-height: 100vh;
-    max-width: calc(100vh * 16 / 9);
+    max-height: 100dvh;
+    max-width: calc(100dvh * 16 / 9);
     aspect-ratio: 16 / 9;
     overflow: hidden; 
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
@@ -50,7 +79,10 @@ body {
 
 /* 左上ブランドバッジ */
 .brand-badge {
-    position: absolute; top: 2.5%; left: 2.5%; z-index: 100;
+    position: absolute; 
+    top: calc(2.5% + var(--safe-top)); 
+    left: calc(2.5% + var(--safe-left)); 
+    z-index: 100;
     background: rgba(255, 255, 255, 0.88); padding: 5px 12px;
     border-radius: 20px; font-size: 11px; font-weight: bold; color: #e88a93;
     text-decoration: none; box-shadow: 0 2px 8px rgba(232, 138, 147, 0.2);
@@ -60,7 +92,9 @@ body {
 
 /* 折りたたみ対応コントローラー */
 .controls-container {
-    position: absolute; top: 2.5%; right: 2.5%;
+    position: absolute; 
+    top: calc(2.5% + var(--safe-top)); 
+    right: calc(2.5% + var(--safe-right));
     z-index: 100; display: flex; flex-direction: column; align-items: flex-end;
     gap: 6px;
 }
@@ -107,7 +141,10 @@ body {
     position: absolute; inset: 0; width: 100%; height: 100%; 
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
     opacity: 0; visibility: hidden; transition: opacity 0.8s ease; 
-    padding-top: 2.5%; padding-bottom: 75px;
+    padding-top: calc(2.5% + var(--safe-top)); 
+    padding-bottom: calc(75px + var(--safe-bottom));
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
     overflow: hidden;
 }
 .slide.active { opacity: 1; visibility: visible; }
@@ -142,7 +179,7 @@ body {
 .slide-photo { 
     width: auto; 
     max-width: min(80vw, 750px); 
-    max-height: 38vh; 
+    max-height: var(--photo-max-height); 
     object-fit: contain; 
     border-radius: 18px; 
     box-shadow: 0 8px 24px rgba(232, 138, 147, 0.2); 
@@ -181,13 +218,36 @@ body {
     display: flex; align-items: center; gap: 0px; flex: 0 0 auto;
     background: transparent; border: none; padding: 0; box-shadow: none;
     position: relative;
-}
-
-.baby-thumb {
     width: clamp(34px, 3.8vw, 44px);
     height: clamp(34px, 3.8vw, 44px);
-    border-radius: 50%; object-fit: cover;
-    border: 2px solid #f472b6; box-shadow: 0 3px 8px rgba(0,0,0,0.15); flex-shrink: 0; background: #fff;
+}
+
+/* サムネイル画像のレイヤー調整＆パチパチチラつき防止 */
+.baby-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: clamp(34px, 3.8vw, 44px);
+    height: clamp(34px, 3.8vw, 44px);
+    border-radius: 50%; 
+    object-fit: cover;
+    border: 2px solid #f472b6; 
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15); 
+    flex-shrink: 0; 
+    background: #fff;
+    z-index: 1;
+    opacity: 0;
+
+    /* ★ パチパチ（画面チラつき）防止プロパティ */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+}
+
+/* 1枚目の画像（初期表示用ベース画像） */
+.baby-thumb.default-thumb {
+    opacity: 1;
     z-index: 2;
 }
 
@@ -200,13 +260,18 @@ body {
     visibility: hidden; text-align: left;
     z-index: 10;
     pointer-events: none;
+
+    /* ★ 吹き出しのチラつき防止 */
+    backface-visibility: hidden;
+    will-change: transform, opacity, max-width;
 }
 
-.birth-card[data-is-event="true"] .baby-details {
+/* イベントタイプ（💍）の装飾 */
+.baby-details[data-is-event="true"] {
     background: linear-gradient(135deg, #fff0f3, #ffe4e6);
     border-color: #f472b6;
 }
-.birth-card[data-is-event="true"] .baby-name { color: #e11d48; }
+.baby-details[data-is-event="true"] .baby-name { color: #e11d48; }
 
 .baby-name { 
     font-size: clamp(10px, 1.0vw, 12px); font-weight: bold; color: #e88a93; 
@@ -227,49 +292,85 @@ body {
 }
 
 /* =======================================================
-   ★ 完全交互リレー ＆ 中央浮き上がりポワン演出
+   会話リレー（--step）対応 ＆ なめらかポワン演出
 ======================================================= */
-body.started .slide.active .birth-card { 
-    /* 2.5秒ごとに1つずつ交代で前方にドーンと浮き出てアピール */
-    animation: pop-card-center 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.5s + var(--i, 0) * 2.5s) 1 normal forwards; 
+
+/* 発言ステップ（--step）ごとの画像切替＆個別のポワン強調アニメーション */
+body.started .slide.active .baby-thumb {
+    animation: pop-thumb var(--pop-duration) cubic-bezier(0.25, 1, 0.5, 1) calc(0.5s + var(--step, var(--i, 0)) * var(--pop-duration)) 1 normal forwards;
 }
+
+/* 1枚目（デフォルト画像）専用：開始時に透明化させず、なめらかに拡大へ繋げる */
+body.started .slide.active .baby-thumb.default-thumb {
+    animation: pop-thumb-default var(--pop-duration) cubic-bezier(0.25, 1, 0.5, 1) calc(0.5s + var(--step, var(--i, 0)) * var(--pop-duration)) 1 normal forwards;
+}
+
+/* 吹き出しの開閉アニメーション（各発言の --step タイミングに連動） */
 body.started .slide.active .baby-details { 
-    /* カードの拡大と同期して吹き出しが開閉 */
-    animation: pop-details 2.5s ease calc(0.5s + var(--i, 0) * 2.5s) 1 normal forwards; 
+    animation: pop-details var(--pop-duration) ease calc(0.5s + var(--step, var(--i, 0)) * var(--pop-duration)) 1 normal forwards; 
 }
 
 .slide:not(.active) .birth-card,
+.slide:not(.active) .baby-thumb,
 .slide:not(.active) .baby-details { animation: none !important; }
 
-/* 手前中央への飛び出し＆拡大キーフレーム */
-@keyframes pop-card-center { 
+/* 2枚目以降のサムネイル画像用キーフレーム（0%でふわっと重ねる） */
+@keyframes pop-thumb {
     0% { 
-        transform: translate(0, 0) scale(1); 
+        opacity: 0; 
+        transform: translate3d(0, 0, 0) scale(1);
         z-index: 1; 
-    } 
-    15%, 80% { 
-        /* 手前中央寄りにキュッと飛び出して1.25倍拡大！ */
-        transform: translateY(-10px) scale(1.25); 
-        z-index: 100; 
-    } 
-    95%, 100% { 
-        /* アピールが終わったら元のサイズ・深さに戻る */
-        transform: translate(0, 0) scale(1); 
-        z-index: 1; 
-    } 
+    }
+    15% {
+        opacity: 1;
+        transform: translate3d(0, var(--pop-translate-y), 0) scale(var(--pop-scale));
+        z-index: 100;
+    }
+    80% {
+        opacity: 1;
+        transform: translate3d(0, var(--pop-translate-y), 0) scale(var(--pop-scale));
+        z-index: 100;
+    }
+    100% { 
+        opacity: 1; 
+        transform: translate3d(0, 0, 0) scale(1);
+        z-index: 5; 
+    }
 }
 
-/* 吹き出しの開閉キーフレーム（開いて➔閉じる） */
+/* 1枚目（デフォルト画像）用キーフレーム（0%でも見えたままなめらかに拡大） */
+@keyframes pop-thumb-default {
+    0% { 
+        opacity: 1; 
+        transform: translate3d(0, 0, 0) scale(1);
+        z-index: 2; 
+    }
+    15% {
+        opacity: 1;
+        transform: translate3d(0, var(--pop-translate-y), 0) scale(var(--pop-scale));
+        z-index: 100;
+    }
+    80% {
+        opacity: 1;
+        transform: translate3d(0, var(--pop-translate-y), 0) scale(var(--pop-scale));
+        z-index: 100;
+    }
+    100% { 
+        opacity: 1; 
+        transform: translate3d(0, 0, 0) scale(1);
+        z-index: 5; 
+    }
+}
+
+/* 吹き出しの開閉キーフレーム */
 @keyframes pop-details {
     0% { 
         opacity: 0; max-width: 0; padding: 0; border-width: 0px; box-shadow: none; visibility: hidden; 
     }
     15%, 80% { 
-        /* 吹き出しオープン */
-        opacity: 1; max-width: 220px; padding: 4px 12px; border-width: 2px; box-shadow: 0 4px 12px rgba(232, 138, 147, 0.2); visibility: visible; 
+        opacity: 1; max-width: var(--pop-details-max-width); padding: 4px 12px; border-width: 2px; box-shadow: 0 4px 12px rgba(232, 138, 147, 0.2); visibility: visible; 
     }
     95%, 100% { 
-        /* 次のキャストに譲るためスッと閉じる（重なり防止） */
         opacity: 0; max-width: 0; padding: 0; border-width: 0px; box-shadow: none; visibility: hidden; 
     }
 }
@@ -290,7 +391,9 @@ body.started .slide.active .baby-details {
 
 /* 下部タイムラインバー */
 .timeline-container { 
-    position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%); 
+    position: absolute; 
+    bottom: calc(3% + var(--safe-bottom)); 
+    left: 50%; transform: translateX(-50%); 
     width: 75%; max-width: 500px; display: flex; flex-direction: column; gap: 4px; 
     background: #fff0f3ef; border: 1px solid #ffcad4; padding: 6px 18px; border-radius: 20px; 
     box-shadow: 0 4px 15px rgba(0,0,0,0.05); z-index: 90;
@@ -303,12 +406,17 @@ body.started .slide.active .baby-details {
     filter: drop-shadow(0px 2px 3px rgba(107, 81, 71, 0.3));
 }
 
+/* スライド個別メッセージ位置の切り替え */
+.slide.pos-top .slide-side-details { justify-content: flex-start; }
+.slide.pos-center .slide-side-details { justify-content: center; }
+.slide.pos-bottom .slide-side-details { justify-content: flex-end; }
+
 /* =======================================================
-   レスポンシブ（横長画面 / 縦長画面の分岐）
+   レスポンシブ（PC / スマホ縦持ち / スマホ・極端横長画面）
 ======================================================= */
 
-/* 【1】横長画面（アスペクト比 1.25:1 以上）で正方形・縦長画像の場合の左右2カラム配置 */
-@media (min-aspect-ratio: 1.25/1) {
+/* 【1】通常PC・タブレット表示（正方形・縦長画像のみ左右2カラム） */
+@media (min-aspect-ratio: 1.25/1) and (max-aspect-ratio: 1.79/1) and (min-height: 601px) {
     .slide.aspect-square .slide-main-content,
     .slide.aspect-portrait .slide-main-content {
         flex-direction: row;
@@ -363,28 +471,34 @@ body.started .slide.active .baby-details {
     }
 }
 
-/* 【2】縦長画面（画面比率 1.24:1 以下、または縦持ち）の全画面適用 */
+/* 【2】スマホ縦持ち画面（画面比率 1.24:1 以下、または portrait） */
 @media (max-aspect-ratio: 1.24/1), (orientation: portrait) {
     .birthday { 
         width: 100vw !important; 
-        height: 100vh !important; 
+        height: 100dvh !important; 
         max-width: 100vw !important; 
-        max-height: 100vh !important; 
+        max-height: 100dvh !important; 
         aspect-ratio: auto !important; 
         box-shadow: none !important; 
     }
 
-    .brand-badge { top: 12px; left: 12px; }
-    .controls-container { top: 12px; right: 12px; }
+    .brand-badge { 
+        top: calc(12px + var(--safe-top)); 
+        left: calc(12px + var(--safe-left)); 
+    }
+    .controls-container { 
+        top: calc(12px + var(--safe-top)); 
+        right: calc(12px + var(--safe-right)); 
+    }
     .controls-body { padding: 6px 8px; max-width: 110px; }
     .page-list { max-height: 80px; }
-    .timeline-container { bottom: 3%; width: 88%; padding: 6px 15px; }
+    .timeline-container { bottom: calc(3% + var(--safe-bottom)); width: 88%; padding: 6px 15px; }
 
     .slide { 
-        padding-top: 45px; 
-        padding-bottom: 85px; 
-        padding-left: 12px; 
-        padding-right: 12px; 
+        padding-top: calc(45px + var(--safe-top)); 
+        padding-bottom: calc(85px + var(--safe-bottom)); 
+        padding-left: calc(12px + var(--safe-left)); 
+        padding-right: calc(12px + var(--safe-right)); 
     }
 
     .slide.aspect-square .slide-photo,
@@ -411,16 +525,113 @@ body.started .slide.active .baby-details {
     }
 }
 
+/* 【3】極端な横長画面（ウルトラワイド 1.8:1以上、または スマホ横持ち）の強制左右2カラム設定 */
+@media (min-aspect-ratio: 1.8/1), ((orientation: landscape) and (max-height: 600px)) {
+    .birthday { 
+        width: 100vw !important; 
+        height: 100dvh !important; 
+        max-width: 100vw !important; 
+        max-height: 100dvh !important; 
+        aspect-ratio: auto !important; 
+        box-shadow: none !important; 
+    }
+
+    .brand-badge { 
+        top: calc(8px + var(--safe-top)); 
+        left: calc(12px + var(--safe-left)); 
+        padding: 4px 10px;
+        font-size: 10px;
+    }
+    .controls-container { 
+        top: calc(8px + var(--safe-top)); 
+        right: calc(12px + var(--safe-right)); 
+    }
+    .controls-toggle-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+    }
+
+    .timeline-container { 
+        bottom: calc(2% + var(--safe-bottom)); 
+        width: 65%; 
+        padding: 4px 12px; 
+    }
+
+    .slide { 
+        padding-top: calc(28px + var(--safe-top)); 
+        padding-bottom: calc(50px + var(--safe-bottom)); 
+        padding-left: calc(20px + var(--safe-left)); 
+        padding-right: calc(20px + var(--safe-right)); 
+    }
+
+    /* 画像アスペクト比（横長・正方形・縦長）に関わらずすべて左右2カラムに統一 */
+    .slide .slide-main-content {
+        flex-direction: row !important;
+        justify-content: center !important;
+        align-items: center !important;
+        column-gap: 24px !important;
+        width: 100% !important;
+    }
+
+    /* 左側：画像サイズの最適化 */
+    .slide .slide-photo {
+        max-height: 58vh !important;
+        max-width: 42vw !important;
+        width: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 右側：詳細エリア（テキスト・キャスト・日付） */
+    .slide .slide-side-details {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        max-width: 420px !important;
+        width: auto !important;
+    }
+
+    .slide .slide-text {
+        width: 100% !important;
+        max-width: 380px !important;
+        text-align: left !important;
+        margin-top: 0 !important;
+        margin-bottom: 8px !important;
+        font-size: clamp(10px, 1.1vw, 13px) !important;
+        padding: 4px 12px !important;
+    }
+
+    .slide .birth-info-container {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+        width: 100% !important;
+        margin-top: 0 !important;
+    }
+
+    .slide .date {
+        margin-top: 6px !important;
+        text-align: left !important;
+    }
+
+    .slide-title { font-size: clamp(14px, 1.8vw, 18px) !important; margin-bottom: 2px !important; }
+    .slide-subtitle { font-size: clamp(10px, 1.1vw, 13px) !important; margin-bottom: 2px !important; }
+}
+
 /* 背景パーティクルアニメーション */
 @keyframes floatDown {
     0% {
         transform: translateY(0) rotate(0deg);
         opacity: 0;
     }
+    10% { opacity: 0.5; }
     15% { opacity: 0.9; }
-    85% { opacity: 0.9; }
+    65% { opacity: 0.7; }
+    75% { opacity: 0.6; }
+    85% { opacity: 0.5; }
     100% {
-        transform: translateY(calc(100% + 50px)) rotate(360deg);
+        transform: translateY(var(--particle-fall-distance)) rotate(360deg);
         opacity: 0;
     }
 }
