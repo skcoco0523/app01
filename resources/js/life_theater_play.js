@@ -1,3 +1,38 @@
+/*
+==========================================================================
+ 【ライフシアター 再生画面 スクリプト調整ガイド】
+==========================================================================
+ 各種設定はすぐ下の PLAY_CONFIG 内の値を変更してください。
+==========================================================================
+*/
+
+// 外部調整用設定パラメータ
+const PLAY_CONFIG = {
+    SLIDE: {
+        DEFAULT_DURATION: 7500,        // スライド切り替え初期時間（ミリ秒）
+    },
+    BGM: {
+        VOLUME: 0.3,                   // BGM音量 (0.0 〜 1.0)
+    },
+    PARTICLE: {
+        COUNT: 20,                     // 生成個数
+        DURATION_BASE: 7.5,            // 落下速度の基本値（秒）
+        DURATION_RANDOM: 5.5,          // 落下速度のランダム加算幅（秒）
+        DELAY_RANDOM: 7,               // 発生遅延のランダム幅（秒）
+        USE_IMAGE: false,              // 画像を使用する場合は true に変更
+        IMAGES: {                      // 画像モード時の画像パス (USE_IMAGE: true の時)
+            sparkle: '/images/sparkle.png',
+            sakura:  '/images/sakura.png',
+            snow:    '/images/snow.png',
+        },
+        SYMBOLS: {                     // テキストモード時の絵文字 (USE_IMAGE: false の時)
+            sparkle: '✨',
+            sakura:  '🌸',
+            snow:    '❄️',
+        }
+    }
+};
+
 // 画像のアスペクト比（縦横比）を判定してスライドにクラスを付与する関数
 function applyPhotoAspectClasses() {
     document.querySelectorAll('.slide-photo').forEach(img => {
@@ -27,11 +62,10 @@ function applyPhotoAspectClasses() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ★ 画像アスペクト比クラスの適用を即時実行
     applyPhotoAspectClasses();
 
     const birthdayContainer = document.querySelector('.birthday');
-    const SLIDE_DURATION  = birthdayContainer ? parseInt(birthdayContainer.dataset.slideDuration || 7500, 10) : 7500;
+    const SLIDE_DURATION  = birthdayContainer ? parseInt(birthdayContainer.dataset.slideDuration || PLAY_CONFIG.SLIDE.DEFAULT_DURATION, 10) : PLAY_CONFIG.SLIDE.DEFAULT_DURATION;
     const AUTO_LOOP       = birthdayContainer ? birthdayContainer.dataset.autoLoop === 'true' : false;
     const PARTICLE_EFFECT = birthdayContainer ? birthdayContainer.dataset.particleEffect : 'none';
 
@@ -74,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function tryPlayBGM() {
         if (isBgmEnabled && bgm && bgm.paused) {
-            bgm.volume = 0.3;
+            bgm.volume = PLAY_CONFIG.BGM.VOLUME;
             bgm.play().catch(e => console.log('再生エラー:', e));
         }
     }
@@ -114,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSlide.classList.add('active');
         }
 
-        // スライド切り替え時にも画像比率判定を再実行
         applyPhotoAspectClasses();
 
         if (isAuto) startAutoSlide();
@@ -123,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function nextSlide(userAction = false) {
         if (slides.length === 0) return;
         
-        // ループ判定：自動再生かつループOFFの時、最後のコマで停止
         if (!userAction && !AUTO_LOOP && currentSlide === slides.length - 1) {
             setAutoMode(false);
             return;
@@ -161,7 +193,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startAutoSlide() {
         stopAutoSlide();
-        autoTimeoutId = setTimeout(() => nextSlide(false), SLIDE_DURATION);
+
+        const activeSlide = slides[currentSlide];
+        const customDuration = activeSlide ? activeSlide.dataset.duration : null;
+        
+        const duration = (customDuration && parseInt(customDuration, 10) > 0)
+            ? parseInt(customDuration, 10)
+            : SLIDE_DURATION;
+
+        autoTimeoutId = setTimeout(() => nextSlide(false), duration);
     }
 
     function stopAutoSlide() {
@@ -175,37 +215,48 @@ document.addEventListener('DOMContentLoaded', () => {
     function initParticleEffect() {
         if (!birthdayContainer || PARTICLE_EFFECT === 'none') return;
 
-        const particleCount = 20;
-        const symbols = { sparkle: '✨', sakura: '🌸', snow: '❄️' };
-        const symbol = symbols[PARTICLE_EFFECT] || '✨';
+        const pConfig = PLAY_CONFIG.PARTICLE;
+        const count = pConfig.COUNT;
 
-        for (let i = 0; i < particleCount; i++) {
-            const p = document.createElement('div');
+        for (let i = 0; i < count; i++) {
+            let p;
+            if (pConfig.USE_IMAGE && pConfig.IMAGES[PARTICLE_EFFECT]) {
+                p = document.createElement('img');
+                p.src = pConfig.IMAGES[PARTICLE_EFFECT];
+                p.style.cssText = `
+                    position: absolute;
+                    top: -30px;
+                    left: ${Math.random() * 100}%;
+                    width: ${12 + Math.random() * 16}px;
+                    height: auto;
+                    opacity: ${0.4 + Math.random() * 0.6};
+                    pointer-events: none;
+                    z-index: 10;
+                    animation: floatDown ${pConfig.DURATION_BASE + Math.random() * pConfig.DURATION_RANDOM}s linear infinite;
+                    animation-delay: ${Math.random() * pConfig.DELAY_RANDOM}s;
+                `;
+            } else {
+                p = document.createElement('div');
+                p.textContent = pConfig.SYMBOLS[PARTICLE_EFFECT] || '✨';
+                p.style.cssText = `
+                    position: absolute;
+                    top: -30px;
+                    left: ${Math.random() * 100}%;
+                    font-size: ${12 + Math.random() * 16}px;
+                    opacity: ${0.4 + Math.random() * 0.6};
+                    pointer-events: none;
+                    z-index: 10;
+                    animation: floatDown ${pConfig.DURATION_BASE + Math.random() * pConfig.DURATION_RANDOM}s linear infinite;
+                    animation-delay: ${Math.random() * pConfig.DELAY_RANDOM}s;
+                `;
+            }
             p.className = 'particle-item';
-            p.textContent = symbol;
-            p.style.cssText = `
-                position: absolute;
-                top: -30px;
-                left: ${Math.random() * 100}%;
-                font-size: ${12 + Math.random() * 16}px;
-                opacity: ${0.4 + Math.random() * 0.6};
-                pointer-events: none;
-                z-index: 10;
-                
-                /* ▼ 落下時間を 8秒〜18秒 へ延ばしてゆっくり落とす（元は 4 + Math.random() * 6） */
-                animation: floatDown ${8 + Math.random() * 10}s linear infinite;
-                
-                /* 出現タイミングも少し分散 */
-                animation-delay: ${Math.random() * 8}s;
-            `;
             birthdayContainer.appendChild(p);
         }
     }
 
     initParticleEffect();
 
-
-    // HTML上の onclick 属性から呼出可能にするため window スコープへバインド
     window.startPresentation = startPresentation;
     window.toggleControlsMenu = toggleControlsMenu;
     window.toggleBGM = toggleBGM;

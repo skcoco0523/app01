@@ -342,32 +342,45 @@ class LifeTheaterController extends Controller
             $slides = LifeTheaterSlide::getSlideList($theater_id);
 
             $timeline = [];
+            $timeline = [];
             foreach ($slides as $index => $slide) {
-                $objectsData = [];
-                if ($slide->objects) {
-                    foreach ($slide->objects as $obj) {
-                        $objectsData[] = [
-                            'type'  => $obj->type ?? 'cast',
-                            'name'  => $obj->name ?? '',
-                            'text'  => $obj->text ?? '',
-                            'image' => $obj->media->image_s3_key ?? null,
+                $rawObjects = $slide->objects ?? [];
+                
+                // 同一人物（同じ画像 または 同じ名前）ごとにまとめる処理
+                $uniqueCast = [];
+                foreach ($rawObjects as $stepIndex => $obj) {
+                    // 画像IDまたは名前をキーにして同一人物を識別
+                    //$personKey = $obj->life_theater_media_id ? 'media_' . $obj->life_theater_media_id : 'name_' . ($obj->name ?? 'unknown');
+                    //名前で固定する
+                    $personKey = $obj->name ?? 'unknown';
+
+                    if (!isset($uniqueCast[$personKey])) {
+                        $uniqueCast[$personKey] = [
+                            'type'     => $obj->type ?? 'character',
+                            'name'     => $obj->name ?? '',
+                            'image'    => $obj->media->image_s3_key ?? null,
+                            'speeches' => [],
                         ];
                     }
-                }
 
-                // ★ 追加: 再生画面側へコマ個別設定（parseConfig適用済）を追加
-                $slideConfig = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+                    $uniqueCast[$personKey]['speeches'][] = [
+                        'step'  => $stepIndex,
+                        'text'  => $obj->text ?? '',
+                        'name'  => $obj->name ?? '',
+                        'type'  => $obj->type ?? 'character',
+                        'image' => $obj->media->image_s3_key ?? null, // ★ 会話ステップごとの画像を追加
+                    ];
+                }
 
                 $timeline[] = [
                     'label'    => $slide->label ?? ($index + 1) . 'コマ',
-                    'month'    => $index,
                     'title'    => $slide->title ?? '',
                     'subtitle' => $slide->subtitle ?? '',
                     'text'     => $slide->content ?? '',
                     'image'    => $slide->media->image_s3_key ?? null,
                     'date'     => $slide->slide_date ?? '',
-                    'objects'  => $objectsData,
-                    'config'   => $slideConfig, // ★ 追加
+                    'cast'     => array_values($uniqueCast), // 配列化して渡す
+                    'config'   => LifeTheaterSlide::parseConfig($slide->config_data ?? null),
                 ];
             }
 

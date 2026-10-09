@@ -29,9 +29,9 @@
      data-auto-loop="{{ $autoLoop ? 'true' : 'false' }}"
      data-particle-effect="{{ $particleEffect }}"
      style="background: {{ config('common.note_colors.'.$theater->theme_color_num.'.code', '#f0f8ff') }};">
-     <!-- ブランドバッジの動的表示切替 -->
+     
+    <!-- ブランドバッジの動的表示切替 -->
     @if ($showBrandBadge)
-        <!-- 常時表示のアプリ案内バッジ -->
         <a href="{{ url('/life-theater') }}" class="brand-badge" target="_blank" rel="noopener">
             ✨ Life Theater
         </a>
@@ -52,7 +52,7 @@
             </button>
 
             <div class="page-list">
-                @foreach ($timeline as $m =>$data)
+                @foreach ($timeline as $m => $data)
                     <button class="page-btn {{ $loop->first ? 'active' : '' }}" onclick="goToSlide({{ $m }}, true)">{{ $data['label'] }}</button>
                 @endforeach
             </div>
@@ -62,7 +62,6 @@
                 <button class="nav-btn" onclick="nextSlide(true)" title="次へ">❯</button>
             </div>
 
-            {{-- アプリTOPへの導線 --}}
             <div style="border-top: 1px solid #ffe4e6; margin: 4px 0; width: 100%;"></div>
             <a href="{{ url('/') }}" class="mode-btn" style="text-decoration: none; background: #f472b6; color: #fff;">
                 🏠 アプリTOP
@@ -71,48 +70,74 @@
     </div>
 
     <!-- スライド一覧 -->
-    @foreach ($timeline as $m =>$data)
-        <div class="slide slide-{{ $m }} {{ $loop->first ? 'active' : '' }}" data-index="{{ $m }}">
+    @foreach ($timeline as $m => $data)
+        @php
+            $slideConfig    = $data['config'] ?? [];
+            $duration       = $slideConfig['duration_override'] ?? '';
+            $textPosition   = $slideConfig['text_position'] ?? 'center';
+            $castList       = $data['cast'] ?? $data['objects'] ?? [];
+        @endphp
+
+        <div class="slide slide-{{ $m }} {{ $loop->first ? 'active' : '' }} pos-{{ $textPosition }}" 
+             data-index="{{ $m }}" 
+             data-duration="{{ $duration }}">
             
             <div class="slide-title size-{{ $titleSize }}">{{ $data['title'] }}</div>
             @if(!empty($data['subtitle']))
                 <div class="slide-subtitle size-{{ $subtitleSize }}">{{ $data['subtitle'] }}</div>
             @endif
 
-            {{-- ★ メイン表示エリア（写真＋右側詳細グループ） --}}
+            {{-- メイン表示エリア（写真＋右側詳細グループ） --}}
             <div class="slide-main-content">
                 {{-- S3画像メイン表示 --}}
                 @if (!empty($data['image']))
                     <img src="{{ $data['image'] }}" alt="スライド写真" class="slide-photo" loading="eager">
                 @endif
 
-                {{-- ★ 右側（または下部）の詳細情報グループ --}}
+                {{-- 右側（または下部）の詳細情報グループ --}}
                 <div class="slide-side-details">
                     {{-- メッセージテキスト --}}
                     @if (!empty($data['text']))
                         <div class="slide-text">{!! nl2br(e($data['text'])) !!}</div>
                     @endif
 
-                    {{-- キャスト・吹き出し・イベント --}}
-                    @if (!empty($data['objects']))
+                    {{-- キャスト・吹き出し（会話リレー＆画像切り替え対応） --}}
+                    @if (!empty($castList))
                         <div class="birth-info-container">
-                            @foreach ($data['objects'] as $index => $obj)
-                                @php $isEvent = ($obj['type'] === 'event'); @endphp
-                                
-                                <div class="birth-card" style="--i: {{ $index }};" data-is-event="{{ $isEvent ? 'true' : 'false' }}">
-                                    @if (!empty($obj['image']))
-                                        <img src="{{ $obj['image'] }}" alt="{{ $obj['name'] }}" class="baby-thumb" loading="eager">
-                                    @endif
-                                    <div class="baby-details">
-                                        @if(!empty($obj['name']))
-                                            <div class="baby-name">
-                                                {!! $isEvent ? '💍 ' . e($obj['name']) : e($obj['name']) !!}
-                                            </div>
+                            @foreach ($castList as $index => $person)
+                                @php
+                                    $speeches = $person['speeches'] ?? [$person];
+                                @endphp
+
+                                <div class="birth-card">
+                                    {{-- 会話ステップごとのアイコン画像（--step を付与） --}}
+                                    @foreach ($speeches as $sIndex => $speech)
+                                        @if (!empty($speech['image']))
+                                            <img src="{{ $speech['image'] }}" alt="{{ $speech['name'] ?? '' }}" 
+                                                class="baby-thumb {{ $loop->first ? 'default-thumb' : '' }}" 
+                                                style="--step: {{ $speech['step'] ?? $sIndex }};" 
+                                                loading="eager">
                                         @endif
-                                        @if (!empty($obj['text']))
-                                            <div class="baby-meta">{!! nl2br(e($obj['text'])) !!}</div>
-                                        @endif
-                                    </div>
+                                    @endforeach
+
+                                    {{-- 同一人物の全会話ステップ（吹き出し） --}}
+                                    @foreach ($speeches as $speech)
+                                        @php
+                                            $isEvent   = (($speech['type'] ?? '') === 'event');
+                                            $stepIndex = $speech['step'] ?? $index;
+                                        @endphp
+
+                                        <div class="baby-details" style="--step: {{ $stepIndex }};" data-is-event="{{ $isEvent ? 'true' : 'false' }}">
+                                            @if(!empty($speech['name']))
+                                                <div class="baby-name">
+                                                    {!! $isEvent ? '💍 ' . e($speech['name']) : e($speech['name']) !!}
+                                                </div>
+                                            @endif
+                                            @if (!empty($speech['text']))
+                                                <div class="baby-meta">{!! nl2br(e($speech['text'])) !!}</div>
+                                            @endif
+                                        </div>
+                                    @endforeach
                                 </div>
                             @endforeach
                         </div>
