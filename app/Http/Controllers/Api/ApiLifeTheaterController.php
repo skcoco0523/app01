@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterShare;
+use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterSlideObject;
 
 class ApiLifeTheaterController extends Controller
@@ -38,7 +39,7 @@ class ApiLifeTheaterController extends Controller
         $input['search_life_theater_id'] = get_proc_data($input, "life_theater_id");
         $theater                         = LifeTheater::getLifeTheaterList(null, false, null, $input)->first();
         if (!$theater) {
-            make_error_log($error_log, "Theater not found or access denied. life_theater_id:" . get_proc_data($input, "life_theater_id"));
+            make_error_log($error_log, "Theater not found or access denied. life_theater_id:" . $input['search_life_theater_id']);
             return false;
         }
 
@@ -100,6 +101,55 @@ class ApiLifeTheaterController extends Controller
         }
 
         return true;
+    }
+
+    /**
+     * スライドの保存・更新 (Ajax API)
+     */
+    public function updateSlide(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
+        try {
+            $input = $request->all();
+            make_error_log($error_log, "input:" . print_r($input, true));
+
+            $slide = LifeTheaterSlide::with('lifeTheater')->find($input['id'] ?? null);
+            if (!$slide) {
+                make_error_log($error_log, "Validation error: slide not found. id:" . ($input['id'] ?? 'null'));
+                return response()->json(['status' => 'error', 'message' => '対象のスライドが存在しません。'], 400);
+            }
+
+            $isPremium = ($slide->lifeTheater->plan_type ?? '') === 'premium';
+
+            $currentConfig        = LifeTheaterSlide::parseConfig($slide->config_data ?? null);
+            $inputConfig          = $input['config_data'] ?? [];
+            $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+
+            $ret = LifeTheaterSlide::chgSlide($input);
+
+            if ($ret['error_code'] == 0) {
+                make_error_log($error_log, "Success saved slide_id:" . $input['id']);
+
+                // 最新のスライド情報とメディア情報を取得して返却
+                $updatedSlide = LifeTheaterSlide::with('media')->find($input['id']);
+                if ($updatedSlide) {
+                    $updatedSlide->parsed_config = LifeTheaterSlide::parseConfig($updatedSlide->config_data);
+                }
+
+                return response()->json([
+                    'status'  => 'success',
+                    'message' => 'スライドを更新しました。',
+                    'data'    => $updatedSlide
+                ]);
+            }
+
+            make_error_log($error_log, "Failed to save slide. error_code=" . $ret['error_code']);
+            return response()->json(['status' => 'error', 'message' => 'スライドの更新に失敗しました。'], 400);
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '更新中にエラーが発生しました: ' . $e->getMessage()], 500);
+        }
     }
 
     /**

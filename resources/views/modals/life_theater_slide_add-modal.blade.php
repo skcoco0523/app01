@@ -8,7 +8,7 @@
                 <input type="hidden" name="life_theater_media_id" id="add_slide_media_id" value="">
 
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle"></i> コマ（スライド）の追加</h5>
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle"></i> スライドの追加</h5>
                     <button type="button" class="btn-close" aria-label="Close" onclick="closeModal('life_theater_slide_add-modal')"></button>
                 </div>
 
@@ -26,7 +26,7 @@
                         <li class="nav-item">
                             <button type="button" class="nav-link py-1 small fw-bold text-primary add-slide-tab-btn" 
                                 id="add-config-tab-btn" onclick="switchAddSlideTab('config', this)">
-                                <i class="fa-solid fa-sliders me-1"></i> コマ個別設定
+                                <i class="fa-solid fa-sliders me-1"></i> スライド個別設定
                             </button>
                         </li>
                     </ul>
@@ -45,7 +45,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">タイトル <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="slide_add_title" name="title" placeholder="コマのタイトル" required>
+                            <input type="text" class="form-control form-control-sm" id="slide_add_title" name="title" placeholder="スライドのタイトル" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">サブタイトル</label>
@@ -80,10 +80,10 @@
                         </div>
                     </div>
 
-                    {{-- 【タブ2】コマ個別設定 (config_data) --}}
+                    {{-- 【タブ2】スライド個別設定 (config_data) --}}
                     <div class="add-slide-tab-pane d-none" id="add-tab-pane-config">
                         <div class="p-2 border rounded bg-light">
-                            <small class="text-muted d-block mb-3">このコマだけに適用したい表示・演出設定をカスタマイズできます。</small>
+                            <small class="text-muted d-block mb-3">このスライドだけに適用したい表示・演出設定をカスタマイズできます。</small>
 
                             @if (!empty($slide_config_definitions))
                                 @foreach ($slide_config_definitions as $key => $def)

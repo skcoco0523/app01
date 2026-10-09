@@ -8,7 +8,7 @@
                 <button type="button" class="btn-close" aria-label="Close" onclick="closeModal('life_theater_slide_object-modal')"></button>
             </div>
 
-            <div class="modal-body p-3">
+            <div class="modal-body p-3" style="max-height: 62vh; overflow-y: auto;">
                 {{-- 対象スライドIDの保持 --}}
                 <input type="hidden" id="object_target_slide_id" value="">
 
@@ -268,12 +268,13 @@ async function saveSlideObject() {
         if (result.status === 'success') {
             resetObjectForm();
             loadSlideObjects(slideId);
+            showNotification( "保存しました。","success",2000);
         } else {
-            alert(result.message || '保存に失敗しました。');
+            showNotification( "保存に失敗しました。","error",2000);
         }
     } catch (e) {
         console.error(e);
-        alert('保存処理中にエラーが発生しました。');
+        showNotification( "保存処理中にエラーが発生しました。","error",2000);
     } finally {
         btn.disabled = false;
     }
@@ -312,11 +313,11 @@ async function executeDeleteSlideObjectItem(objectId) {
         if (result.status === 'success') {
             loadSlideObjects(slideId);
         } else {
-            alert(result.message || '削除に失敗しました。');
+            showNotification( "削除に失敗しました。","error",2000);
         }
     } catch (e) {
         console.error(e);
-        alert('削除処理中にエラーが発生しました。');
+        showNotification( "削除処理中にエラーが発生しました。","error",2000);
     }
 }
 </script>

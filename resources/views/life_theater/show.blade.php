@@ -29,7 +29,7 @@
                         <hr>
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}コマ)</h5>
+                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}スライド)</h5>
                         </div>
                         
                         <div class="d-flex gap-2 align-items-center mb-3">
@@ -46,11 +46,11 @@
                                 <i class="fa-solid fa-plus me-1"></i> ライブラリ
                             </button>
                             <button type="button" class="btn btn-danger btn-sm" onclick="openModal('life_theater_slide_add-modal');">
-                                <i class="fa-solid fa-plus me-1"></i> コマ追加
+                                <i class="fa-solid fa-plus me-1"></i> スライド追加
                             </button>
                         </div>
 
-                        {{-- タイムライン・コマリスト --}}
+                        {{-- タイムライン・スライドリスト --}}
                         <div class="d-flex flex-column gap-2">
                             @forelse ($slides as $index => $slide)
                                 <div class="card border-0 shadow-sm">
@@ -96,7 +96,7 @@
                                                 </button>
 
                                                 {{-- 削除ボタン（formに flex ＆ m-0 を指定して高さを一致させる） --}}
-                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このコマを削除しますか？');" class="d-inline-flex align-items-center m-0">
+                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このスライドを削除しますか？');" class="d-inline-flex align-items-center m-0">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $slide->id }}">
                                                     <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;">
@@ -109,7 +109,7 @@
                                 </div>
                             @empty
                                 <div class="text-center text-muted py-4">
-                                    スライドがまだ登録されていません。<br>「コマ追加」ボタンから思い出を追加しましょう。
+                                    スライドがまだ登録されていません。<br>「スライド追加」ボタンから思い出を追加しましょう。
                                 </div>
                             @endforelse
                         </div>

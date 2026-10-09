@@ -373,7 +373,7 @@ class LifeTheaterController extends Controller
                 }
 
                 $timeline[] = [
-                    'label'    => $slide->label ?? ($index + 1) . 'コマ',
+                    'label'    => $slide->label ?? ($index + 1) . 'スライド',
                     'title'    => $slide->title ?? '',
                     'subtitle' => $slide->subtitle ?? '',
                     'text'     => $slide->content ?? '',
