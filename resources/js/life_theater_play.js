@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startPresentation() {
         ensureStarted();
+        goToSlide(0); // 1枚目のアニメーションを0秒からリセット再生する
         setAutoMode(true);
     }
 

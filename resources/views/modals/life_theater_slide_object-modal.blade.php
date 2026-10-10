@@ -47,16 +47,24 @@
                             </select>
                         </div>
                         {{-- 表示名 --}}
+                        {{-- 表示名（最大20文字） --}}
                         <div class="col-6">
-                            <label class="form-label small mb-1">名前・ラベル</label>
-                            <input type="text" class="form-control form-control-sm" id="object_name" placeholder="例: ななえ, メモ1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small mb-0">名前・ラベル</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="object_name_count">0</span>/20</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="object_name" maxlength="20" placeholder="例: ななえ" oninput="updateCharCount('object_name', 'object_name_count')">
                         </div>
                     </div>
 
                     {{-- テキスト --}}
+                    {{-- セリフ・メッセージ（最大100文字） --}}
                     <div class="mb-2">
-                        <label class="form-label small mb-1">セリフ・メッセージ</label>
-                        <textarea class="form-control form-control-sm" id="object_text" rows="2" placeholder="セリフやテキストを入力"></textarea>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small mb-0">セリフ・メッセージ</label>
+                            <span class="text-muted" style="font-size: 10px;"><span id="object_text_count">0</span>/100</span>
+                        </div>
+                        <textarea class="form-control form-control-sm" id="object_text" rows="3" maxlength="100" placeholder="セリフやテキストを入力（100文字まで）" oninput="updateCharCount('object_text', 'object_text_count')"></textarea>
                     </div>
 
                     {{-- アイコン / プロフィール画像選択 --}}
@@ -268,6 +276,15 @@ function renderSlideObjectList(objects) {
     });
 }
 
+// リアルタイム文字数カウント更新
+function updateCharCount(inputId, countId) {
+    const input = document.getElementById(inputId);
+    const count = document.getElementById(countId);
+    if (input && count) {
+        count.textContent = input.value.length;
+    }
+}
+
 function editSlideObjectItem(objectId) {
     const obj = currentSlideObjects.find(o => o.id === objectId);
     if (!obj) return;
@@ -310,6 +327,9 @@ function editSlideObjectItem(objectId) {
 
     renderSlideObjectList(currentSlideObjects);
     restoreScrollPositions();
+
+    updateCharCount('object_name', 'object_name_count');
+    updateCharCount('object_text', 'object_text_count');
 }
 
 function resetObjectForm() {
@@ -333,6 +353,8 @@ function resetObjectForm() {
     if (currentSlideObjects.length > 0) {
         renderSlideObjectList(currentSlideObjects);
     }
+    updateCharCount('object_name', 'object_name_count');
+    updateCharCount('object_text', 'object_text_count');
 }
 
 async function saveSlideObject() {

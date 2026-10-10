@@ -35,25 +35,40 @@
                     <div class="add-slide-tab-pane" id="add-tab-pane-basic">
                         <div class="row">
                             <div class="col-6 mb-3">
-                                <label class="form-label fw-bold">ラベル（例: 0か月）</label>
-                                <input type="text" class="form-control form-control-sm" name="label" placeholder="例: 0か月">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold mb-0">ラベル（例: 0か月）</label>
+                                    <span class="text-muted" style="font-size: 10px;"><span id="add_slide_label_count">0</span>/20</span>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="add_slide_label" name="label" maxlength="20" placeholder="例: 0か月" oninput="updateCharCount('add_slide_label', 'add_slide_label_count')">
                             </div>
                             <div class="col-6 mb-3">
-                                <label class="form-label fw-bold">日付</label>
-                                <input type="text" class="form-control form-control-sm" name="slide_date" placeholder="例: 2026.10.05">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold mb-0">日付</label>
+                                    <span class="text-muted" style="font-size: 10px;"><span id="add_slide_date_count">0</span>/20</span>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="add_slide_date" name="slide_date" maxlength="20" placeholder="例: 2026.10.05" oninput="updateCharCount('add_slide_date', 'add_slide_date_count')">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">タイトル <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="slide_add_title" name="title" placeholder="スライドのタイトル" required>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">タイトル <span class="text-danger">*</span></label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="add_slide_title_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="slide_add_title" name="title" maxlength="30" placeholder="スライドのタイトル" required oninput="updateCharCount('slide_add_title', 'add_slide_title_count')">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">サブタイトル</label>
-                            <input type="text" class="form-control form-control-sm" name="subtitle" placeholder="サブタイトル">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">サブタイトル</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="add_slide_subtitle_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="add_slide_subtitle" name="subtitle" maxlength="30" placeholder="サブタイトル" oninput="updateCharCount('add_slide_subtitle', 'add_slide_subtitle_count')">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">説明文・メッセージ</label>
-                            <textarea class="form-control form-control-sm" name="content" rows="3" placeholder="思い出のテキストを入力"></textarea>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">説明文・メッセージ</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="add_slide_content_count">0</span>/200</span>
+                            </div>
+                            <textarea class="form-control form-control-sm" id="add_slide_content" name="content" rows="3" maxlength="200" placeholder="思い出のテキストを入力" oninput="updateCharCount('add_slide_content', 'add_slide_content_count')"></textarea>
                         </div>
 
                         {{-- メイン画像の選択（ライブラリ連携） --}}
@@ -135,6 +150,16 @@
 </div>
 
 <script>
+if (typeof window.updateCharCount !== 'function') {
+    window.updateCharCount = function(inputId, countId) {
+        const input = document.getElementById(inputId);
+        const count = document.getElementById(countId);
+        if (input && count) {
+            count.textContent = input.value.length;
+        }
+    };
+}
+
 // タブ切り替え関数
 function switchAddSlideTab(tabName, btn) {
     document.querySelectorAll('.add-slide-tab-btn').forEach(b => b.classList.remove('active'));
@@ -155,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmButton.classList.remove('disabled');
         else
             confirmButton.classList.add('disabled');
+        updateCharCount('slide_add_title', 'add_slide_title_count');
     }
 
     if (slideTitleInput) {
@@ -164,7 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addModal) {
         addModal.addEventListener('modal:open', function () {
-            // モーダルが開く時は必ず「基本情報」タブを初期表示にする
             switchAddSlideTab('basic', document.getElementById('add-basic-tab-btn'));
         });
     }

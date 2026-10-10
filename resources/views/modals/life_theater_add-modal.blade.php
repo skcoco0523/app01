@@ -9,13 +9,19 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="life_theater_title" class="form-label">タイトル <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="life_theater_title" name="title" placeholder="作品名を入力" required>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="life_theater_title" class="form-label mb-0">タイトル <span class="text-danger">*</span></label>
+                            <span class="text-muted" style="font-size: 10px;"><span id="add_theater_title_count">0</span>/30</span>
+                        </div>
+                        <input type="text" class="form-control" id="life_theater_title" name="title" maxlength="30" placeholder="作品名を入力" required oninput="updateCharCount('life_theater_title', 'add_theater_title_count')">
                     </div>
 
                     <div class="mb-3">
-                        <label for="life_theater_subtitle" class="form-label">サブタイトル</label>
-                        <input type="text" class="form-control" id="life_theater_subtitle" name="subtitle" placeholder="サブタイトルを入力">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="life_theater_subtitle" class="form-label mb-0">サブタイトル</label>
+                            <span class="text-muted" style="font-size: 10px;"><span id="add_theater_subtitle_count">0</span>/30</span>
+                        </div>
+                        <input type="text" class="form-control" id="life_theater_subtitle" name="subtitle" maxlength="30" placeholder="サブタイトルを入力" oninput="updateCharCount('life_theater_subtitle', 'add_theater_subtitle_count')">
                     </div>
 
                     <div class="mb-3">
@@ -53,6 +59,16 @@
 </div>
 
 <script>
+if (typeof window.updateCharCount !== 'function') {
+    window.updateCharCount = function(inputId, countId) {
+        const input = document.getElementById(inputId);
+        const count = document.getElementById(countId);
+        if (input && count) {
+            count.textContent = input.value.length;
+        }
+    };
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var theaterTitleInput = document.getElementById('life_theater_title');
     var confirmButton = document.getElementById('theater_add_confirm_button');
@@ -62,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmButton.classList.remove('disabled');
         else
             confirmButton.classList.add('disabled');
+        updateCharCount('life_theater_title', 'add_theater_title_count');
     }
 
     theaterTitleInput.addEventListener('input', checkInput);

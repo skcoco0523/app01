@@ -37,25 +37,40 @@
                     <div class="edit-slide-tab-pane" id="edit-tab-pane-basic">
                         <div class="row">
                             <div class="col-6 mb-3">
-                                <label class="form-label fw-bold">ラベル</label>
-                                <input type="text" class="form-control form-control-sm" id="edit_slide_label" name="label">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold mb-0">ラベル</label>
+                                    <span class="text-muted" style="font-size: 10px;"><span id="edit_slide_label_count">0</span>/20</span>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="edit_slide_label" name="label" maxlength="20" oninput="updateCharCount('edit_slide_label', 'edit_slide_label_count')">
                             </div>
                             <div class="col-6 mb-3">
-                                <label class="form-label fw-bold">日付</label>
-                                <input type="text" class="form-control form-control-sm" id="edit_slide_date" name="slide_date">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-bold mb-0">日付</label>
+                                    <span class="text-muted" style="font-size: 10px;"><span id="edit_slide_date_count">0</span>/20</span>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="edit_slide_date" name="slide_date" maxlength="20" oninput="updateCharCount('edit_slide_date', 'edit_slide_date_count')">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">タイトル <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="edit_slide_title" name="title" required>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">タイトル <span class="text-danger">*</span></label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="edit_slide_title_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="edit_slide_title" name="title" maxlength="30" required oninput="updateCharCount('edit_slide_title', 'edit_slide_title_count')">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">サブタイトル</label>
-                            <input type="text" class="form-control form-control-sm" id="edit_slide_subtitle" name="subtitle">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">サブタイトル</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="edit_slide_subtitle_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="edit_slide_subtitle" name="subtitle" maxlength="30" oninput="updateCharCount('edit_slide_subtitle', 'edit_slide_subtitle_count')">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">説明文・メッセージ</label>
-                            <textarea class="form-control form-control-sm" id="edit_slide_content" name="content" rows="3"></textarea>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">説明文・メッセージ</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="edit_slide_content_count">0</span>/200</span>
+                            </div>
+                            <textarea class="form-control form-control-sm" id="edit_slide_content" name="content" rows="3" maxlength="200" oninput="updateCharCount('edit_slide_content', 'edit_slide_content_count')"></textarea>
                         </div>
 
                         {{-- メイン画像の選択 --}}
@@ -149,6 +164,24 @@
 </div>
 
 <script>
+if (typeof window.updateCharCount !== 'function') {
+    window.updateCharCount = function(inputId, countId) {
+        const input = document.getElementById(inputId);
+        const count = document.getElementById(countId);
+        if (input && count) {
+            count.textContent = input.value.length;
+        }
+    };
+}
+
+function refreshEditSlideCharCounts() {
+    updateCharCount('edit_slide_label', 'edit_slide_label_count');
+    updateCharCount('edit_slide_date', 'edit_slide_date_count');
+    updateCharCount('edit_slide_title', 'edit_slide_title_count');
+    updateCharCount('edit_slide_subtitle', 'edit_slide_subtitle_count');
+    updateCharCount('edit_slide_content', 'edit_slide_content_count');
+}
+
 function switchEditSlideTab(tabName, btn) {
     document.querySelectorAll('.edit-slide-tab-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
@@ -203,6 +236,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             switchEditSlideTab('basic', document.getElementById('edit-basic-tab-btn'));
+            
+            // モーダル表示時に初期データの文字数を更新
+            setTimeout(refreshEditSlideCharCounts, 50);
         });
     }
 });
@@ -231,11 +267,8 @@ async function saveSlideEdit() {
 
         const result = await response.json();
         if (result.status === 'success') {
-            //closeModal('life_theater_slide_edit-modal');
-            
             showNotification( "保存しました。","success",2000);
             
-            // 親画面（show.blade.php）上の該当スライド要素の表示をリロードなしで即時更新
             if (result.data) {
                 updateSlideDOM(result.data);
             }
@@ -252,13 +285,11 @@ async function saveSlideEdit() {
 
 // 親画面（show.blade.php）のDOM要素を更新する関数
 function updateSlideDOM(slide) {
-    // 該当するスライドの編集ボタンを取得
     const editBtn = document.querySelector(`button[data-slide*='"edit_slide_id":"${slide.id}"']`) ||
                     document.querySelector(`button[data-slide*='"edit_slide_id":${slide.id}']`);
     
     if (!editBtn) return;
 
-    // dataset.slide を最新状態に書き換え
     const updatedData = {
         'edit_slide_id': String(slide.id),
         'edit_slide_label': String(slide.label || ''),
@@ -273,10 +304,8 @@ function updateSlideDOM(slide) {
     };
     editBtn.dataset.slide = JSON.stringify(updatedData);
 
-    // 親要素のカードBodyを取得して直接書き換え
     const cardBody = editBtn.closest('.card-body');
     if (cardBody) {
-        // ラベルバッジの更新
         const labelBadge = cardBody.querySelector('.badge.bg-info');
         if (labelBadge) {
             if (slide.label) {
@@ -287,11 +316,9 @@ function updateSlideDOM(slide) {
             }
         }
 
-        // タイトルの更新
         const titleEl = cardBody.querySelector('strong');
         if (titleEl) titleEl.textContent = slide.title || 'タイトルなし';
 
-        // サブタイトルの更新
         const subTitleEl = cardBody.querySelector('small.text-muted');
         if (subTitleEl) {
             if (slide.subtitle) {
@@ -302,7 +329,6 @@ function updateSlideDOM(slide) {
             }
         }
 
-        // 画像ありマーク（緑色バッジ）の制御
         let mediaBadge = cardBody.querySelector('.badge.bg-success');
         if (slide.media && slide.media.image_s3_key) {
             if (!mediaBadge) {

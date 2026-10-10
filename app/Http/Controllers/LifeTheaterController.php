@@ -344,16 +344,35 @@ class LifeTheaterController extends Controller
             $slides = LifeTheaterSlide::getSlideList($theater_id);
 
             $timeline = [];
-            $timeline = [];
             foreach ($slides as $index => $slide) {
                 $rawObjects = $slide->objects ?? [];
                 
-                // 同一人物（同じ画像 または 同じ名前）ごとにまとめる処理
+                // ★ 各ステップ（会話順）の累積開始時間と保持時間を正確に計算
+                $stepTimings = [];
+                $currentAccumulated = 0;
+
+                foreach ($rawObjects as $stepIndex => $obj) {
+                    $objConfig   = LifeTheaterSlideObject::parseConfig($obj->config_data ?? null);
+                    $popDelay    = isset($objConfig['pop_delay']) ? ((float)$objConfig['pop_delay'] / 1000) : 0.5;
+                    $popDuration = isset($objConfig['pop_duration']) ? ((float)$objConfig['pop_duration'] / 1000) : 2.5;
+
+                    // ★ 修正: 前回の終了時間に今回の表示遅延時間(pop_delay)を加えて開始時間を算出
+                    $startDelay = $currentAccumulated + $popDelay;
+                    $currentAccumulated = $startDelay + $popDuration;
+
+                    $stepTimings[$stepIndex] = [
+                        'start_delay' => $startDelay,
+                        'duration'    => $popDuration,
+                        'pop_scale'   => $objConfig['emphasis_scale'] ?? '1.25',
+                        'anim_style'  => $objConfig['animation_style'] ?? 'pop',
+                        'balloon_pos' => $objConfig['balloon_position'] ?? 'auto',
+                        'config'      => $objConfig,
+                    ];
+                }
+
+                // 同一人物（同じ名前）ごとにまとめる処理
                 $uniqueCast = [];
                 foreach ($rawObjects as $stepIndex => $obj) {
-                    // 画像IDまたは名前をキーにして同一人物を識別
-                    //$personKey = $obj->life_theater_media_id ? 'media_' . $obj->life_theater_media_id : 'name_' . ($obj->name ?? 'unknown');
-                    //名前で固定する
                     $personKey = $obj->name ?? 'unknown';
 
                     if (!isset($uniqueCast[$personKey])) {
@@ -365,23 +384,38 @@ class LifeTheaterController extends Controller
                         ];
                     }
 
+                    $timing = $stepTimings[$stepIndex] ?? [
+                        'start_delay' => 0.5,
+                        'duration'    => 2.5,
+                        'pop_scale'   => '1.25',
+                        'anim_style'  => 'pop',
+                        'balloon_pos' => 'auto',
+                        'config'      => [],
+                    ];
+
                     $uniqueCast[$personKey]['speeches'][] = [
-                        'step'  => $stepIndex,
-                        'text'  => $obj->text ?? '',
-                        'name'  => $obj->name ?? '',
-                        'type'  => $obj->type ?? 'character',
-                        'image' => $obj->media->image_s3_key ?? null, // ★ 会話ステップごとの画像を追加
+                        'step'        => $stepIndex,
+                        'text'        => $obj->text ?? '',
+                        'name'        => $obj->name ?? '',
+                        'type'        => $obj->type ?? 'character',
+                        'image'       => $obj->media->image_s3_key ?? null,
+                        'start_delay' => $timing['start_delay'],
+                        'duration'    => $timing['duration'],
+                        'pop_scale'   => $timing['pop_scale'],
+                        'anim_style'  => $timing['anim_style'],
+                        'balloon_pos' => $timing['balloon_pos'],
+                        'config'      => $timing['config'],
                     ];
                 }
 
                 $timeline[] = [
-                    'label'    => $slide->label ?? ($index + 1) . 'スライド',
+                    'label'    => $slide->label ?? ($index + 1) . 'コマ',
                     'title'    => $slide->title ?? '',
                     'subtitle' => $slide->subtitle ?? '',
                     'text'     => $slide->content ?? '',
                     'image'    => $slide->media->image_s3_key ?? null,
                     'date'     => $slide->slide_date ?? '',
-                    'cast'     => array_values($uniqueCast), // 配列化して渡す
+                    'cast'     => array_values($uniqueCast),
                     'config'   => LifeTheaterSlide::parseConfig($slide->config_data ?? null),
                 ];
             }
