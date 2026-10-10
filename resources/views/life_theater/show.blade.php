@@ -29,7 +29,7 @@
                         <hr>
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}コマ)</h5>
+                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}スライド)</h5>
                         </div>
                         
                         <div class="d-flex gap-2 align-items-center mb-3">
@@ -41,16 +41,16 @@
                             <button type="button" class="btn btn-success btn-sm"
                                 onclick="openModal('life_theater_media-modal', {
                                     media_manage_mode: '1',
-                                    media_modal_title_text: '画像ライブラリ（画像を選択して編集）'
+                                    media_modal_title_text: '画像ライブラリ（選択して編集）'
                                 });" title="ライブラリ"> 
                                 <i class="fa-solid fa-plus me-1"></i> ライブラリ
                             </button>
                             <button type="button" class="btn btn-danger btn-sm" onclick="openModal('life_theater_slide_add-modal');">
-                                <i class="fa-solid fa-plus me-1"></i> コマ追加
+                                <i class="fa-solid fa-plus me-1"></i> スライド追加
                             </button>
                         </div>
 
-                        {{-- タイムライン・コマリスト --}}
+                        {{-- タイムライン・スライドリスト --}}
                         <div class="d-flex flex-column gap-2">
                             @forelse ($slides as $index => $slide)
                                 <div class="card border-0 shadow-sm">
@@ -69,7 +69,7 @@
                                         </div>
 
                                         <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
-                                            {{-- 画像ありマーク（高さ・サイズをボタンと統一） --}}
+                                            {{-- 画像ありマーク --}}
                                             @if($slide->media)
                                                 <span class="badge bg-success d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 32px; padding: 0;">
                                                     <i class="fa-solid fa-image"></i>
@@ -95,8 +95,8 @@
                                                     <i class="fa-solid fa-pen"></i>
                                                 </button>
 
-                                                {{-- 削除ボタン（formに flex ＆ m-0 を指定して高さを一致させる） --}}
-                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このコマを削除しますか？');" class="d-inline-flex align-items-center m-0">
+                                                {{-- 削除ボタン --}}
+                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このスライドを削除しますか？');" class="d-inline-flex align-items-center m-0">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $slide->id }}">
                                                     <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;">
@@ -109,7 +109,7 @@
                                 </div>
                             @empty
                                 <div class="text-center text-muted py-4">
-                                    スライドがまだ登録されていません。<br>「コマ追加」ボタンから思い出を追加しましょう。
+                                    スライドがまだ登録されていません。<br>「スライド追加」ボタンから思い出を追加しましょう。
                                 </div>
                             @endforelse
                         </div>
@@ -162,14 +162,24 @@
                         <input type="hidden" name="id" value="{{ $theater->id ?? $theater->life_theater_id }}">
                         <input type="hidden" name="share_flag" value="{{ $input['share_flag'] ?? '' }}">
 
+                        {{-- タイトル（文字数カウンター追加） --}}
                         <div class="mb-3">
-                            <label class="form-label fw-bold">タイトル</label>
-                            <input type="text" class="form-control form-control-sm" name="title" value="{{ $theater->title ?? '' }}" required>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">タイトル <span class="text-danger">*</span></label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="show_theater_title_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="show_theater_title" name="title" value="{{ $theater->title ?? '' }}" maxlength="30" required oninput="updateCharCount('show_theater_title', 'show_theater_title_count')">
                         </div>
+
+                        {{-- サブタイトル（文字数カウンター追加） --}}
                         <div class="mb-3">
-                            <label class="form-label">サブタイトル</label>
-                            <input type="text" class="form-control form-control-sm" name="subtitle" value="{{ $theater->subtitle ?? '' }}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label mb-0">サブタイトル</label>
+                                <span class="text-muted" style="font-size: 10px;"><span id="show_theater_subtitle_count">0</span>/30</span>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="show_theater_subtitle" name="subtitle" value="{{ $theater->subtitle ?? '' }}" maxlength="30" oninput="updateCharCount('show_theater_subtitle', 'show_theater_subtitle_count')">
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">BGM</label>
                             <select class="form-select form-select-sm" name="bgm_type">
@@ -267,6 +277,21 @@
 @endsection
 
 <script>
+    if (typeof window.updateCharCount !== 'function') {
+        window.updateCharCount = function(inputId, countId) {
+            const input = document.getElementById(inputId);
+            const count = document.getElementById(countId);
+            if (input && count) {
+                count.textContent = input.value.length;
+            }
+        };
+    }
+
+    function refreshTheaterCharCounts() {
+        updateCharCount('show_theater_title', 'show_theater_title_count');
+        updateCharCount('show_theater_subtitle', 'show_theater_subtitle_count');
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const DisplayArea = document.getElementById('DisplayArea');
         const EditArea = document.getElementById('EditArea');
@@ -293,6 +318,9 @@
         });
 
         setEditMode(false);
+
+        // 初期表示時の文字数を更新
+        refreshTheaterCharCounts();
 
         // テーマカラー選択
         const colorInput = document.getElementById('theme_color_num');

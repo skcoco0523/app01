@@ -89,6 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/enable-edit', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'enable_edit')->name('enable_edit');
         Route::post('/disable-edit', [ApiLifeTheaterController::class, 'api_life_theater_manage'])->defaults('type', 'disable_edit')->name('disable_edit');
 
+        // スライド操作
+        Route::post('/slide/update', [ApiLifeTheaterController::class, 'updateSlide'])->name('slide.update');
+
         // 画像ライブラリ (S3ダイレクト送信対応)
         Route::get('/{life_theater_id}/media', [ApiLifeTheaterMediaController::class, 'index'])->name('media.index');
         Route::post('/media/presigned', [ApiLifeTheaterMediaController::class, 'getPresignedUrl'])->name('media.presigned'); // ★追加: S3署名URL発行

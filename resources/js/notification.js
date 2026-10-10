@@ -1,5 +1,11 @@
 window.showNotification = function showNotification(message_org, type, sec) {
     const notification = document.getElementById('notification');
+    if (!notification) return;
+
+    // ★ モーダルよりも手前（最前面）に表示させるためのスタイル固定
+    notification.style.position = 'fixed';
+    notification.style.zIndex = '99999';
+
     //アイコン情報：https://fontawesome.com/
 
     let message = message_org.replace(/\n/g, '<br>');
@@ -54,18 +60,19 @@ window.showNotification = function showNotification(message_org, type, sec) {
         case "mypl_del":    //削除
             notification.innerHTML += `<i class="icon-50 fa-solid fa-list-ul fa-shake red "></i>`;
             break;
+
+        case "success":    // 成功・保存・更新完了
+            notification.innerHTML += `<i class="icon-50 fa-solid fa-circle-check fa-bounce red"></i>`;
+            break;
             
-
-
         case "error":    //エラー
             notification.innerHTML += `<i class="icon-50 fa-solid fa-triangle-exclamation fa-shake red "></i>`;
             break;
         
         default:
-            
             break;
     }
-    //notification.innerHTML += `</div>`;
+
     notification.innerHTML += `<p>${message}</p>`;
 
     notification.style.display = 'block';
@@ -73,8 +80,10 @@ window.showNotification = function showNotification(message_org, type, sec) {
     if (type === "loading") {
         // 半分の時刻が経過したらスピナーを非表示にしてメッセージを表示
         setTimeout(() => {
-            document.getElementById('spinnerSection').style.display = 'none';
-            document.getElementById('messageSection').style.display = 'block';
+            const spinner = document.getElementById('spinnerSection');
+            const msgSec = document.getElementById('messageSection');
+            if (spinner) spinner.style.display = 'none';
+            if (msgSec) msgSec.style.display = 'block';
         }, sec / 2);
     }
 
@@ -83,5 +92,8 @@ window.showNotification = function showNotification(message_org, type, sec) {
 }
 
 window.hideNotification = function hideNotification() {
-    document.getElementById('notification').style.display = 'none';
+    const notification = document.getElementById('notification');
+    if (notification) {
+        notification.style.display = 'none';
+    }
 }

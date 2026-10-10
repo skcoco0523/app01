@@ -75,10 +75,11 @@
             $slideConfig    = $data['config'] ?? [];
             $duration       = $slideConfig['duration_override'] ?? '';
             $textPosition   = $slideConfig['text_position'] ?? 'center';
+            $transitionType = $slideConfig['transition_type'] ?? 'fade';
             $castList       = $data['cast'] ?? $data['objects'] ?? [];
         @endphp
 
-        <div class="slide slide-{{ $m }} {{ $loop->first ? 'active' : '' }} pos-{{ $textPosition }}" 
+        <div class="slide slide-{{ $m }} {{ $loop->first ? 'active' : '' }} pos-{{ $textPosition }} trans-{{ $transitionType }}" 
              data-index="{{ $m }}" 
              data-duration="{{ $duration }}">
             
@@ -101,7 +102,7 @@
                         <div class="slide-text">{!! nl2br(e($data['text'])) !!}</div>
                     @endif
 
-                    {{-- キャスト・吹き出し（会話リレー＆画像切り替え対応） --}}
+                    {{-- キャスト・吹き出し（会話リレー＆個別演出config対応） --}}
                     @if (!empty($castList))
                         <div class="birth-info-container">
                             @foreach ($castList as $index => $person)
@@ -110,12 +111,12 @@
                                 @endphp
 
                                 <div class="birth-card">
-                                    {{-- 会話ステップごとのアイコン画像（--step を付与） --}}
-                                    @foreach ($speeches as $sIndex => $speech)
+                                    {{-- 会話ステップごとのアイコン画像 --}}
+                                    @foreach ($speeches as $speech)
                                         @if (!empty($speech['image']))
                                             <img src="{{ $speech['image'] }}" alt="{{ $speech['name'] ?? '' }}" 
-                                                class="baby-thumb {{ $loop->first ? 'default-thumb' : '' }}" 
-                                                style="--step: {{ $speech['step'] ?? $sIndex }};" 
+                                                class="baby-thumb {{ $loop->first ? 'default-thumb' : '' }} anim-{{ $speech['anim_style'] }}" 
+                                                style="--start-delay: {{ $speech['start_delay'] }}s; --pop-duration: {{ $speech['duration'] }}s; --pop-scale: {{ $speech['pop_scale'] }};" 
                                                 loading="eager">
                                         @endif
                                     @endforeach
@@ -123,11 +124,12 @@
                                     {{-- 同一人物の全会話ステップ（吹き出し） --}}
                                     @foreach ($speeches as $speech)
                                         @php
-                                            $isEvent   = (($speech['type'] ?? '') === 'event');
-                                            $stepIndex = $speech['step'] ?? $index;
+                                            $isEvent = (($speech['type'] ?? '') === 'event');
                                         @endphp
 
-                                        <div class="baby-details" style="--step: {{ $stepIndex }};" data-is-event="{{ $isEvent ? 'true' : 'false' }}">
+                                        <div class="baby-details pos-balloon-{{ $speech['balloon_pos'] }}" 
+                                            style="--start-delay: {{ $speech['start_delay'] }}s; --pop-duration: {{ $speech['duration'] }}s; --pop-scale: {{ $speech['pop_scale'] }};" 
+                                            data-is-event="{{ $isEvent ? 'true' : 'false' }}">
                                             @if(!empty($speech['name']))
                                                 <div class="baby-name">
                                                     {!! $isEvent ? '💍 ' . e($speech['name']) : e($speech['name']) !!}
