@@ -253,7 +253,7 @@
                     </div>
                 </div>
             </div>
-            <main class="py-3 flex-grow-1">
+            <main class="py-2 flex-grow-1">
                 <div class="container-fluid fixed-main">
                 @yield('content')
                 </div>

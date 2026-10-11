@@ -132,7 +132,7 @@
                                             data-is-event="{{ $isEvent ? 'true' : 'false' }}">
                                             @if(!empty($speech['name']))
                                                 <div class="baby-name">
-                                                    {!! $isEvent ? '💍 ' . e($speech['name']) : e($speech['name']) !!}
+                                                    {!! $isEvent ?  e($speech['name']) : e($speech['name']) !!}
                                                 </div>
                                             @endif
                                             @if (!empty($speech['text']))
