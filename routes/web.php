@@ -81,6 +81,9 @@ Route::get('roulette/show', [RouletteController::class, 'show'])->name('roulette
 // 共通ゲーム基盤（データドリブン用）
 Route::get('play/{gameKey}', [GameController::class, 'play'])->name('games.play');
 
+// 公開用URLからのファイ府シアター再生（1分間に30回までのレートリミットを適用）
+Route::post('/life_theater/p/{token}/verify', [LifeTheaterController::class, 'public_play_verify'])->name('life_theater.public_play.verify')->middleware('throttle:30,1');
+Route::get('/life_theater/p/{token}', [LifeTheaterController::class, 'public_play'])->name('life_theater.public_play')->middleware('throttle:30,1');
 
 //-------------------------------------------------------------------------------------------------------
 // 未認証ユーザー向け（AdSense審査対策・公開コンテンツ）
@@ -307,7 +310,8 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //----------------------------------------------------------------------------------
         Route::get('point/config_pack', [AdminPointController::class, 'config_pack'])->name('admin.point.config_pack');
         Route::get('point/config_free', [AdminPointController::class, 'config_free'])->name('admin.point.config_free');
-        Route::get('point/config_amount', [AdminPointController::class, 'config_amount'])->name('admin.point.config_amount');
+        Route::get('point/config_amount_ai', [AdminPointController::class, 'config_amount_ai'])->name('admin.point.config_amount_ai');
+        Route::get('point/config_amount_lt', [AdminPointController::class, 'config_amount_lt'])->name('admin.point.config_amount_lt');
         Route::post('point/config', [AdminPointController::class, 'config_update'])->name('admin.point.config.update');
         //----------------------------------------------------------------------------------
 

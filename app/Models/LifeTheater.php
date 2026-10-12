@@ -154,7 +154,11 @@ class LifeTheater extends Model
     {
         return $this->hasMany(LifeTheaterMedia::class)->orderBy('created_at', 'desc');
     }
-
+    
+    public function publicLinks()
+    {
+        return $this->hasMany(LifeTheaterPublicLink::class, 'life_theater_id');
+    }
     // =========================================================================
     // データ操作メソッド
     // =========================================================================
@@ -260,6 +264,7 @@ class LifeTheater extends Model
             if (isset($data['title']))           $updateData['title']           = $data['title'];
             if (isset($data['subtitle']))        $updateData['subtitle']        = $data['subtitle'];
             if (isset($data['bgm_type']))        $updateData['bgm_type']        = $data['bgm_type'];
+            if (isset($data['plan_type']))       $updateData['plan_type']       = $data['plan_type'];
             if (isset($data['theme_color_num'])) $updateData['theme_color_num'] = $data['theme_color_num'];
             if (isset($data['edit_lock_flag']))  $updateData['edit_lock_flag']  = $data['edit_lock_flag'];
             if (isset($data['config_data']))     $updateData['config_data']     = $data['config_data'];

@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\LifeTheaterController;
 
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterShare;
 use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterSlideObject;
+use App\Models\LifeTheaterPublicLink;
+use App\Models\CommonConfig;
 
 class ApiLifeTheaterController extends Controller
 {
@@ -131,6 +137,9 @@ class ApiLifeTheaterController extends Controller
             if ($ret['error_code'] == 0) {
                 make_error_log($error_log, "Success saved slide_id:" . $input['id']);
 
+                // 再生キャッシュクリア
+                LifeTheaterController::clearPlayCache($slide->life_theater_id);
+
                 // 最新のスライド情報とメディア情報を取得して返却
                 $updatedSlide = LifeTheaterSlide::with('media')->find($input['id']);
                 if ($updatedSlide) {
@@ -197,7 +206,6 @@ class ApiLifeTheaterController extends Controller
             $input = $request->all();
             make_error_log($error_log, "input:" . print_r($input, true));
 
-            // ★ 親シアターのプレミアムプラン判定と設定のフィルタリング
             $slideId = $input['life_theater_slide_id'] ?? null;
             if (!$slideId && !empty($input['id'])) {
                 $targetObj = LifeTheaterSlideObject::find($input['id']);
@@ -214,29 +222,31 @@ class ApiLifeTheaterController extends Controller
             $input['config_data'] = LifeTheaterSlideObject::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
 
             if (!empty($input['id'])) {
-                // 更新
                 make_error_log($error_log, "Action: update object_id:" . $input['id']);
                 $ret = LifeTheaterSlideObject::chgObject($input);
             } else {
-                // 新規作成
                 make_error_log($error_log, "Action: create slide_id:" . ($input['life_theater_slide_id'] ?? 'null'));
                 $ret = LifeTheaterSlideObject::createObject($input);
             }
 
             if ($ret['error_code'] == 0) {
                 make_error_log($error_log, "Success saved object.");
+
+                // 再生キャッシュクリア
+                if ($slide && $slide->life_theater_id) {
+                    LifeTheaterController::clearPlayCache($slide->life_theater_id);
+                }
+
                 return response()->json([
-                    'status'       => 'success', 
-                    'message'      => 'オブジェクトを保存しました。',
-                    'notification' => make_message('キャスト・吹き出しを保存しました。', 'success', '2000')
+                    'status'  => 'success', 
+                    'message' => 'オブジェクトを保存しました。'
                 ]);
             }
 
             make_error_log($error_log, "Failed to save object. error_code=" . $ret['error_code']);
             return response()->json([
-                'status'       => 'error', 
-                'message'      => '保存に失敗しました。',
-                'notification' => make_message('保存に失敗しました。', 'error', '3000')
+                'status'  => 'error', 
+                'message' => '保存に失敗しました。'
             ], 400);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -260,15 +270,220 @@ class ApiLifeTheaterController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'オブジェクトIDが必要です。'], 400);
             }
 
+            $obj = LifeTheaterSlideObject::with('slide')->find($input['id']);
+            $theaterId = $obj->slide->life_theater_id ?? null;
+
             $ret = LifeTheaterSlideObject::delObject($input);
 
             if ($ret['error_code'] == 0) {
                 make_error_log($error_log, "Success deleted object_id:" . $input['id']);
+
+                // 再生キャッシュクリア
+                if ($theaterId) {
+                    LifeTheaterController::clearPlayCache($theaterId);
+                }
+
                 return response()->json(['status' => 'success', 'message' => 'オブジェクトを削除しました。']);
             }
 
             make_error_log($error_log, "Failed to delete object. error_code=" . $ret['error_code']);
             return response()->json(['status' => 'error', 'message' => '削除に失敗しました。'], 400);
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '削除中にエラーが発生しました: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    //==============================================================================
+    // ここから公開関連API処理 (public_link.list, public_link.store, public_link.destroy)
+    //==============================================================================
+
+    /**
+     * 発行済み公開URL一覧の取得 (Ajax)
+     */
+    public function api_getPublicLinks(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $lifeTheaterId = $request->input('life_theater_id');
+            $user = Auth::user();
+
+            if (!$lifeTheaterId) {
+                return response()->json(['status' => 'error', 'message' => '作品IDが必要です。'], 400);
+            }
+
+            $links = LifeTheaterPublicLink::where('life_theater_id', $lifeTheaterId)
+                ->where('user_id', $user->id)
+                ->latest()
+                ->get();
+
+            // 各リンクに完全な公開URL文字列をアタッチして返却
+            foreach ($links as $link) {
+                $link->public_url = route('life_theater.public_play', ['token' => $link->token]);
+            }
+
+            $theater = LifeTheater::find($lifeTheaterId);
+            $isPremium = ($theater->plan_type ?? '') === 'premium';
+            
+            $usedAdFreeCount = LifeTheaterPublicLink::where('life_theater_id', $lifeTheaterId)
+                ->where('is_ad_free', true)
+                ->count();
+
+            $common_conf_names = ['po_life_theater_url'];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_cost    = isset($configs['po_life_theater_url']) ? (int)$configs['po_life_theater_url']->value1 : 300;
+            $free_limit = isset($configs['po_life_theater_url']) ? (int)$configs['po_life_theater_url']->value2 : 1;
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $links,
+                'meta'   => [
+                    'is_premium'         => $isPremium,
+                    'used_ad_free_count' => $usedAdFreeCount,
+                    'free_limit'         => $free_limit,
+                    'url_cost'           => $po_cost,
+                    'has_free_ticket'    => $isPremium && ($usedAdFreeCount < $free_limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '取得に失敗しました。'], 500);
+        }
+    }
+
+    /**
+     * 公開URLの発行 (Ajax - DBトランザクション保護付き)
+     */
+    public function api_storePublicLink(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
+        try {
+            $input = $request->all();
+            $user = Auth::user();
+            $theaterId = $input['life_theater_id'] ?? null;
+            $requestAdFree = filter_var($input['request_ad_free'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            if (!$theaterId) {
+                return response()->json(['status' => 'error', 'message' => '対象の作品が指定されていません。'], 400);
+            }
+
+            $theater = LifeTheater::find($theaterId);
+            if (!$theater) {
+                return response()->json(['status' => 'error', 'message' => '作品が存在しないか権限がありません。'], 403);
+            }
+
+            // トランザクション処理により、ポイント引き落としとURL生成の不整合を防止
+            return DB::transaction(function () use ($theater, $user, $requestAdFree, $input, $error_log) {
+
+                // 1作品あたりの発行上限チェック（最大10件まで）
+                $totalLinkCount = LifeTheaterPublicLink::where('life_theater_id', $theater->id)->count();
+                if ($totalLinkCount >= 10) {
+                    return response()->json(['status' => 'error', 'message' => '1つの作品で発行できる公開URLは最大10件までです。不要なURLを削除してから再度お試しください。'], 400);
+                }
+
+                $usedAdFreeCount = LifeTheaterPublicLink::where('life_theater_id', $theater->id)
+                    ->where('is_ad_free', true)
+                    ->count();
+
+                // 広告なしフラグの初期化
+                $isAdFree = false;
+
+                if ($requestAdFree) {
+                    $common_conf_names = ['po_life_theater_url'];
+                    $configs = CommonConfig::getValues($common_conf_names);
+
+                    $po_cost    = isset($configs['po_life_theater_url']) ? (int)$configs['po_life_theater_url']->value1 : 300;
+                    $free_limit = isset($configs['po_life_theater_url']) ? (int)$configs['po_life_theater_url']->value2 : 1;
+
+                    if (($theater->plan_type ?? '') === 'premium' && $usedAdFreeCount < $free_limit) {
+                        // Premium特典（無料枠件数以内なら無料）
+                        $isAdFree = true;
+                    } else {
+                        // ポイントチェック
+                        $check = $user->po_check($po_cost);
+                        if (!$check['can_use']) {
+                            return response()->json([
+                                'status'  => 'error', 
+                                'message' => 'ポイントが不足しています。（必要: ' . $po_cost . 'pt）'
+                            ], 400);
+                        }
+
+                        // ポイント消費
+                        $poResult = $user->po_use($po_cost, false, "ライフシアター 広告なし公開URL発行");
+                        if (!$poResult['success']) {
+                            throw new \Exception('ポイント処理に失敗しました。');
+                        }
+
+                        $isAdFree = true;
+                    }
+                }
+
+                $token = LifeTheaterPublicLink::generateUniqueToken();
+
+                // 全角スペースも除去して保存
+                $password = null;
+                if (!empty($input['password'])) {
+                    // 全角・半角スペースを除去
+                    $password = preg_replace('/[\p{Z}\p{Cc}]/u', '', $input['password']);
+                }
+
+                LifeTheaterPublicLink::create([
+                    'life_theater_id' => $theater->id,
+                    'user_id'         => $user->id,
+                    'token'           => $token,
+                    'memo'            => $input['memo'] ?? null,
+                    'is_ad_free'      => $isAdFree,
+                    'password'        => $password, // ★ 平文保存
+                    'is_active'       => true,
+                ]);
+
+                return response()->json([
+                    'status'      => 'success',
+                    'message'     => '公開URLを発行しました。',
+                    'total_point' => $user->fresh()->total_point ?? null
+                ]);
+            });
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '発行処理中にエラーが発生しました: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 公開URLの削除 (Ajax)
+     */
+    public function api_destroyPublicLink(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        make_error_log($error_log, "-------start-------");
+        try {
+            $input = $request->all();
+            $linkId = $input['link_id'] ?? null;
+            $user = Auth::user();
+
+            make_error_log($error_log, "link_id:" . $linkId . " user_id:" . ($user->id ?? 'null'));
+
+            if (!$linkId) {
+                return response()->json(['status' => 'error', 'message' => 'リンクIDが送信されていません。'], 400);
+            }
+
+            $link = LifeTheaterPublicLink::find($linkId);
+
+            if (!$link || (int)$link->user_id !== (int)$user->id) {
+                make_error_log($error_log, "Permission error or link not found. link_id:" . $linkId);
+                return response()->json(['status' => 'error', 'message' => '権限がないか、データが存在しません。'], 403);
+            }
+
+            $link->delete();
+
+            make_error_log($error_log, "Successfully deleted link_id:" . $linkId);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => '公開URLを削除しました。'
+            ]);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => '削除中にエラーが発生しました: ' . $e->getMessage()], 500);

@@ -40,11 +40,13 @@ class CommonConfig extends Model
         if ($name == 'po_whisper')                  self::upsertValue('po_whisper',               'int', 1, 50, 'STT（文字起こし）の消費ptと無料枠');
         if ($name == 'po_ai_text')                  self::upsertValue('po_ai_text',               'int', 1,  0, 'AI応答（テキスト表示）の消費ptと無料枠');
         if ($name == 'po_ai_voice')                 self::upsertValue('po_ai_voice',              'int', 2,  0, 'AI応答（音声会話）の消費ptと無料枠');
+        if ($name == 'po_life_theater_premium')     self::upsertValue('po_life_theater_premium',  'int', 500,  0, 'premium価格');
+        if ($name == 'po_life_theater_url')         self::upsertValue('po_life_theater_url',      'int', 500,  1, '広告なしurlの発行価格');
 
         // その他設定
         if ($name == 'stop_admin_connect_notify')   self::upsertValue('stop_admin_connect_notify',  'bool', 0, 0, '管理者デバイス接続通知停止');
         if ($name == 'stop_admin_api_token')        self::upsertValue('stop_admin_api_token',       'bool', 0, 0, '管理者デバイスへトークン送信停止');
-        if ($name == 'maint_mode_flag')             self::upsertValue('maint_mode_flag',          'bool', 0, 0, 'メンテナンスモード');
+        if ($name == 'maint_mode_flag')             self::upsertValue('maint_mode_flag',            'bool', 0, 0, 'メンテナンスモード');
 
         
 

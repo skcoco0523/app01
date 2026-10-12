@@ -2,18 +2,37 @@
 
 @section('content')
     <i class="fa-solid fa-angles-left" onclick="window.location='{{ route('life_theater.index') }}'"></i>
-    <div class="container py-4">
         <div class="note-header d-flex flex-column mb-2">
             
             <div class="title-text mx-auto w-100 overflow-hidden">
                 <div class="d-grid align-items-center mb-2" style="grid-template-columns: 1fr auto 1fr; gap: 10px;">
                     <div></div>
                     <div class="text-center text-ellipsis">
-                        <h3 class="mb-0 text-nowrap text-truncate">{{ $theater->title ?? '' }}</h3>
+                        
+                        <h3 class="mb-0 text-nowrap text-truncate">
+                            {{ $theater->title ?? '' }}
+                        </h3>
                     </div>
-                    <div class="text-end">
-                        <button type="button" class="btn btn-secondary btn-sm text-nowrap" id="toggleEditModeBtn">
-                            <i class="fa-solid fa-gear"></i> <span id="buttonText">設定</span>
+                    
+                    {{-- 設定ボタン・プランバッジ --}}
+                    <div class="text-end d-flex align-items-center justify-content-end gap-1">
+                        @if ($is_premium)
+                            <span class="badge bg-warning text-dark d-inline-flex align-items-center" style="font-size: 11px;">
+                                <i class="fa-solid fa-crown me-1"></i>Premium
+                            </span>
+                        @else
+                            <button type="button" class="badge bg-secondary border-0 d-inline-flex align-items-center" style="font-size: 11px; cursor: pointer;"
+                                onclick="openModal('common-modal',{
+                                    form_id: 'theaterPremiumBuyForm', title: 'プレミアム解放' ,
+                                    mess: '{{ $po_life_theater_premium }}ptを使用してこの作品をプレミアムプランにアップグレードしますか？',
+                                    cancel_btn: 'キャンセル', confirm_btn: '購入', user_chk: false
+                                });" title="プレミアムプランにアップグレード">
+                                FREE <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 9px;"></i>
+                            </button>
+                        @endif
+                        {{-- 設定ボタンに btn-action-sm を適用 --}}
+                        <button type="button" class="btn btn-secondary btn-action-sm" id="toggleEditModeBtn">
+                            <i class="fa-solid fa-gear me-1"></i> <span id="buttonText">設定</span>
                         </button>
                     </div>
                 </div>
@@ -32,20 +51,23 @@
                             <h5 class="fw-bold mb-0"><i class="fa-solid fa-film me-1"></i> スライド一覧 ({{ count($slides) }}スライド)</h5>
                         </div>
                         
-                        <div class="d-flex gap-2 align-items-center mb-3">
+                        {{-- ★修正：各アクションボタンに btn-action-sm を適用 --}}
+                        <div class="d-flex w-100 gap-2 align-items-center mb-3">
                             <a href="{{ route('life_theater.play', ['id' => $theater->id ?? $theater->life_theater_id, 'share_flag' => $share_flag]) }}" 
-                               target="_blank" class="btn btn-primary btn-sm">
+                               target="_blank" class="btn btn-primary btn-action-sm flex-fill">
                                 <i class="fa-solid fa-play me-1"></i> 再生
                             </a>
                             
-                            <button type="button" class="btn btn-success btn-sm"
+                            <button type="button" class="btn btn-success btn-action-sm flex-fill"
                                 onclick="openModal('life_theater_media-modal', {
                                     media_manage_mode: '1',
                                     media_modal_title_text: '画像ライブラリ（選択して編集）'
                                 });" title="ライブラリ"> 
-                                <i class="fa-solid fa-plus me-1"></i> ライブラリ
+                                <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="openModal('life_theater_slide_add-modal');">
+
+                            <button type="button" class="btn btn-danger btn-action-sm flex-fill"
+                                onclick="openModal('life_theater_slide_add-modal');">
                                 <i class="fa-solid fa-plus me-1"></i> スライド追加
                             </button>
                         </div>
@@ -71,14 +93,14 @@
                                         <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
                                             {{-- 画像ありマーク --}}
                                             @if($slide->media)
-                                                <span class="badge bg-success d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 32px; padding: 0;">
+                                                <span class="badge bg-success d-inline-flex align-items-center justify-content-center">
                                                     <i class="fa-solid fa-image"></i>
                                                 </span>
                                             @endif
 
                                             @if(($theater->owner_flag || $theater->admin_flag ?? false))
-                                                {{-- 鉛筆ボタン --}}
-                                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;"
+                                                {{-- ★修正：編集ボタンに btn-icon-square を適用 --}}
+                                                <button type="button" class="btn btn-outline-primary btn-icon-square"
                                                     data-slide="{{ json_encode([
                                                         'edit_slide_id'          => (string)$slide->id,
                                                         'edit_slide_label'       => (string)($slide->label ?? ''),
@@ -95,11 +117,11 @@
                                                     <i class="fa-solid fa-pen"></i>
                                                 </button>
 
-                                                {{-- 削除ボタン --}}
-                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このスライドを削除しますか？');" class="d-inline-flex align-items-center m-0">
+                                                {{-- ★修正：削除ボタンに btn-icon-square を適用 --}}
+                                                <form action="{{ route('life_theater.slide.destroy') }}" method="POST" onsubmit="return confirm('このスライドを削除しますか？');" class="d-inline-flex align-items-center m-0 p-0">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $slide->id }}">
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center" style="height: 32px; width: 36px; padding: 0;">
+                                                    <button type="submit" class="btn btn-danger btn-icon-square">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </form>
@@ -121,24 +143,31 @@
                 <div id="EditArea" style="display: none;">
                     <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mb-3">
                         @if(($theater->owner_flag || $theater->admin_flag ?? false) && !$theater->edit_lock_flag)
-                            <button type="button" class="btn btn-primary btn-sm"
+                            
+                            <button type="button" class="btn btn-outline-primary btn-icon-square"
                                 onclick="openModal('common-modal',{
                                     form_id: 'theaterUpdateForm', title: '作品変更' ,mess: 'この作品の設定を変更しますか？',
                                     cancel_btn: 'キャンセル', confirm_btn: '変更', user_chk: false
                                 });">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
+                        
+                            {{-- URL発行（公開管理）ボタン --}}
+                            <button type="button" class="btn btn-outline-success btn-icon-square"
+                                onclick="openModal('life_theater_public_link-modal', { public_link_theater_id: '{{ $theater->id ?? $theater->life_theater_id }}' });" title="公開URLの発行・管理">
+                                <i class="fa-solid fa-share-nodes"></i>
+                            </button>
                         @endif
 
                         @if($theater->owner_flag)
-                            <button type="button" class="btn btn-primary btn-sm"
+                            <button type="button" class="btn btn-outline-primary btn-icon-square"
                                 onclick="openModal('life_theater_share-modal',{ life_theater_id: '{{ $theater->id ?? '' }}', theater_title: '{{ $theater->title ?? '' }}'});">
                                 <i class="fa-solid fa-user-plus"></i>
                             </button>
                         @endif
 
                         @if($theater->owner_flag)
-                            <button type="button" class="btn btn-danger btn-sm" 
+                            <button type="button" class="btn btn-danger btn-icon-square"
                                 onclick="openModal('common-modal',{
                                     form_id: 'theaterDestroyForm', title: '作品削除' ,mess: 'この作品を削除しますか？',
                                     cancel_btn: 'キャンセル', confirm_btn: '削除', user_chk: true
@@ -146,7 +175,7 @@
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         @else
-                            <button type="button" class="btn btn-danger btn-sm"
+                            <button type="button" class="btn btn-danger btn-icon-square"
                                 onclick="openModal('common-modal',{
                                     form_id: 'theaterUnShareForm', title: '共有解除' ,mess: 'この作品の共有を解除しますか？',
                                     cancel_btn: 'キャンセル', confirm_btn: '解除', user_chk: true
@@ -240,12 +269,31 @@
                                 @endforeach
 
                                 @if (!$is_premium)
-                                    <small class="text-muted d-block mt-2" style="font-size: 11px;">
-                                        <i class="fa-solid fa-circle-info me-1"></i> 一部機能はプレミアムパックの購入で利用可能になります。<br>
-                                    </small>
+                                    <div class="mt-3 pt-2 border-top text-center">
+                                        <small class="text-muted d-block mb-2" style="font-size: 11px;">
+                                            <i class="fa-solid fa-circle-info me-1"></i> 一部機能はプレミアムパックの購入で利用可能になります。
+                                        </small>
+                                        
+                                        {{-- プレミアム解放ボタンにも btn-action-sm を適用 --}}
+                                        <button type="button" class="btn btn-warning btn-action-sm w-100 fw-bold"
+                                            onclick="openModal('common-modal',{
+                                                form_id: 'theaterPremiumBuyForm', title: 'プレミアム機能の解放' ,
+                                                mess: '{{ $po_life_theater_premium }}ポイントを消費してこの作品のプレミアム機能を解放しますか？',
+                                                cancel_btn: 'キャンセル', confirm_btn: '解放する', user_chk: false
+                                            });">
+                                            <i class="fa-solid fa-crown me-1"></i> プレミアム機能を解放
+                                        </button>
+                                    </div>
                                 @endif
                             </div>
                         </div>
+                    </form>
+
+                    {{-- プレミアム購入・解放フォーム --}}
+                    <form id="theaterPremiumBuyForm" method="POST" action="{{ route('life_theater.update') }}">
+                        @csrf
+                        <input type="hidden" name="id" value="{{ $theater->id ?? $theater->life_theater_id }}">
+                        <input type="hidden" name="plan_type" value="premium">
                     </form>
 
                     {{-- 削除フォーム --}}
@@ -263,7 +311,7 @@
 
             </div>
         </div>
-    </div>
+    
 
     <!-- モーダルインクルード（名称統一） -->
     @include('modals.life_theater_slide_add-modal')
@@ -271,6 +319,7 @@
     @include('modals.life_theater_slide_object-modal')
     @include('modals.life_theater_share-modal')
     @include('modals.life_theater_media-modal')
+    @include('modals.life_theater_public_link-modal')
     
     @include('layouts.adv_popup')
 
