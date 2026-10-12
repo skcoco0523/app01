@@ -69,7 +69,8 @@
             'items' => [
                 ['url' => route('admin.point.config_pack'), 'label' => 'パック設定'],
                 ['url' => route('admin.point.config_free'), 'label' => '無償ポイント設定'],
-                ['url' => route('admin.point.config_amount'), 'label' => 'ポイント額設定'],
+                ['url' => route('admin.point.config_amount_ai'), 'label' => 'AIポイント額設定'],
+                ['url' => route('admin.point.config_amount_lt'), 'label' => 'ライフシアターポイント額設定'],
             ]
         ],
         'notification' => [
@@ -156,7 +157,7 @@
             $view_right_file    = 'admin.admin_adv_config';
         }
     } elseif ($tab1 == 'point') {
-        if (in_array($tab2, ['config_pack', 'config_free', 'config_amount']) && $tab3 == '') {
+        if (in_array($tab2, ['config_pack', 'config_free', 'config_amount_ai', 'config_amount_lt']) && $tab3 == '') {
             $view_right_file    = 'admin.admin_point_config';
         }
     } elseif ($tab1 == 'notification') {

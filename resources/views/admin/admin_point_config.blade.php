@@ -23,9 +23,13 @@
         @elseif($config_type=='free')
             <div class="col-md-4">付与ptまたは実行フラグ</div>
 
-        @elseif($config_type=='amount')
+        @elseif($config_type=='amount_ai')
             <div class="col-md-2">必要pt</div>
             <div class="col-md-2">1日の無料回数</div>
+
+        @elseif($config_type=='amount_lt')
+            <div class="col-md-2">必要pt</div>
+            <div class="col-md-2">無料枠</div>
         @endif
     </div>
 

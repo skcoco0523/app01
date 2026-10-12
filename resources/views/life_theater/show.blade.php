@@ -143,13 +143,19 @@
                 <div id="EditArea" style="display: none;">
                     <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mb-3">
                         @if(($theater->owner_flag || $theater->admin_flag ?? false) && !$theater->edit_lock_flag)
-                            {{-- ★修正：共通ボタンに btn-icon-square 適用 --}}
+                            
                             <button type="button" class="btn btn-outline-primary btn-icon-square"
                                 onclick="openModal('common-modal',{
                                     form_id: 'theaterUpdateForm', title: '作品変更' ,mess: 'この作品の設定を変更しますか？',
                                     cancel_btn: 'キャンセル', confirm_btn: '変更', user_chk: false
                                 });">
                                 <i class="fa-solid fa-pen"></i>
+                            </button>
+                        
+                            {{-- URL発行（公開管理）ボタン --}}
+                            <button type="button" class="btn btn-outline-success btn-icon-square"
+                                onclick="openModal('life_theater_public_link-modal', { public_link_theater_id: '{{ $theater->id ?? $theater->life_theater_id }}' });" title="公開URLの発行・管理">
+                                <i class="fa-solid fa-share-nodes"></i>
                             </button>
                         @endif
 
@@ -313,6 +319,7 @@
     @include('modals.life_theater_slide_object-modal')
     @include('modals.life_theater_share-modal')
     @include('modals.life_theater_media-modal')
+    @include('modals.life_theater_public_link-modal')
     
     @include('layouts.adv_popup')
 

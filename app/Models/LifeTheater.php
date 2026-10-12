@@ -154,7 +154,11 @@ class LifeTheater extends Model
     {
         return $this->hasMany(LifeTheaterMedia::class)->orderBy('created_at', 'desc');
     }
-
+    
+    public function publicLinks()
+    {
+        return $this->hasMany(LifeTheaterPublicLink::class, 'life_theater_id');
+    }
     // =========================================================================
     // データ操作メソッド
     // =========================================================================

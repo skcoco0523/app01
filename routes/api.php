@@ -94,10 +94,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // 画像ライブラリ (S3ダイレクト送信対応)
         Route::get('/{life_theater_id}/media', [ApiLifeTheaterMediaController::class, 'index'])->name('media.index');
-        Route::post('/media/presigned', [ApiLifeTheaterMediaController::class, 'getPresignedUrl'])->name('media.presigned'); // ★追加: S3署名URL発行
-        Route::post('/media/store', [ApiLifeTheaterMediaController::class, 'store'])->name('media.store');                 // ★追加: DBメタデータ登録
+        Route::post('/media/presigned', [ApiLifeTheaterMediaController::class, 'getPresignedUrl'])->name('media.presigned'); // S3署名URL発行
+        Route::post('/media/store', [ApiLifeTheaterMediaController::class, 'store'])->name('media.store');                 // DBメタデータ登録
         Route::delete('/media/{id}', [ApiLifeTheaterMediaController::class, 'destroy'])->name('media.destroy');
 
+        // 公開URL（パブリックリンク）関連API
+        Route::get('/public-link/list', [ApiLifeTheaterController::class, 'api_getPublicLinks'])->name('public_link.list');
+        Route::post('/public-link/store', [ApiLifeTheaterController::class, 'api_storePublicLink'])->name('public_link.store');
+        Route::post('/public-link/destroy', [ApiLifeTheaterController::class, 'api_destroyPublicLink'])->name('public_link.destroy');
+        
         // スライドオブジェクト操作
         Route::get('/slide/objects', [ApiLifeTheaterController::class, 'getSlideObjects'])->name('slide_object.index');
         Route::post('/slide/object/save', [ApiLifeTheaterController::class, 'saveSlideObject'])->name('slide_object.save');

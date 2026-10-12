@@ -38,15 +38,27 @@ class AdminPointController extends Controller
         $msg = $request->query('msg');
         return view('admin.admin_home', compact('configs', 'config_type', 'msg'));
     }
-    // ポイント額設定
-    public function config_amount(Request $request)
+    // AIポイント額設定
+    public function config_amount_ai(Request $request)
     {
         //消費ポイント設定
         $common_conf_names = [
-            'po_whisper', 'po_ai_text', 'po_ai_voice', 'life_theater_premium'
+            'po_whisper', 'po_ai_text', 'po_ai_voice'
         ];
         $configs = CommonConfig::getValues($common_conf_names);
-        $config_type = 'amount';
+        $config_type = 'amount_ai';
+        $msg = $request->query('msg');
+        return view('admin.admin_home', compact('configs', 'config_type', 'msg'));
+    }
+    // ライフシアターポイント額設定
+    public function config_amount_lt(Request $request)
+    {
+        //消費ポイント設定
+        $common_conf_names = [
+            'po_life_theater_premium', 'po_life_theater_url'
+        ];
+        $configs = CommonConfig::getValues($common_conf_names);
+        $config_type = 'amount_lt';
         $msg = $request->query('msg');
         return view('admin.admin_home', compact('configs', 'config_type', 'msg'));
     }
@@ -68,8 +80,10 @@ class AdminPointController extends Controller
             return redirect()->route('admin.point.config_pack', ['msg' => '設定を更新しました。']);
         } elseif($config_type=="free") {
             return redirect()->route('admin.point.config_free', ['msg' => '設定を更新しました。']);
-        } elseif($config_type=="amount") {
-            return redirect()->route('admin.point.config_amount', ['msg' => '設定を更新しました。']);
+        } elseif($config_type=="amount_ai") {
+            return redirect()->route('admin.point.config_amount_ai', ['msg' => '設定を更新しました。']);
+        } elseif($config_type=="amount_lt") {
+            return redirect()->route('admin.point.config_amount_lt', ['msg' => '設定を更新しました。']);
         }
     }
 }

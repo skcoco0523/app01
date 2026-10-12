@@ -1,9 +1,42 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{{ $theater->title ?? 'Life Theater' }}</title>
+
+    {{-- ★ OGP (SNS共有用メタタグ) 設定 ★ --}}
+    @php
+        // タイムラインの最初のコマに画像があればアイキャッチ画像として使用、なければデフォルトアイコンを使用
+        $ogpImage = !empty($timeline[0]['image']) 
+            ? $timeline[0]['image'] 
+            : asset('img/icon/home_icon_512_512.png');
+        
+        $ogpTitle = !empty($theater->title) ? $theater->title : 'Life Theater (ライフシアター)';
+        $ogpDesc  = !empty($theater->subtitle) ? $theater->subtitle : '思い出を音楽とアニメーションで残す「Life Theater」の作品です。';
+    @endphp
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{ $ogpTitle }}" />
+    <meta property="og:description" content="{{ $ogpDesc }}" />
+    <meta property="og:image" content="{{ $ogpImage }}" />
+    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:site_name" content="{{ config('app.name', 'Life Theater') }}" />
+
+    {{-- ★ Twitter (X) カード設定 ★ --}}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ $ogpTitle }}" />
+    <meta name="twitter:description" content="{{ $ogpDesc }}" />
+    <meta name="twitter:image" content="{{ $ogpImage }}" />
+
+    {{-- ★ 追加: Google Publisher Tag (広告ありの場合のみ) ★ --}}
+    @unless($is_ad_free ?? true)
+    <script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+    <script>
+        window.googletag = window.googletag || {cmd: []};
+    </script>
+    @endunless
 
     {{-- Vite経由でCSS/JSを読み込み --}}
     @vite(['resources/css/life_theater_play.css', 'resources/js/life_theater_play.js'])
@@ -16,12 +49,25 @@
 @endif
 
 <!-- スタート画面オーバーレイ -->
-<div class="start-overlay" id="startOverlay" onclick="startPresentation()">
-    <div class="start-card">
-        <div class="start-icon"><span>🎵</span><span>💖</span><span>🎶</span></div>
-        <div class="start-title">{{ $theater->title ?? 'Life Theater' }}</div>
-        <div class="start-btn-text">タップしてスタート</div>
-    </div>
+<div class="start-overlay" id="startOverlay">
+    {{-- ★ 広告なし（$is_ad_free = true）または変数未定義の場合は直接 startPresentation() を呼ぶ --}}
+    @if($is_ad_free ?? true)
+        <div class="start-card" onclick="startPresentation()">
+            <div class="start-icon"><span>🎵</span><span>💖</span><span>🎶</span></div>
+            <div class="start-title">{{ $theater->title ?? 'Life Theater' }}</div>
+            <div class="start-btn-text">タップしてスタート</div>
+        </div>
+    @else
+    {{-- ★ 広告あり（$is_ad_free = false）の場合はリワード広告用のボタンにする --}}
+        <div class="start-card" id="btn-start-ad" style="cursor: pointer;">
+            <div class="start-icon"><span>🎵</span><span>💖</span><span>🎶</span></div>
+            <div class="start-title">{{ $theater->title ?? 'Life Theater' }}</div>
+            <div class="start-btn-text" id="btn-start-ad-text">広告を見てスタート</div>
+            <div style="font-size: 10px; color: #999; margin-top: 8px;">
+                ※無料版のため、視聴完了後に作品が再生されます
+            </div>
+        </div>
+    @endif
 </div>
 
 <div class="birthday" 
@@ -182,6 +228,100 @@
     </div>
 
 </div>
+
+{{-- ★ 追加: リワード広告制御のJavaScript（広告ありの場合のみ） ★ --}}
+@unless($is_ad_free ?? true)
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const startBtn = document.getElementById('btn-start-ad');
+        const startBtnText = document.getElementById('btn-start-ad-text');
+        if (!startBtn) return;
+
+        let rewardedSlot = null;
+        let rewardPayload = null;
+        let isClickTriggered = false;
+        let isGranted = false; // ★ 視聴完了フラグ
+
+        function resetButton(text = '広告を見てスタート') {
+            startBtn.style.pointerEvents = 'auto';
+            startBtn.style.opacity = '1';
+            if (startBtnText) startBtnText.innerHTML = text;
+            isClickTriggered = false;
+        }
+
+        googletag.cmd.push(function() {
+            rewardedSlot = googletag.defineOutOfPageSlot(
+                '/22639388115/rewarded_web_example',
+                googletag.enums.OutOfPageFormat.REWARDED
+            );
+
+            if (!rewardedSlot) return;
+            rewardedSlot.addService(googletag.pubads());
+
+            // 1. 在庫チェック（広告がない場合のみ即再生バイパス）
+            googletag.pubads().addEventListener('slotRenderEnded', function(event) {
+                if (event.slot === rewardedSlot && event.isEmpty) {
+                    if (isClickTriggered) {
+                        console.log("広告在庫がないため直接再生を開始します");
+                        startPresentation();
+                        resetButton();
+                    }
+                }
+            });
+
+            // 2. 広告準備完了
+            googletag.pubads().addEventListener('rewardedSlotReady', function(event) {
+                rewardPayload = event;
+                if (isClickTriggered) {
+                    rewardPayload.makeRewardedVisible();
+                }
+            });
+
+            // 3. 視聴完了時（最後まで見終えた時だけここが通る）
+            googletag.pubads().addEventListener('rewardedSlotGranted', function(event) {
+                isGranted = true; // ★ 完走フラグをセット
+            });
+
+            // 4. ユーザーが広告を閉じた時の処理
+            googletag.pubads().addEventListener('rewardedSlotClosed', function() {
+                rewardPayload = null;
+                
+                if (isGranted) {
+                    // ★ 最後まで見た場合のみ再生を開始
+                    isGranted = false;
+                    startPresentation();
+                } else {
+                    // ★ 途中でスキップされた場合
+                    alert("広告を最後まで視聴しないと再生できません。\n画面を再読み込みします。");
+                    location.reload(); // ★ 画面をリロードしてGPTの状態を完全にリセット
+                }
+            });
+
+            googletag.enableServices();
+            googletag.display(rewardedSlot);
+        });
+
+        // ボタン押下時
+        startBtn.addEventListener('click', function() {
+            if (isClickTriggered) return;
+
+            isClickTriggered = true;
+            isGranted = false; // ★ 開始時にフラグをクリア
+            startBtn.style.pointerEvents = 'none';
+            startBtn.style.opacity = '0.7';
+            if (startBtnText) startBtnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 読み込み中...';
+
+            if (rewardPayload) {
+                rewardPayload.makeRewardedVisible();
+            } else {
+                googletag.cmd.push(function() {
+                    googletag.pubads().refresh([rewardedSlot]);
+                });
+            }
+        });
+    });
+</script>
+@endunless
 
 </body>
 </html>
