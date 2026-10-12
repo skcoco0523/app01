@@ -303,7 +303,27 @@
 
         // ボタン押下時
         startBtn.addEventListener('click', function() {
-            if (isClickTriggered) return;
+            if (isClickTriggered) return; // 連続タップ防止
+
+            // ==========================================
+            // ★ スマホBGM無音化対策 (Audio Unlock) ★
+            // タップした瞬間に一瞬だけ無音で再生・停止し、音声の再生権限を獲得する
+            // ==========================================
+            const bgm = document.getElementById('bgm');
+            if (bgm) {
+                bgm.muted = true; // 音が出ないようにミュート
+                const playPromise = bgm.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        bgm.pause();       // すぐに一時停止
+                        bgm.muted = false; // ミュートを解除して本番の再生に備える
+                        bgm.currentTime = 0;
+                    }).catch(error => {
+                        console.warn("BGM事前許可処理をスキップしました:", error);
+                    });
+                }
+            }
+            // ==========================================
 
             isClickTriggered = true;
             isGranted = false; // ★ 開始時にフラグをクリア
