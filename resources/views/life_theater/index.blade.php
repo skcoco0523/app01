@@ -61,10 +61,18 @@
                             @endphp
                             <tr class="table-row theater-item" data-color="{{ $detail->theme_color_num }}">
                                 <td style="background-color: {{ $colorCode }}; cursor: pointer;" onclick="window.location='{{ route('life_theater.show', ['id' => $theaterId]) }}'">
+                                    {{ $detail->title }}
+                                    
                                     @if ($detail->plan_type == "premium")
-                                        <i class="fa-solid fa-crown text-warning me-1"></i>
+                                        <span class="badge bg-warning text-dark d-inline-flex align-items-center" style="font-size: 11px;">
+                                            <i class="fa-solid fa-crown me-1"></i>Premium
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary d-inline-flex align-items-center" style="font-size: 11px;">
+                                            FREE
+                                        </span>
                                     @endif
-                                    {{ $detail->title }}<br>
+                                    <br>
                                     <small class="text-muted">{{ $detail->subtitle ?? '' }}</small>
                                 </td>
                                 <td style="background-color: {{ $colorCode }}; cursor: pointer;" onclick="openModal('life_theater_share-modal',{ life_theater_id: '{{ $theaterId }}', theater_title: '{{ $detail->title ?? '' }}'});">
@@ -120,7 +128,18 @@
                             @endphp
                             <tr class="table-row theater-item" data-color="{{ $detail->theme_color_num }}">
                                 <td style="background-color: {{ $colorCode }}; cursor: pointer;" onclick="window.location='{{ route('life_theater.show', ['id' => $theaterId]) }}?share_flag=1'">
-                                    {{ $detail->title }}<br>
+                                    {{ $detail->title }}
+                                    
+                                    @if ($detail->plan_type == "premium")
+                                        <span class="badge bg-warning text-dark d-inline-flex align-items-center" style="font-size: 11px;">
+                                            <i class="fa-solid fa-crown me-1"></i>Premium
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary d-inline-flex align-items-center" style="font-size: 11px;">
+                                            FREE
+                                        </span>
+                                    @endif
+                                    <br>
                                     <small class="text-muted">{{ $detail->subtitle ?? '' }}</small>
                                 </td>
                                 <td style="background-color: {{ $colorCode }}; cursor: pointer;"

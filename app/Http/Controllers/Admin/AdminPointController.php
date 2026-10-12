@@ -43,7 +43,7 @@ class AdminPointController extends Controller
     {
         //消費ポイント設定
         $common_conf_names = [
-            'po_whisper', 'po_ai_text', 'po_ai_voice'
+            'po_whisper', 'po_ai_text', 'po_ai_voice', 'life_theater_premium'
         ];
         $configs = CommonConfig::getValues($common_conf_names);
         $config_type = 'amount';

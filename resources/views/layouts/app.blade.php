@@ -193,6 +193,9 @@
                         <!-- ユーザー名 -->
                         <div class="flex-grow-1 d-flex justify-content-end overflow-hidden me-2" style="min-width: 0;">
                             @auth
+                            <span class="badge bg-light text-dark border me-2 rounded-pill px-2">
+                                <i class="fa-solid fa-coins text-warning me-1"></i>{{ Auth::user()->free_point + Auth::user()->pay_point ?? 0 }}pt
+                            </span>
                                 <span class="text-ellipsis">{{ Auth::user()->name }}</span>
                             @else
                                 <span class="text-ellipsis">ゲストユーザー</span>

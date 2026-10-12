@@ -9,6 +9,7 @@ use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterShare;
 use App\Models\LifeTheaterSlideObject;
 use App\Models\LifeTheaterMedia;
+use App\Models\CommonConfig;
 
 class LifeTheaterController extends Controller
 {
@@ -75,10 +76,17 @@ class LifeTheaterController extends Controller
             $slide_config_definitions = LifeTheaterSlide::getConfigDefinitions();
             $object_config_definitions = LifeTheaterSlideObject::getConfigDefinitions();
 
+            //premium価格
+            $common_conf_names = [
+                'life_theater_premium'
+            ];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_life_theater_premium = $configs['life_theater_premium']->value1;
+
             return view('life_theater.show', compact(
                 'theater', 'slides', 'media_list', 'share_flag', 
                 'config_definitions', 'config_values', 'is_premium',
-                'slide_config_definitions','object_config_definitions'
+                'slide_config_definitions','object_config_definitions','po_life_theater_premium'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -116,27 +124,68 @@ class LifeTheaterController extends Controller
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         make_error_log($error_log, "-------start-------");
+        
         try {
             $input = $request->all();
+            
+            $id         = get_proc_data($input,"id");
+            $plan_type  = get_proc_data($input,"plan_type");
 
-            $theater = LifeTheater::find($input['id'] ?? null);
-            if (!$theater) {
-                return redirect()->back()->with('error_msg', '対象データが存在しません。');
-            }
+            //パック購入の分岐
+            if($plan_type){
 
-            $isPremium = ($theater->plan_type ?? '') === 'premium';
+            $user = Auth::user();
+            
+                //premium価格
+                $common_conf_names = [
+                    'life_theater_premium'
+                ];
+                $configs = CommonConfig::getValues($common_conf_names);
+                $po_life_theater_premium = $configs['life_theater_premium']->value1;
+                
+                $check = $user->po_check($po_life_theater_premium);
+                if (!$check['can_use']) {
+                    $message = make_message('ポイントが不足しています。', 'error'); 
+                }else{
+                    
+                    $ret = LifeTheater::chgLifeTheater(['id' => $id,'plan_type' => $plan_type]);
 
-            $currentConfig        = LifeTheater::parseConfig($theater->config_data ?? null);
-            $inputConfig          = $input['config_data'] ?? [];
-            $input['config_data'] = LifeTheater::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+                    if ($ret['error_code'] == 0) {
+                        $poResult = $user->po_use($po_life_theater_premium, false, "ライフシアターpremiumパック");
+                        if (!$poResult['success']) {
+                            $message = make_message('購入処理に失敗しました。', 'error'); 
+                        }else{
+                            $message = make_message('購入ありがとうございます。', 'success'); 
+                        }
+                    } else {
+                        make_error_log($error_log, "update failed error_code=" . $ret['error_code']);
+                        $message = make_message('購入処理に失敗しました。', 'error'); 
+                    }
+                }
+                return redirect()->back()->with($message);
 
-            $ret = LifeTheater::chgLifeTheater($input);
 
-            if ($ret['error_code'] == 0) {
-                return redirect()->back()->with('success_msg', '作品情報を更新しました。');
-            } else {
-                make_error_log($error_log, "update failed error_code=" . $ret['error_code']);
-                return redirect()->back()->with('error_msg', '更新に失敗しました。');
+            }else{
+                $theater = LifeTheater::find($input['id'] ?? null);
+                if (!$theater) {
+                    return redirect()->back()->with('error_msg', '対象データが存在しません。');
+                }
+
+                $isPremium = ($theater->plan_type ?? '') === 'premium';
+
+                $currentConfig        = LifeTheater::parseConfig($theater->config_data ?? null);
+                $inputConfig          = $input['config_data'] ?? [];
+                $input['config_data'] = LifeTheater::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
+
+                $ret = LifeTheater::chgLifeTheater($input);
+
+                if ($ret['error_code'] == 0) {
+                    return redirect()->back()->with('success_msg', '作品情報を更新しました。');
+                } else {
+                    make_error_log($error_log, "update failed error_code=" . $ret['error_code']);
+                    return redirect()->back()->with('error_msg', '更新に失敗しました。');
+                }
+
             }
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
