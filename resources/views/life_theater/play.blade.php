@@ -302,41 +302,55 @@
         });
 
         // ボタン押下時
+        // ボタン押下時
         startBtn.addEventListener('click', function() {
-            if (isClickTriggered) return; // 連続タップ防止
+            if (isClickTriggered) return;
 
-            // ==========================================
-            // ★ スマホBGM無音化対策 (Audio Unlock) ★
-            // タップした瞬間に一瞬だけ無音で再生・停止し、音声の再生権限を獲得する
-            // ==========================================
+            // ★ BGM事前許可（Audio Unlock）
             const bgm = document.getElementById('bgm');
             if (bgm) {
-                bgm.muted = true; // 音が出ないようにミュート
+                bgm.muted = true;
                 const playPromise = bgm.play();
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        bgm.pause();       // すぐに一時停止
-                        bgm.muted = false; // ミュートを解除して本番の再生に備える
+                        bgm.pause();
+                        bgm.muted = false;
                         bgm.currentTime = 0;
                     }).catch(error => {
                         console.warn("BGM事前許可処理をスキップしました:", error);
                     });
                 }
             }
-            // ==========================================
 
             isClickTriggered = true;
-            isGranted = false; // ★ 開始時にフラグをクリア
+            isGranted = false;
+
+            // ==========================================
+            // ★ 広告ブロック（AdBlock等）の検知と再生遮断
+            // ==========================================
+            if (typeof googletag === 'undefined' || !googletag.apiReady) {
+                alert("広告ブロッカー（AdBlock等）が検出されました。\n作品を再生するには広告ブロッカーをオフにして、ページを再読み込み（リロード）してください。");
+                resetButton('広告を見てスタート');
+                return; // ★ 再生に進ませずに処理を終了
+            }
+            // ==========================================
+
             startBtn.style.pointerEvents = 'none';
             startBtn.style.opacity = '0.7';
             if (startBtnText) startBtnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 読み込み中...';
 
-            if (rewardPayload) {
-                rewardPayload.makeRewardedVisible();
-            } else {
-                googletag.cmd.push(function() {
-                    googletag.pubads().refresh([rewardedSlot]);
-                });
+            try {
+                if (rewardPayload) {
+                    rewardPayload.makeRewardedVisible();
+                } else {
+                    googletag.cmd.push(function() {
+                        googletag.pubads().refresh([rewardedSlot]);
+                    });
+                }
+            } catch (err) {
+                console.error("広告読み込みエラー:", err);
+                alert("広告の読み込みに失敗しました。\n広告ブロッカーをオフにするか、時間を置いて再読み込みしてください。");
+                resetButton('広告を見てスタート');
             }
         });
     });
