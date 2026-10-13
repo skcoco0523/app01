@@ -521,6 +521,67 @@ class ApiLifeTheaterController extends Controller
     // ここから課金による拡張
     //==============================================================================
     /**
+     * プレミアム解放時の枠拡張情報を取得するAPI
+     */
+    public function getPremiumInfo(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $theaterId = $request->input('life_theater_id');
+            if (!$theaterId) {
+                return response()->json(['status' => 'error', 'message' => '作品IDが必要です。'], 400);
+            }
+
+            $theater = LifeTheater::find($theaterId);
+            if (!$theater) {
+                return response()->json(['status' => 'error', 'message' => '対象のデータが存在しません。'], 404);
+            }
+
+            // プレミアム価格の取得
+            $common_conf_names = ['po_life_theater_premium'];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_life_theater_premium = isset($configs['po_life_theater_premium']) ? (int)$configs['po_life_theater_premium']->value1 : 1000;
+
+            // 現在の上限を取得
+            $current_slide_limit  = $theater->getSlideLimit();
+            $current_media_limit  = $theater->getMediaLimit();
+            $current_object_limit = $theater->getObjectLimit();
+
+            // プレミアム状態をシミュレート（クローンしてplan_typeを書き換える）
+            $premiumTheater = clone $theater;
+            $premiumTheater->plan_type = 'premium';
+
+            // プレミアム時の上限を取得
+            $premium_slide_limit  = $premiumTheater->getSlideLimit();
+            $premium_media_limit  = $premiumTheater->getMediaLimit();
+            $premium_object_limit = $premiumTheater->getObjectLimit();
+
+            $data = [
+                'slide' => [
+                    'current' => $current_slide_limit,
+                    'max'     => $premium_slide_limit,
+                    'add'     => $premium_slide_limit - $current_slide_limit
+                ],
+                'media' => [
+                    'current' => $current_media_limit,
+                    'max'     => $premium_media_limit,
+                    'add'     => $premium_media_limit - $current_media_limit
+                ],
+                'object' => [
+                    'current' => $current_object_limit,
+                    'max'     => $premium_object_limit,
+                ],
+                'cost' => $po_life_theater_premium
+            ];
+
+            return response()->json(['status' => 'success', 'data' => $data]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '情報の取得に失敗しました。'], 500);
+        }
+    }
+    /**
      * ライフシアターの作品作成枠を拡張する (Ajax - DBトランザクション保護付き)
      */
     public function expandTheaterLimit(Request $request)

@@ -111,6 +111,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/slide/object/save', [ApiLifeTheaterController::class, 'saveSlideObject'])->name('slide_object.save');
         Route::delete('/slide/object/destroy', [ApiLifeTheaterController::class, 'destroySlideObject'])->name('slide_object.destroy');
 
+        // プレミアム情報取得
+        Route::get('/premium-info', [ApiLifeTheaterController::class, 'getPremiumInfo'])->name('premium.info');
         //作成数上限拡張
         Route::post('/limit/expand', [ApiLifeTheaterController::class, 'expandTheaterLimit'])->name('limit.expand');
         // スライド保存枠拡張
