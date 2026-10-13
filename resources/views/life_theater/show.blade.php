@@ -57,19 +57,20 @@
                                target="_blank" class="btn btn-primary btn-action-sm flex-fill">
                                 <i class="fa-solid fa-play me-1"></i> 再生
                             </a>
-                            
-                            <button type="button" class="btn btn-success btn-action-sm flex-fill"
-                                onclick="openModal('life_theater_media-modal', {
-                                    media_manage_mode: '1',
-                                    media_modal_title_text: '画像ライブラリ（選択して編集）'
-                                });" title="ライブラリ"> 
-                                <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
-                            </button>
+                            @if(($theater->owner_flag || $theater->admin_flag ?? false))
+                                <button type="button" class="btn btn-success btn-action-sm flex-fill"
+                                    onclick="openModal('life_theater_media-modal', {
+                                        media_manage_mode: '1',
+                                        media_modal_title_text: '画像ライブラリ（選択して編集）'
+                                    });" title="ライブラリ"> 
+                                    <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
+                                </button>
 
-                            <button type="button" class="btn btn-danger btn-action-sm flex-fill"
-                                onclick="openModal('life_theater_slide_add-modal');">
-                                <i class="fa-solid fa-plus me-1"></i> スライド追加
-                            </button>
+                                <button type="button" class="btn btn-danger btn-action-sm flex-fill"
+                                    onclick="openModal('life_theater_slide_add-modal');">
+                                    <i class="fa-solid fa-plus me-1"></i> スライド追加
+                                </button>
+                            @endif
                         </div>
 
                         {{-- タイムライン・スライドリスト --}}
