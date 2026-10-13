@@ -16,6 +16,7 @@ use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterSlideObject;
 use App\Models\LifeTheaterPublicLink;
 use App\Models\CommonConfig;
+use App\Models\UserExtraSlot;
 
 class ApiLifeTheaterController extends Controller
 {
@@ -204,8 +205,7 @@ class ApiLifeTheaterController extends Controller
         make_error_log($error_log, "-------start-------");
         try {
             $input = $request->all();
-            make_error_log($error_log, "input:" . print_r($input, true));
-
+            
             $slideId = $input['life_theater_slide_id'] ?? null;
             if (!$slideId && !empty($input['id'])) {
                 $targetObj = LifeTheaterSlideObject::find($input['id']);
@@ -214,6 +214,31 @@ class ApiLifeTheaterController extends Controller
 
             $slide     = LifeTheaterSlide::with('lifeTheater')->find($slideId);
             $isPremium = ($slide->lifeTheater->plan_type ?? '') === 'premium';
+            // 新規作成時のみ、オブジェクト登録上限をチェック
+            if (empty($input['id']) && $slide && $slide->lifeTheater) {
+                $currentObjCount = LifeTheaterSlideObject::where('life_theater_slide_id', $slideId)->count();
+                $maxObjLimit     = $slide->lifeTheater->getObjectLimit();
+
+                if ($currentObjCount >= $maxObjLimit) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => "このスライドに配置できる上限（{$maxObjLimit}個）に達しています。"
+                    ], 400);
+                }
+            }
+
+            // 新規作成時のみ、オブジェクト（1スライドあたり）の登録上限をチェック
+            if (empty($input['id'])) {
+                $currentObjCount = LifeTheaterSlideObject::where('life_theater_slide_id', $slideId)->count();
+                $maxObjLimit     = $slide->lifeTheater->getObjectLimit();
+                
+                if ($currentObjCount >= $maxObjLimit) {
+                    return response()->json([
+                        'status'  => 'error', 
+                        'message' => "このスライドに配置できるオブジェクトの上限（{$maxObjLimit}個）に達しています。"
+                    ], 400);
+                }
+            }
 
             $currentObj    = !empty($input['id']) ? LifeTheaterSlideObject::find($input['id']) : null;
             $currentConfig = $currentObj ? LifeTheaterSlideObject::parseConfig($currentObj->config_data) : [];
@@ -487,6 +512,241 @@ class ApiLifeTheaterController extends Controller
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => '削除中にエラーが発生しました: ' . $e->getMessage()], 500);
+        }
+    }
+
+
+    
+    //==============================================================================
+    // ここから課金による拡張
+    //==============================================================================
+    /**
+     * プレミアム解放時の枠拡張情報を取得するAPI
+     */
+    public function getPremiumInfo(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $theaterId = $request->input('life_theater_id');
+            if (!$theaterId) {
+                return response()->json(['status' => 'error', 'message' => '作品IDが必要です。'], 400);
+            }
+
+            $theater = LifeTheater::find($theaterId);
+            if (!$theater) {
+                return response()->json(['status' => 'error', 'message' => '対象のデータが存在しません。'], 404);
+            }
+
+            // プレミアム価格の取得
+            $common_conf_names = ['po_life_theater_premium'];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_life_theater_premium = isset($configs['po_life_theater_premium']) ? (int)$configs['po_life_theater_premium']->value1 : 1000;
+
+            // 現在の上限を取得
+            $current_slide_limit  = $theater->getSlideLimit();
+            $current_media_limit  = $theater->getMediaLimit();
+            $current_object_limit = $theater->getObjectLimit();
+
+            // プレミアム状態をシミュレート（クローンしてplan_typeを書き換える）
+            $premiumTheater = clone $theater;
+            $premiumTheater->plan_type = 'premium';
+
+            // プレミアム時の上限を取得
+            $premium_slide_limit  = $premiumTheater->getSlideLimit();
+            $premium_media_limit  = $premiumTheater->getMediaLimit();
+            $premium_object_limit = $premiumTheater->getObjectLimit();
+
+            $data = [
+                'slide' => [
+                    'current' => $current_slide_limit,
+                    'max'     => $premium_slide_limit,
+                    'add'     => $premium_slide_limit - $current_slide_limit
+                ],
+                'media' => [
+                    'current' => $current_media_limit,
+                    'max'     => $premium_media_limit,
+                    'add'     => $premium_media_limit - $current_media_limit
+                ],
+                'object' => [
+                    'current' => $current_object_limit,
+                    'max'     => $premium_object_limit,
+                ],
+                'cost' => $po_life_theater_premium
+            ];
+
+            return response()->json(['status' => 'success', 'data' => $data]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => '情報の取得に失敗しました。'], 500);
+        }
+    }
+    /**
+     * ライフシアターの作品作成枠を拡張する (Ajax - DBトランザクション保護付き)
+     */
+    public function expandTheaterLimit(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $user = Auth::user();
+
+            // ★共通設定から消費ポイントと追加枠数を取得（設定がない場合は 300pt で +1枠 とする）
+            $configs = CommonConfig::getValues(['po_life_theater_limit_expand']);
+            $po_cost     = isset($configs['po_life_theater_limit_expand']) ? (int)$configs['po_life_theater_limit_expand']->value1 : 300;
+            $expandCount = 5;
+
+            $result = DB::transaction(function () use ($user, $po_cost, $expandCount) {
+                // ポイントチェック
+                $check = $user->po_check($po_cost);
+                if (!$check['can_use']) {
+                    throw new \Exception('ポイントが不足しています。（必要: ' . $po_cost . 'pt）');
+                }
+
+                // ポイント消費
+                $poResult = $user->po_use($po_cost, false, "ライフシアター 作品作成枠拡張 (+{$expandCount}枠)");
+                if (!$poResult['success']) {
+                    throw new \Exception('ポイントの引き落としに失敗しました。');
+                }
+
+                // ユーザーの拡張枠レコードを取得または作成
+                $extraSlot = UserExtraSlot::firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['life_theater_limit' => 0]
+                );
+                
+                // 枠を加算して保存
+                $extraSlot->life_theater_limit += $expandCount;
+                $extraSlot->save();
+
+                return [
+                    'new_limit'   => $user->fresh()->getTheaterLimit(),
+                    'total_point' => $user->fresh()->total_point
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "作品の作成枠を {$expandCount} 件拡張しました！",
+                'data'    => $result
+            ]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            // Exceptionのメッセージが「ポイントが不足しています」等の場合はそのまま返す
+            $msg = str_contains($e->getMessage(), 'ポイント') ? $e->getMessage() : '拡張処理中にエラーが発生しました。';
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
+        }
+    }
+    /**
+     * スライド作成枠を拡張する (Ajax - 作品単位)
+     */
+    public function expandSlideLimit(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $user = Auth::user();
+            $theaterId = $request->input('life_theater_id');
+
+            if (!$theaterId) {
+                return response()->json(['status' => 'error', 'message' => '対象の作品が指定されていません。'], 400);
+            }
+
+            $theater = LifeTheater::find($theaterId);
+            if (!$theater || ($theater->user_id !== $user->id && !LifeTheaterShare::checkEditPermission($theaterId, $user->id))) {
+                return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
+            }
+
+            $configs = CommonConfig::getValues(['po_life_theater_slide_expand']);
+            $po_cost     = isset($configs['po_life_theater_slide_expand']) ? (int)$configs['po_life_theater_slide_expand']->value1 : 300;
+            $expandCount = isset($configs['po_life_theater_slide_expand']) ? (int)$configs['po_life_theater_slide_expand']->value2 : 5;
+
+            $result = DB::transaction(function () use ($user, $theater, $po_cost, $expandCount) {
+                $check = $user->po_check($po_cost);
+                if (!$check['can_use']) {
+                    throw new \Exception('ポイントが不足しています。（必要: ' . $po_cost . 'pt）');
+                }
+
+                $poResult = $user->po_use($po_cost, false, "ライフシアター スライド枠拡張 (+{$expandCount}枚)");
+                if (!$poResult['success']) {
+                    throw new \Exception('ポイントの引き落としに失敗しました。');
+                }
+
+                $targetTheater = LifeTheater::lockForUpdate()->find($theater->id);
+                $targetTheater->extra_slide_limit += $expandCount;
+                $targetTheater->save();
+
+                return [
+                    'new_limit'   => $targetTheater->getSlideLimit(),
+                    'total_point' => $user->fresh()->total_point
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "スライド作成枠を {$expandCount} 枚拡張しました！",
+                'data'    => $result
+            ]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            $msg = str_contains($e->getMessage(), 'ポイント') ? $e->getMessage() : '拡張処理中にエラーが発生しました。';
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
+        }
+    }
+    /**
+     * オブジェクト作成枠を拡張する (Ajax - 作品単位)
+     */
+    public function expandObjectLimit(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $user = Auth::user();
+            $theaterId = $request->input('life_theater_id');
+
+            if (!$theaterId) {
+                return response()->json(['status' => 'error', 'message' => '対象の作品が指定されていません。'], 400);
+            }
+
+            $theater = LifeTheater::find($theaterId);
+            if (!$theater || ($theater->user_id !== $user->id && !LifeTheaterShare::checkEditPermission($theaterId, $user->id))) {
+                return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
+            }
+
+            $configs = CommonConfig::getValues(['po_life_theater_object_expand']);
+            $po_cost     = isset($configs['po_life_theater_object_expand']) ? (int)$configs['po_life_theater_object_expand']->value1 : 100;
+            $expandCount = isset($configs['po_life_theater_object_expand']) ? (int)$configs['po_life_theater_object_expand']->value2 : 2;
+
+            $result = DB::transaction(function () use ($user, $theater, $po_cost, $expandCount) {
+                $check = $user->po_check($po_cost);
+                if (!$check['can_use']) {
+                    throw new \Exception('ポイントが不足しています。（必要: ' . $po_cost . 'pt）');
+                }
+
+                $poResult = $user->po_use($po_cost, false, "ライフシアター オブジェクト枠拡張 (+{$expandCount}個)");
+                if (!$poResult['success']) {
+                    throw new \Exception('ポイントの引き落としに失敗しました。');
+                }
+
+                $targetTheater = LifeTheater::lockForUpdate()->find($theater->id);
+                $targetTheater->extra_object_limit += $expandCount;
+                $targetTheater->save();
+
+                return [
+                    'new_limit'   => $targetTheater->getObjectLimit(),
+                    'total_point' => $user->fresh()->total_point
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "オブジェクト作成枠を {$expandCount} 個拡張しました！",
+                'data'    => $result
+            ]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            $msg = str_contains($e->getMessage(), 'ポイント') ? $e->getMessage() : '拡張処理中にエラーが発生しました。';
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
         }
     }
 }

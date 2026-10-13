@@ -14,6 +14,21 @@ use App\Models\User;
 class LifeTheater extends Model
 {
     use HasFactory;
+    
+    protected $fillable = [
+        'user_id',
+        'title',
+        'subtitle',
+        'bgm_type',
+        'theme_color_num',
+        'edit_lock_flag',
+        'plan_type',
+        'extra_media_limit',
+        'extra_slide_limit',
+        'extra_object_limit',
+        'used_points',
+        'config_data',
+    ];
 
     /**
      * 設定項目の定義（ラベル・説明文・選択肢・初期値・プレミアム制限）
@@ -118,18 +133,6 @@ class LifeTheater extends Model
         return $filtered;
     }
 
-    protected $fillable = [
-        'user_id',
-        'title',
-        'subtitle',
-        'bgm_type',
-        'theme_color_num',
-        'edit_lock_flag',
-        'plan_type',
-        'used_points',
-        'config_data',
-    ];
-
     protected $casts = [
         'edit_lock_flag' => 'boolean',
         'config_data'    => 'array',
@@ -158,6 +161,35 @@ class LifeTheater extends Model
     public function publicLinks()
     {
         return $this->hasMany(LifeTheaterPublicLink::class, 'life_theater_id');
+    }
+
+    /**
+     * 画像ライブラリの登録上限枚数を取得する
+     * （無料枠 or プレミアム枠 ＋ 追加購入枠）
+     */
+    public function getMediaLimit(): int
+    {
+        // 固定値（無料:10, Premium:30）
+        $baseLimit = ($this->plan_type === 'premium') ? 30 : 20;
+        return $baseLimit + (int)$this->extra_media_limit;
+    }
+    /**
+     * スライドの登録上限数を取得する
+     */
+    public function getSlideLimit(): int
+    {
+        // 無料: 10枚, Premium: 30枚
+        $baseLimit = ($this->plan_type === 'premium') ? 30 : 5;
+        return $baseLimit + (int)$this->extra_slide_limit;
+    }
+
+    /**
+     */
+    public function getObjectLimit(): int
+    {
+        // 無料: 2個, Premium: 6個
+        $baseLimit = ($this->plan_type === 'premium') ? 6 : 2;
+        return $baseLimit + (int)$this->extra_object_limit;
     }
     // =========================================================================
     // データ操作メソッド

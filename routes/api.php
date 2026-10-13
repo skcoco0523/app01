@@ -98,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/media/store', [ApiLifeTheaterMediaController::class, 'store'])->name('media.store');                 // DBメタデータ登録
         Route::delete('/media/{id}', [ApiLifeTheaterMediaController::class, 'destroy'])->name('media.destroy');
 
+        // ライブラリ保存枠拡張
+        Route::post('/media/expand', [ApiLifeTheaterMediaController::class, 'expandLimit'])->name('media.expand');
+
         // 公開URL（パブリックリンク）関連API
         Route::get('/public-link/list', [ApiLifeTheaterController::class, 'api_getPublicLinks'])->name('public_link.list');
         Route::post('/public-link/store', [ApiLifeTheaterController::class, 'api_storePublicLink'])->name('public_link.store');
@@ -107,6 +110,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/slide/objects', [ApiLifeTheaterController::class, 'getSlideObjects'])->name('slide_object.index');
         Route::post('/slide/object/save', [ApiLifeTheaterController::class, 'saveSlideObject'])->name('slide_object.save');
         Route::delete('/slide/object/destroy', [ApiLifeTheaterController::class, 'destroySlideObject'])->name('slide_object.destroy');
+
+        // プレミアム情報取得
+        Route::get('/premium-info', [ApiLifeTheaterController::class, 'getPremiumInfo'])->name('premium.info');
+        //作成数上限拡張
+        Route::post('/limit/expand', [ApiLifeTheaterController::class, 'expandTheaterLimit'])->name('limit.expand');
+        // スライド保存枠拡張
+        Route::post('/slide/expand', [ApiLifeTheaterController::class, 'expandSlideLimit'])->name('slide.expand');
+        // オブジェクト保存枠拡張
+        Route::post('/object/expand', [ApiLifeTheaterController::class, 'expandObjectLimit'])->name('object.expand');
     });
     
 });

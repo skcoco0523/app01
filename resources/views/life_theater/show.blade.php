@@ -21,12 +21,9 @@
                                 <i class="fa-solid fa-crown me-1"></i>Premium
                             </span>
                         @else
+                            {{-- ★修正: 専用モーダルをAPI経由で開く --}}
                             <button type="button" class="badge bg-secondary border-0 d-inline-flex align-items-center" style="font-size: 11px; cursor: pointer;"
-                                onclick="openModal('common-modal',{
-                                    form_id: 'theaterPremiumBuyForm', title: 'プレミアム解放' ,
-                                    mess: '{{ $po_life_theater_premium }}ptを使用してこの作品をプレミアムプランにアップグレードしますか？',
-                                    cancel_btn: 'キャンセル', confirm_btn: '購入', user_chk: false
-                                });" title="プレミアムプランにアップグレード">
+                                onclick="openPremiumModal();" title="プレミアムプランにアップグレード">
                                 FREE <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 9px;"></i>
                             </button>
                         @endif
@@ -57,19 +54,21 @@
                                target="_blank" class="btn btn-primary btn-action-sm flex-fill">
                                 <i class="fa-solid fa-play me-1"></i> 再生
                             </a>
-                            
-                            <button type="button" class="btn btn-success btn-action-sm flex-fill"
-                                onclick="openModal('life_theater_media-modal', {
-                                    media_manage_mode: '1',
-                                    media_modal_title_text: '画像ライブラリ（選択して編集）'
-                                });" title="ライブラリ"> 
-                                <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
-                            </button>
+                            @if(($theater->owner_flag || $theater->admin_flag ?? false))
+                                <button type="button" class="btn btn-success btn-action-sm flex-fill"
+                                    onclick="openModal('life_theater_media-modal', {
+                                        media_manage_mode: '1',
+                                        media_modal_title_text: '画像ライブラリ（選択して編集）'
+                                    });" title="ライブラリ"> 
+                                    <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
+                                </button>
 
-                            <button type="button" class="btn btn-danger btn-action-sm flex-fill"
-                                onclick="openModal('life_theater_slide_add-modal');">
-                                <i class="fa-solid fa-plus me-1"></i> スライド追加
-                            </button>
+                                {{-- 直接モーダルを開かず、チェック関数を呼ぶ --}}
+                                <button type="button" class="btn btn-danger btn-action-sm flex-fill"
+                                    onclick="checkAndOpenSlideAddModal();">
+                                    <i class="fa-solid fa-plus me-1"></i> スライド追加
+                                </button>
+                            @endif
                         </div>
 
                         {{-- タイムライン・スライドリスト --}}
@@ -274,13 +273,9 @@
                                             <i class="fa-solid fa-circle-info me-1"></i> 一部機能はプレミアムパックの購入で利用可能になります。
                                         </small>
                                         
-                                        {{-- プレミアム解放ボタンにも btn-action-sm を適用 --}}
-                                        <button type="button" class="btn btn-warning btn-action-sm w-100 fw-bold"
-                                            onclick="openModal('common-modal',{
-                                                form_id: 'theaterPremiumBuyForm', title: 'プレミアム機能の解放' ,
-                                                mess: '{{ $po_life_theater_premium }}ポイントを消費してこの作品のプレミアム機能を解放しますか？',
-                                                cancel_btn: 'キャンセル', confirm_btn: '解放する', user_chk: false
-                                            });">
+                                        {{-- ★修正: 専用モーダルをAPI経由で開く --}}
+                                        <button type="button" class="btn btn-warning btn-action-sm w-100 fw-bold shadow-sm"
+                                            onclick="openPremiumModal();">
                                             <i class="fa-solid fa-crown me-1"></i> プレミアム機能を解放
                                         </button>
                                     </div>
@@ -320,6 +315,7 @@
     @include('modals.life_theater_share-modal')
     @include('modals.life_theater_media-modal')
     @include('modals.life_theater_public_link-modal')
+    @include('modals.life_theater_premium-modal')
     
     @include('layouts.adv_popup')
 
@@ -389,4 +385,115 @@
 
         if (colorInput && colorInput.value !== "") selectColor(colorInput.value);
     });
+
+    // ==========================================
+    // ★ 追加: スライド追加時の上限チェックと枠拡張処理
+    // ==========================================
+    let currentSlideCount = {{ $current_slide_count ?? 0 }};
+    let maxSlideLimit     = {{ $max_slide_limit ?? 10 }};
+    const expandSlideCost   = {{ $po_life_theater_slide_cost ?? 300 }};
+    const expandSlideAmount = {{ $po_life_theater_slide_amount ?? 5 }};
+
+    function checkAndOpenSlideAddModal() {
+        if (currentSlideCount >= maxSlideLimit) {
+            openModal('common-modal', {
+                title: 'スライド登録枠の拡張',
+                mess: `スライドの登録上限（${maxSlideLimit}枚）に達しています。\n\n${expandSlideCost}ポイントを使用して、登録枠を「${expandSlideAmount}枚」追加しますか？`,
+                cancel_btn: 'キャンセル',
+                confirm_btn: '枠を追加する',
+                user_chk: false,
+                onConfirm: function() {
+                    executeExpandSlideLimit();
+                }
+            });
+        } else {
+            openModal('life_theater_slide_add-modal');
+        }
+    }
+
+    async function executeExpandSlideLimit() {
+        const theaterId = "{{ $theater->id ?? $theater->life_theater_id ?? '' }}";
+        if (!theaterId) return;
+
+        try {
+            const res = await $.ajax({
+                type: "POST",
+                url: "{{ route('api.life_theater.slide.expand') }}",
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: { life_theater_id: theaterId }
+            });
+
+            if (res.status === 'success') {
+                if (typeof showNotification === 'function') {
+                    showNotification(res.message, "success", 2000);
+                } else {
+                    alert(res.message);
+                }
+                
+                if (res.data && res.data.new_limit) {
+                    maxSlideLimit = res.data.new_limit;
+                }
+                openModal('life_theater_slide_add-modal');
+
+            } else {
+                alert(res.message || "拡張に失敗しました。");
+            }
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : '処理中にエラーが発生しました。';
+            alert(errMsg);
+        }
+    }
+    // ==========================================
+    // ★追加: プレミアム解放モーダル表示（API経由で数値を動的取得）
+    // ==========================================
+    async function openPremiumModal() {
+        const theaterId = "{{ $theater->id ?? $theater->life_theater_id ?? '' }}";
+        if (!theaterId) return;
+
+        // モーダルを開き、ボタンを一時的に無効化
+        document.getElementById('btn_submit_premium').disabled = true;
+        openModal('life_theater_premium-modal');
+
+        try {
+            const response = await fetch("{{ route('api.life_theater.premium.info') }}?life_theater_id=" + theaterId, {
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                const d = result.data;
+                
+                // 数値の流し込み
+                document.getElementById('prem_slide_current').textContent = d.slide.current;
+                document.getElementById('prem_slide_max').textContent = d.slide.max;
+                document.getElementById('prem_slide_add').textContent = '+' + d.slide.add + 'コマ';
+
+                document.getElementById('prem_media_current').textContent = d.media.current;
+                
+                document.getElementById('prem_media_max').textContent = d.media.max;
+                document.getElementById('prem_media_add').textContent = '+' + d.media.add + '枚';
+
+                document.getElementById('prem_object_current').textContent = d.object.current;
+                document.getElementById('prem_object_max').textContent = d.object.max;
+
+                document.getElementById('prem_cost').textContent = new Intl.NumberFormat().format(d.cost);
+
+                // ロード完了でボタンを有効化
+                document.getElementById('btn_submit_premium').disabled = false;
+            } else {
+                alert(result.message || '情報の取得に失敗しました');
+                closeModal('life_theater_premium-modal');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('通信エラーが発生しました');
+            closeModal('life_theater_premium-modal');
+        }
+    }
 </script>

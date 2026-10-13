@@ -42,6 +42,11 @@ class CommonConfig extends Model
         if ($name == 'po_ai_voice')                 self::upsertValue('po_ai_voice',              'int', 2,  0, 'AI応答（音声会話）の消費ptと無料枠');
         if ($name == 'po_life_theater_premium')     self::upsertValue('po_life_theater_premium',  'int', 500,  0, 'premium価格');
         if ($name == 'po_life_theater_url')         self::upsertValue('po_life_theater_url',      'int', 500,  1, '広告なしurlの発行価格');
+        if ($name == 'po_life_theater_library')     self::upsertValue('po_life_theater_library',  'int', 500,  10, 'ライブラリ保存枚数拡張価格(10枚追加)');
+        if ($name == 'po_life_theater_limit_expand')self::upsertValue('po_life_theater_limit_expand',  'int', 500,  5, '作成数上限(5枚追加)');
+        if ($name == 'po_life_theater_slide_expand')self::upsertValue('po_life_theater_slide_expand', 'int', 300, 5, 'スライド登録上限拡張(5枚追加)');
+        if ($name == 'po_life_theater_object_expand')    self::upsertValue('po_life_theater_object_expand', 'int', 100,  2, 'オブジェクト登録上限拡張(2個追加)');
+        
 
         // その他設定
         if ($name == 'stop_admin_connect_notify')   self::upsertValue('stop_admin_connect_notify',  'bool', 0, 0, '管理者デバイス接続通知停止');

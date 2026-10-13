@@ -37,7 +37,24 @@ class LifeTheaterController extends Controller
             $my_theater_counts    = collect($my_theater_list)->groupBy('theme_color_num')->map->count();
             $share_theater_counts = collect($shared_theater_list)->groupBy('theme_color_num')->map->count();
 
-            return view('life_theater.index', compact('my_theater_list', 'shared_theater_list', 'my_theater_counts', 'share_theater_counts'));
+            // ==========================================================
+            // ★ 追加: 上限チェック用のデータ取得
+            // ==========================================================
+            $user = Auth::user();
+            $current_theater_count = LifeTheater::where('user_id', $user->id)->count();
+            $max_theater_limit     = $user->getTheaterLimit();
+
+            $common_conf_names = ['po_life_theater_limit_expand'];
+            $configs = CommonConfig::getValues($common_conf_names);
+            $po_life_theater_limit_cost   = $configs['po_life_theater_limit_expand']->value1 ?? 300;
+            $po_life_theater_limit_amount = 5;
+
+            return view('life_theater.index', compact(
+                'my_theater_list', 'shared_theater_list', 
+                'my_theater_counts', 'share_theater_counts',
+                'current_theater_count', 'max_theater_limit',         // ★ 追加
+                'po_life_theater_limit_cost', 'po_life_theater_limit_amount' // ★ 追加
+            ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return redirect()->route('home')->with('error_msg', '一覧の取得に失敗しました。');
@@ -85,23 +102,44 @@ class LifeTheaterController extends Controller
                 ->where('is_ad_free', true)
                 ->count();
 
-            // ★ CommonConfigから設定値を取得
+            // CommonConfigから設定値を取得
             $common_conf_names = [
                 'po_life_theater_premium',
-                'po_life_theater_url'
+                'po_life_theater_url',
+                'po_life_theater_library',
+                'po_life_theater_slide_expand',
+                'po_life_theater_object_expand',
             ];
             $configs = CommonConfig::getValues($common_conf_names);
 
             $po_life_theater_premium        = $configs['po_life_theater_premium']->value1 ?? 1000;
             $po_life_theater_url_cost       = $configs['po_life_theater_url']->value1 ?? 300;
             $po_life_theater_url_free_count = $configs['po_life_theater_url']->value2 ?? 1;
+            $po_life_theater_library_cost   = $configs['po_life_theater_library']->value1 ?? 100;
+            // スライド枠拡張のポイントと枚数を取得
+            $po_life_theater_slide_cost   = $configs['po_life_theater_slide_expand']->value1 ?? 300;
+            $po_life_theater_slide_amount = $configs['po_life_theater_slide_expand']->value2 ?? 5;
+            // オブジェクト枠拡張の設定値
+            $po_life_theater_object_cost   = $configs['po_life_theater_object_expand']->value1 ?? 100;
+            $po_life_theater_object_amount = $configs['po_life_theater_object_expand']->value2 ?? 2;
+
+            // スライド上限と現在の枚数を取得
+            $theater_model = LifeTheater::find($theater_id);
+            $max_slide_limit = $theater_model ? $theater_model->getSlideLimit() : 10; // 見つからない場合のフォールバック
+            // オブジェクト上限を取得
+            $max_object_limit = $theater_model ? $theater_model->getObjectLimit() : 2;
+            
+            $current_slide_count = count($slides);
 
             return view('life_theater.show', compact(
                 'theater', 'slides', 'media_list', 'share_flag', 
                 'config_definitions', 'config_values', 'is_premium',
                 'slide_config_definitions', 'object_config_definitions',
                 'po_life_theater_premium', 'po_life_theater_url_cost', 'po_life_theater_url_free_count',
-                'used_ad_free_count' // ★ 追加
+                'used_ad_free_count','po_life_theater_library_cost',
+                'po_life_theater_slide_cost', 'po_life_theater_slide_amount',
+                'max_slide_limit', 'current_slide_count',
+                'po_life_theater_object_cost', 'po_life_theater_object_amount', 'max_object_limit'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -114,7 +152,17 @@ class LifeTheaterController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
-            $input['user_id'] = Auth::id();
+            $user = Auth::user();
+            $input['user_id'] = $user->id;
+
+            // ライフシアター作成上限のチェック
+            $currentCount = LifeTheater::where('user_id', $user->id)->count();
+            $limit = $user->getTheaterLimit();
+
+            if ($currentCount >= $limit) {
+                return redirect()->back()->with('error_msg', "作成可能な作品数の上限（{$limit}件）に達しています。枠を拡張してください。");
+            }
+            // ==========================================================
 
             $ret = LifeTheater::createLifeTheater($input);
 
@@ -238,6 +286,17 @@ class LifeTheaterController extends Controller
         try {
             $input = $request->all();
             $theater = LifeTheater::find($input['life_theater_id'] ?? null);
+            if (!$theater) {
+                return redirect()->back()->with('error_msg', '対象の作品が見つかりません。');
+            }
+
+            // スライド登録枚数上限チェック
+            $currentSlideCount = LifeTheaterSlide::where('life_theater_id', $theater->id)->count();
+            $maxSlideLimit     = $theater->getSlideLimit();
+            if ($currentSlideCount >= $maxSlideLimit) {
+                return redirect()->back()->with('error_msg', "スライドの登録上限（{$maxSlideLimit}枚）に達しています。枠を拡張してください。");
+            }
+
             $isPremium = ($theater->plan_type ?? '') === 'premium';
             $inputConfig = $input['config_data'] ?? [];
             $input['config_data'] = LifeTheaterSlide::filterConfigByPlan($inputConfig, $isPremium);

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\LifeTheaterMedia;
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterShare;
+use App\Models\CommonConfig;
 
 class ApiLifeTheaterMediaController extends Controller
 {
@@ -31,10 +33,16 @@ class ApiLifeTheaterMediaController extends Controller
             $media = LifeTheaterMedia::where('life_theater_id', $life_theater_id)
                 ->orderBy('created_at', 'desc')
                 ->get();
+            
+            // 上限枚数の取得
+            $theater = LifeTheater::find($life_theater_id);
+            $maxLimit = $theater->getMediaLimit();
 
             return response()->json([
                 'status' => 'success',
-                'data'   => $media
+                'data'   => $media,
+                'current_count' => $media->count(),
+                'max_limit'     => $maxLimit
             ]);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -59,6 +67,23 @@ class ApiLifeTheaterMediaController extends Controller
 
             if (!$this->checkPermission($life_theater_id)) {
                 return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
+            }
+            // ==========================================================
+            // ★ 追加: 画像ライブラリの上限枚数チェック
+            // ==========================================================
+            $theater = LifeTheater::find($life_theater_id);
+            if (!$theater) {
+                return response()->json(['status' => 'error', 'message' => '対象の作品が見つかりません。'], 404);
+            }
+
+            $currentMediaCount = LifeTheaterMedia::where('life_theater_id',$life_theater_id)->count();
+            $maxMediaLimit =$theater->getMediaLimit();
+
+            if ($currentMediaCount >=$maxMediaLimit) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => "画像ライブラリの上限（{$maxMediaLimit}枚）に達しています。\n不要な画像を削除するか、枠を拡張してください。"
+                ], 400);
             }
 
             // S3保存パスの生成
@@ -116,6 +141,19 @@ class ApiLifeTheaterMediaController extends Controller
                         'message' => '画像名を変更しました。'
                     ]);
                 }
+            }
+            // ==========================================================
+            // 新規登録（STORE）時の念のための上限チェック getPresignedUrl で弾かれますが、API直叩きのガードとして
+            // ==========================================================
+            $theater = LifeTheater::find($life_theater_id);
+            $currentMediaCount = LifeTheaterMedia::where('life_theater_id',$life_theater_id)->count();
+            $maxMediaLimit =$theater->getMediaLimit();
+
+            if ($currentMediaCount >=$maxMediaLimit) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => "画像ライブラリの上限（{$maxMediaLimit}枚）に達しています。"
+                ], 400);
             }
 
             // 新規登録（STORE）
@@ -183,6 +221,71 @@ class ApiLifeTheaterMediaController extends Controller
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'エラーが発生しました。'], 500);
+        }
+    }
+    /**
+     * 画像ライブラリの上限を拡張する (Ajax - DBトランザクション保護付き)
+     */
+    public function expandLimit(Request $request)
+    {
+        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
+        try {
+            $lifeTheaterId = $request->input('life_theater_id');
+            $user = Auth::user();
+
+            if (!$lifeTheaterId) {
+                return response()->json(['status' => 'error', 'message' => '対象の作品が指定されていません。'], 400);
+            }
+
+            if (!$this->checkPermission($lifeTheaterId)) {
+                return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
+            }
+
+            // ★ CommonConfigから設定値を取得
+            $common_conf_names = [
+                'po_life_theater_library'
+            ];
+            $configs = CommonConfig::getValues($common_conf_names);
+
+            $po_cost   = $configs['po_life_theater_library']->value1 ?? 100;
+            $expandCount   = $configs['po_life_theater_library']->value2 ?? 10;
+
+            // トランザクション処理（ポイント引き落とし ＋ 上限拡張）
+            $result = DB::transaction(function () use ($lifeTheaterId, $user, $po_cost, $expandCount) {
+                // ポイントチェック
+                $check = $user->po_check($po_cost);
+                if (!$check['can_use']) {
+                    throw new \Exception('ポイントが不足しています。（必要: ' . $po_cost . 'pt）');
+                }
+
+                // ポイント消費
+                $poResult = $user->po_use($po_cost, false, "ライフシアター 画像枠拡張 (+{$expandCount}枚)");
+                if (!$poResult['success']) {
+                    throw new \Exception('ポイントの引き落としに失敗しました。');
+                }
+
+                // 作品の拡張枠を加算
+                $theater = LifeTheater::lockForUpdate()->find($lifeTheaterId);
+                $theater->extra_media_limit += $expandCount;
+                $theater->save();
+
+                return [
+                    'new_limit'   => $theater->getMediaLimit(),
+                    'total_point' => $user->fresh()->total_point
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "枠を {$expandCount} 枚拡張しました！",
+                'data'    => $result
+            ]);
+
+        } catch (\Exception $e) {
+            make_error_log($error_log, "Error Message: " . $e->getMessage());
+            // Exceptionのメッセージが「ポイントが不足しています」等の場合はそれをそのまま返す
+            $msg = str_contains($e->getMessage(), 'ポイント') ? $e->getMessage() : '拡張処理中にエラーが発生しました。';
+            return response()->json(['status' => 'error', 'message' => $msg], 400);
         }
     }
 

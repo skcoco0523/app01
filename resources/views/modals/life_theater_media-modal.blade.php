@@ -9,6 +9,10 @@
                 <h5 class="modal-title fw-bold">
                     <i class="fa-solid fa-images me-1"></i> <span id="media_modal_title_text">画像ライブラリ</span>
                 </h5>
+                {{-- 枚数表示用のバッジ --}}
+                <span id="media_limit_badge" class="badge bg-secondary ms-3 d-none" style="font-size: 0.75rem;">
+                    使用中: - / - 枚
+                </span>
                 <button type="button" class="btn-close" aria-label="Close" onclick="closeModal('life_theater_media-modal')"></button>
             </div>
             
@@ -56,6 +60,16 @@
                         <div class="mb-2" id="new_media_file_container">
                             <label class="form-label fw-bold small mb-1" id="file_input_label">画像ファイル <span class="text-danger">*</span></label>
                             <input type="file" class="form-control form-control-sm" id="media_upload_file" accept="image/*" onchange="initCropperFromFile(this)">
+                        </div>
+
+                        {{-- 枠拡張エリア --}}
+                        <div id="media_expand_area" class="mt-3 p-2 border border-warning rounded bg-light text-center d-none">
+                            <small class="text-danger fw-bold d-block mb-1">
+                                <i class="fa-solid fa-triangle-exclamation"></i> 登録上限に達しています
+                            </small>
+                            <button type="button" class="btn btn-warning btn-sm fw-bold w-100" onclick="confirmExpandMediaLimit({{ $po_life_theater_library_cost }})">
+                                <i class="fa-solid fa-cart-plus me-1"></i> {{ $po_life_theater_library_cost }}ptで枠を拡張する（+10枚）
+                            </button>
                         </div>
 
                         {{-- トリミングプレビュー表示部 --}}
@@ -132,7 +146,18 @@ function switchMediaTab(tabName) {
             document.getElementById('new_media_name_container').classList.remove('d-none');
             document.getElementById('new_media_file_container').classList.remove('d-none');
             document.getElementById('file_input_label').innerHTML = '画像ファイル <span class="text-danger">*</span>';
-            document.getElementById('mediaUploadSubmitBtn').textContent = 'アップロード';
+            
+            // ★追加: 上限到達判定
+            const badge = document.getElementById('media_limit_badge');
+            const submitBtn = document.getElementById('mediaUploadSubmitBtn');
+            if (badge && badge.classList.contains('bg-danger')) {
+                submitBtn.textContent = '上限に達しています';
+                submitBtn.disabled = true;
+            } else {
+                submitBtn.textContent = 'アップロード';
+                submitBtn.disabled = false;
+            }
+            
             document.getElementById('media_upload_name').value = '';
             document.getElementById('media_upload_file').value = '';
         }
@@ -161,49 +186,89 @@ async function loadMediaLibraryList() {
         });
         const result = await response.json();
 
-        if (result.status === 'success' && result.data.length > 0) {
-            grid.innerHTML = '';
-            result.data.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'border rounded p-1 text-center position-relative shadow-sm';
-                card.style.width = '100px';
+        if (result.status === 'success') {
+            
+            // ==========================================
+            // 上限バッジの更新とアップロード制御
+            // ==========================================
+            const badge = document.getElementById('media_limit_badge');
+            const submitBtn = document.getElementById('mediaUploadSubmitBtn');
+            const uploadTab = document.getElementById('media-upload-tab');
 
-                const imgArea = document.createElement('div');
-                imgArea.className = 'cursor-pointer';
-                imgArea.innerHTML = `
-                    <img src="${item.image_s3_key}" class="img-fluid rounded mb-1" style="height: 70px; object-fit: cover; width: 100%;">
-                    <small class="d-block text-truncate small" title="${item.name || ''}">${item.name || '名称なし'}</small>
-                `;
+            if (badge && result.current_count !== undefined && result.max_limit !== undefined) {
+                badge.classList.remove('d-none');
+                badge.textContent = `使用中: ${result.current_count} / ${result.max_limit} 枚`;
 
-                if (isManage) {
-                    // 管理モード時：クリックで編集画面へ
-                    imgArea.onclick = () => editExistingMedia(item);
-
-                    // 削除ボタン
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center rounded-circle';
-                    deleteBtn.style.width = '22px';
-                    deleteBtn.style.height = '22px';
-                    deleteBtn.innerHTML = '<i class="fa-solid fa-times" style="font-size: 11px;"></i>';
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        deleteMediaItem(item.id);
-                    };
-                    card.appendChild(deleteBtn);
+                // 上限に達している場合のUI変更
+                if (result.current_count >= result.max_limit) {
+                    badge.classList.remove('bg-secondary');
+                    badge.classList.add('bg-danger');
+                    
+                    if (!currentEditMediaItem && submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = '上限に達しています';
+                    }
+                    // 拡張ボタンエリアを表示
+                    document.getElementById('media_expand_area').classList.remove('d-none');
                 } else {
-                    // 選択モード時
-                    imgArea.onclick = () => selectMediaItem(item.id, item.name || '画像ID:' + item.id, item.image_s3_key);
+                    badge.classList.remove('bg-danger');
+                    badge.classList.add('bg-secondary');
+                    if (!currentEditMediaItem && submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'アップロード';
+                    }
+                    // 拡張ボタンエリアを隠す
+                    document.getElementById('media_expand_area').classList.add('d-none');
                 }
+            }
+            // ==========================================
 
-                card.appendChild(imgArea);
-                grid.appendChild(card);
-            });
+            if (result.data.length > 0) {
+                grid.innerHTML = '';
+                result.data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'border rounded p-1 text-center position-relative shadow-sm';
+                    card.style.width = '100px';
+
+                    const imgArea = document.createElement('div');
+                    imgArea.className = 'cursor-pointer';
+                    imgArea.innerHTML = `
+                        <img src="${item.image_s3_key}" class="img-fluid rounded mb-1" style="height: 70px; object-fit: cover; width: 100%;">
+                        <small class="d-block text-truncate small" title="${item.name || ''}">${item.name || '名称なし'}</small>
+                    `;
+
+                    if (isManage) {
+                        // 管理モード時：クリックで編集画面へ
+                        imgArea.onclick = () => editExistingMedia(item);
+
+                        // 削除ボタン
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center rounded-circle';
+                        deleteBtn.style.width = '22px';
+                        deleteBtn.style.height = '22px';
+                        deleteBtn.innerHTML = '<i class="fa-solid fa-times" style="font-size: 11px;"></i>';
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteMediaItem(item.id);
+                        };
+                        card.appendChild(deleteBtn);
+                    } else {
+                        // 選択モード時
+                        imgArea.onclick = () => selectMediaItem(item.id, item.name || '画像ID:' + item.id, item.image_s3_key);
+                    }
+
+                    card.appendChild(imgArea);
+                    grid.appendChild(card);
+                });
+            } else {
+                grid.innerHTML = '<div class="text-center w-100 py-3 text-muted">登録済みの画像がありません。<br>「新規アップロード」から登録してください。</div>';
+            }
         } else {
-            grid.innerHTML = '<div class="text-center w-100 py-3 text-muted">登録済みの画像がありません。<br>「新規アップロード」から登録してください。</div>';
+            grid.innerHTML = '<div class="text-center w-100 py-3 text-danger">画像の取得に失敗しました。</div>';
         }
     } catch (e) {
         console.error(e);
-        grid.innerHTML = '<div class="text-center w-100 py-3 text-danger">画像の取得に失敗しました。</div>';
+        grid.innerHTML = '<div class="text-center w-100 py-3 text-danger">通信エラーが発生しました。</div>';
     }
 }
 
@@ -336,7 +401,10 @@ function initCropperFromUrl(url) {
     destroyCropper();
     const image = document.getElementById('cropper_target_image');
     image.crossOrigin = 'anonymous';
-    image.src = url;
+
+    // ★ キャッシュによるCORSブロックを回避するため、タイムスタンプを付与してリクエスト
+    const cacheBuster = (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+    image.src = url + cacheBuster;
 
     document.getElementById('cropper_container').classList.remove('d-none');
 
@@ -474,6 +542,55 @@ async function uploadCroppedMediaFile() {
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'アップロード';
+    }
+}
+
+// ==========================================
+// 画像ライブラリ枠の拡張処理
+// ==========================================
+function confirmExpandMediaLimit(po) {
+    // 既存の共通モーダル（common-modal）を使って確認ダイアログを出す
+    openModal('common-modal', {
+        title: '画像枠の拡張',
+        mess: po+'ポイントを使用して、画像の登録枠を「10枚」追加しますか？',
+        cancel_btn: 'キャンセル',
+        confirm_btn: '拡張する',
+        user_chk: false,
+        onConfirm: function() {
+            executeExpandMediaLimit();
+        }
+    });
+}
+
+async function executeExpandMediaLimit() {
+    const theaterId = "{{ $theater->id ?? $theater->life_theater_id ?? '' }}";
+    if (!theaterId) return;
+
+    try {
+        const res = await $.ajax({
+            type: "POST",
+            url: "{{ route('api.life_theater.media.expand') }}", 
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            data: { life_theater_id: theaterId }
+        });
+
+        if (res.status === 'success') {
+            if (typeof showNotification === 'function') {
+                showNotification(res.message, "success", 2000);
+            } else {
+                alert(res.message);
+            }
+            // リスト（とバッジ・ボタン状態）を再読み込みして最新化
+            loadMediaLibraryList();
+        } else {
+            alert(res.message || "拡張に失敗しました。");
+        }
+    } catch (err) {
+        console.error(err);
+        const errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : '処理中にエラーが発生しました。';
+        alert(errMsg);
     }
 }
 </script>
