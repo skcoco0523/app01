@@ -98,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/media/store', [ApiLifeTheaterMediaController::class, 'store'])->name('media.store');                 // DBメタデータ登録
         Route::delete('/media/{id}', [ApiLifeTheaterMediaController::class, 'destroy'])->name('media.destroy');
 
+        // ライブラリ保存枠拡張
+        Route::post('/media/expand', [ApiLifeTheaterMediaController::class, 'expandLimit'])->name('media.expand');
+
         // 公開URL（パブリックリンク）関連API
         Route::get('/public-link/list', [ApiLifeTheaterController::class, 'api_getPublicLinks'])->name('public_link.list');
         Route::post('/public-link/store', [ApiLifeTheaterController::class, 'api_storePublicLink'])->name('public_link.store');
