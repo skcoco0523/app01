@@ -168,7 +168,7 @@ class LifeTheater extends Model
     public function getMediaLimit(): int
     {
         // 固定値（無料:10, Premium:30）
-        $baseLimit = ($this->plan_type === 'premium') ? 10 : 30;
+        $baseLimit = ($this->plan_type === 'premium') ? 30 : 20;
 
         return $baseLimit + (int)$this->extra_media_limit;
     }

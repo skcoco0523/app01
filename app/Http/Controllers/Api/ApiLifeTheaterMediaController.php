@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LifeTheaterMedia;
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterShare;
+use App\Models\CommonConfig;
 
 class ApiLifeTheaterMediaController extends Controller
 {
@@ -240,11 +241,14 @@ class ApiLifeTheaterMediaController extends Controller
                 return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
             }
 
-            // ★共通設定から消費ポイントと追加枚数を取得（設定がない場合のデフォルト値を定義）
-            $configs = \App\Models\CommonConfig::getValues(['po_life_theater_media_expand']);
-            // ※もし DB(common_configs) に設定がない場合は、デフォルトで「100ptで10枚追加」とする
-            $po_cost     = isset($configs['po_life_theater_media_expand']) ? (int)$configs['po_life_theater_media_expand']->value1 : 100;
-            $expandCount = isset($configs['po_life_theater_media_expand']) ? (int)$configs['po_life_theater_media_expand']->value2 : 10;
+            // ★ CommonConfigから設定値を取得
+            $common_conf_names = [
+                'po_life_theater_library'
+            ];
+            $configs = CommonConfig::getValues($common_conf_names);
+
+            $po_cost   = $configs['po_life_theater_library']->value1 ?? 100;
+            $expandCount = 10;
 
             // トランザクション処理（ポイント引き落とし ＋ 上限拡張）
             $result = DB::transaction(function () use ($lifeTheaterId, $user, $po_cost, $expandCount) {

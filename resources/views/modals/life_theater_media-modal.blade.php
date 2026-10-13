@@ -67,8 +67,8 @@
                             <small class="text-danger fw-bold d-block mb-1">
                                 <i class="fa-solid fa-triangle-exclamation"></i> 登録上限に達しています
                             </small>
-                            <button type="button" class="btn btn-warning btn-sm fw-bold w-100" onclick="confirmExpandMediaLimit()">
-                                <i class="fa-solid fa-cart-plus me-1"></i> 100ptで枠を拡張する（+10枚）
+                            <button type="button" class="btn btn-warning btn-sm fw-bold w-100" onclick="confirmExpandMediaLimit({{ $po_life_theater_library_cost }})">
+                                <i class="fa-solid fa-cart-plus me-1"></i> {{ $po_life_theater_library_cost }}ptで枠を拡張する（+10枚）
                             </button>
                         </div>
 
@@ -548,11 +548,11 @@ async function uploadCroppedMediaFile() {
 // ==========================================
 // 画像ライブラリ枠の拡張処理
 // ==========================================
-function confirmExpandMediaLimit() {
+function confirmExpandMediaLimit(po) {
     // 既存の共通モーダル（common-modal）を使って確認ダイアログを出す
     openModal('common-modal', {
         title: '画像枠の拡張',
-        mess: '100ポイントを使用して、画像の登録枠を「10枚」追加しますか？',
+        mess: po+'ポイントを使用して、画像の登録枠を「10枚」追加しますか？',
         cancel_btn: 'キャンセル',
         confirm_btn: '拡張する',
         user_chk: false,

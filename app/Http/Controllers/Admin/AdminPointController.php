@@ -55,7 +55,7 @@ class AdminPointController extends Controller
     {
         //消費ポイント設定
         $common_conf_names = [
-            'po_life_theater_premium', 'po_life_theater_url'
+            'po_life_theater_premium', 'po_life_theater_url', 'po_life_theater_library'
         ];
         $configs = CommonConfig::getValues($common_conf_names);
         $config_type = 'amount_lt';

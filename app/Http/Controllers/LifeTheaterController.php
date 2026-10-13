@@ -85,23 +85,25 @@ class LifeTheaterController extends Controller
                 ->where('is_ad_free', true)
                 ->count();
 
-            // ★ CommonConfigから設定値を取得
+            // CommonConfigから設定値を取得
             $common_conf_names = [
                 'po_life_theater_premium',
-                'po_life_theater_url'
+                'po_life_theater_url',
+                'po_life_theater_library'
             ];
             $configs = CommonConfig::getValues($common_conf_names);
 
             $po_life_theater_premium        = $configs['po_life_theater_premium']->value1 ?? 1000;
             $po_life_theater_url_cost       = $configs['po_life_theater_url']->value1 ?? 300;
             $po_life_theater_url_free_count = $configs['po_life_theater_url']->value2 ?? 1;
+            $po_life_theater_library_cost   = $configs['po_life_theater_library']->value1 ?? 100;
 
             return view('life_theater.show', compact(
                 'theater', 'slides', 'media_list', 'share_flag', 
                 'config_definitions', 'config_values', 'is_premium',
                 'slide_config_definitions', 'object_config_definitions',
                 'po_life_theater_premium', 'po_life_theater_url_cost', 'po_life_theater_url_free_count',
-                'used_ad_free_count' // ★ 追加
+                'used_ad_free_count','po_life_theater_library_cost'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
