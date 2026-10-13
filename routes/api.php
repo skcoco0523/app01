@@ -110,6 +110,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/slide/objects', [ApiLifeTheaterController::class, 'getSlideObjects'])->name('slide_object.index');
         Route::post('/slide/object/save', [ApiLifeTheaterController::class, 'saveSlideObject'])->name('slide_object.save');
         Route::delete('/slide/object/destroy', [ApiLifeTheaterController::class, 'destroySlideObject'])->name('slide_object.destroy');
+
+        //作成数上限拡張
+        Route::post('/limit/expand', [ApiLifeTheaterController::class, 'expandTheaterLimit'])->name('limit.expand');
+        // スライド保存枠拡張
+        Route::post('/slide/expand', [ApiLifeTheaterController::class, 'expandSlideLimit'])->name('slide.expand');
+        // オブジェクト保存枠拡張
+        Route::post('/object/expand', [ApiLifeTheaterController::class, 'expandObjectLimit'])->name('object.expand');
     });
     
 });

@@ -151,6 +151,12 @@
 </div>
 
 <script>
+
+// オブジェクト上限と拡張設定の変数
+let maxObjectLimit       = {{ $max_object_limit ?? 2 }};
+const expandObjectCost   = {{ $po_life_theater_object_cost ?? 100 }};
+const expandObjectAmount = {{ $po_life_theater_object_amount ?? 2 }};
+
 let currentSlideObjects = [];
 let savedListScrollTop = 0;
 let savedModalBodyScrollTop = 0;
@@ -363,6 +369,20 @@ async function saveSlideObject() {
     const btn = document.getElementById('saveObjectBtn');
 
     if (!slideId) return;
+    // 新規追加時の上限チェックと枠拡張ダイアログ
+    if (!editId && currentSlideObjects.length >= maxObjectLimit) {
+        openModal('common-modal', {
+            title: 'オブジェクト登録枠の拡張',
+            mess: `このスライドに配置できるキャスト・吹き出しの上限（${maxObjectLimit}個）に達しています。\n\n${expandObjectCost}ポイントを使用して、登録枠を「${expandObjectAmount}個」追加しますか？`,
+            cancel_btn: 'キャンセル',
+            confirm_btn: '枠を追加する',
+            user_chk: false,
+            onConfirm: function() {
+                executeExpandObjectLimit();
+            }
+        });
+        return;
+    }
 
     captureScrollPositions();
     btn.disabled = true;
@@ -464,6 +484,44 @@ async function executeDeleteSlideObjectItem(objectId) {
     } catch (e) {
         console.error(e);
         showNotification("削除処理中にエラーが発生しました。", "error", 2000);
+    }
+}
+// オブジェクト枠拡張APIの実行処理
+async function executeExpandObjectLimit() {
+    const theaterId = "{{ $theater->id ?? $theater->life_theater_id ?? '' }}";
+    if (!theaterId) return;
+
+    try {
+        const res = await $.ajax({
+            type: "POST",
+            url: "{{ route('api.life_theater.object.expand') }}",
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            data: { life_theater_id: theaterId }
+        });
+
+        if (res.status === 'success') {
+            if (typeof showNotification === 'function') {
+                showNotification(res.message, "success", 2000);
+            } else {
+                alert(res.message);
+            }
+
+            // 新しい上限値に更新
+            if (res.data && res.data.new_limit) {
+                maxObjectLimit = res.data.new_limit;
+            }
+
+            // 枠拡張完了後、そのまま新規追加の保存を実行
+            saveSlideObject();
+        } else {
+            alert(res.message || "拡張に失敗しました。");
+        }
+    } catch (err) {
+        console.error(err);
+        const errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : '処理中にエラーが発生しました。';
+        alert(errMsg);
     }
 }
 </script>

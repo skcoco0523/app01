@@ -24,6 +24,8 @@ class LifeTheater extends Model
         'edit_lock_flag',
         'plan_type',
         'extra_media_limit',
+        'extra_slide_limit',
+        'extra_object_limit',
         'used_points',
         'config_data',
     ];
@@ -169,8 +171,25 @@ class LifeTheater extends Model
     {
         // 固定値（無料:10, Premium:30）
         $baseLimit = ($this->plan_type === 'premium') ? 30 : 20;
-
         return $baseLimit + (int)$this->extra_media_limit;
+    }
+    /**
+     * スライドの登録上限数を取得する
+     */
+    public function getSlideLimit(): int
+    {
+        // 無料: 10枚, Premium: 30枚
+        $baseLimit = ($this->plan_type === 'premium') ? 30 : 5;
+        return $baseLimit + (int)$this->extra_slide_limit;
+    }
+
+    /**
+     */
+    public function getObjectLimit(): int
+    {
+        // 無料: 2個, Premium: 6個
+        $baseLimit = ($this->plan_type === 'premium') ? 6 : 2;
+        return $baseLimit + (int)$this->extra_object_limit;
     }
     // =========================================================================
     // データ操作メソッド

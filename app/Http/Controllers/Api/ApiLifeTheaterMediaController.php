@@ -248,7 +248,7 @@ class ApiLifeTheaterMediaController extends Controller
             $configs = CommonConfig::getValues($common_conf_names);
 
             $po_cost   = $configs['po_life_theater_library']->value1 ?? 100;
-            $expandCount = 10;
+            $expandCount   = $configs['po_life_theater_library']->value2 ?? 10;
 
             // トランザクション処理（ポイント引き落とし ＋ 上限拡張）
             $result = DB::transaction(function () use ($lifeTheaterId, $user, $po_cost, $expandCount) {

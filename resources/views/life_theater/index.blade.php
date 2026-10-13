@@ -22,10 +22,10 @@
                             <col style="width: 80%">
                         </colgroup>
                         <tr>
-                            <td class="icon-55 d-flex justify-content-center b-gray" onclick="openModal('life_theater_add-modal');" style="cursor: pointer;">
+                            <td class="icon-55 d-flex justify-content-center b-gray" onclick="checkAndOpenTheaterAddModal();" style="cursor: pointer;">
                                 <i class="fa-solid fa-plus icon-25 red"></i>
                             </td>
-                            <td onclick="openModal('life_theater_add-modal');" style="vertical-align: middle; cursor: pointer;">
+                            <td onclick="checkAndOpenTheaterAddModal();" style="vertical-align: middle; cursor: pointer;">
                                 新規作品
                             </td>
                         </tr>
@@ -184,5 +184,65 @@
                 row.style.display = 'none';
             }
         });
+    }
+
+
+    // 新規作品作成時の上限チェックと枠拡張処理
+    // サーバーから渡された上限状態を変数に保持
+    let currentTheaterCount = {{ $current_theater_count ?? 0 }};
+    let maxTheaterLimit     = {{ $max_theater_limit ?? 3 }};
+    const expandCost        = {{ $po_life_theater_limit_cost ?? 300 }};
+    const expandAmount      = {{ $po_life_theater_limit_amount ?? 1 }};
+
+    function checkAndOpenTheaterAddModal() {
+        if (currentTheaterCount >= maxTheaterLimit) {
+            // 上限に達している場合は確認ダイアログを出す
+            openModal('common-modal', {
+                title: '作品作成枠の拡張',
+                mess: `作成可能な作品数の上限（${maxTheaterLimit}件）に達しています。\n\n${expandCost}ポイントを使用して、作成枠を「${expandAmount}枠」追加しますか？`,
+                cancel_btn: 'キャンセル',
+                confirm_btn: '枠を追加する',
+                user_chk: false,
+                onConfirm: function() {
+                    executeExpandTheaterLimit();
+                }
+            });
+        } else {
+            // 枠に余裕があれば通常の作成モーダルを開く
+            openModal('life_theater_add-modal');
+        }
+    }
+
+    async function executeExpandTheaterLimit() {
+        try {
+            const res = await $.ajax({
+                type: "POST",
+                url: "{{ route('api.life_theater.limit.expand') }}",
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            if (res.status === 'success') {
+                if (typeof showNotification === 'function') {
+                    showNotification(res.message, "success", 2000);
+                } else {
+                    alert(res.message);
+                }
+                
+                // 拡張に成功したら、上限変数を最新化して、そのまま作成モーダルを開く
+                if (res.data && res.data.new_limit) {
+                    maxTheaterLimit = res.data.new_limit;
+                }
+                openModal('life_theater_add-modal');
+
+            } else {
+                alert(res.message || "拡張に失敗しました。");
+            }
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : '処理中にエラーが発生しました。';
+            alert(errMsg);
+        }
     }
 </script>

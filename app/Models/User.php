@@ -245,6 +245,27 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * ユーザーの拡張枠（課金スロット）
+     */
+    public function extraSlot()
+    {
+        return $this->hasOne(\App\Models\UserExtraSlot::class);
+    }
+
+    /**
+     * ライフシアターの作品作成上限数を取得する
+     * （基本枠 ＋ 追加購入枠）
+     */
+    public function getTheaterLimit(): int
+    {
+        $baseLimit = 3; 
+        $extraLimit = $this->extraSlot ? (int)$this->extraSlot->life_theater_limit : 0;
+        return $baseLimit +$extraLimit;
+    }
+
+
+
+    /**
      * ポイント残高 ＆ 利用可否チェック（参照のみ）
      *
      * @param int $req_points 必要ポイント数

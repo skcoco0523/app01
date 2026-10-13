@@ -66,8 +66,9 @@
                                     <i class="fa-solid fa-photo-film me-1"></i> ライブラリ
                                 </button>
 
+                                {{-- 直接モーダルを開かず、チェック関数を呼ぶ --}}
                                 <button type="button" class="btn btn-danger btn-action-sm flex-fill"
-                                    onclick="openModal('life_theater_slide_add-modal');">
+                                    onclick="checkAndOpenSlideAddModal();">
                                     <i class="fa-solid fa-plus me-1"></i> スライド追加
                                 </button>
                             @endif
@@ -390,4 +391,65 @@
 
         if (colorInput && colorInput.value !== "") selectColor(colorInput.value);
     });
+
+    // ==========================================
+    // ★ 追加: スライド追加時の上限チェックと枠拡張処理
+    // ==========================================
+    let currentSlideCount = {{ $current_slide_count ?? 0 }};
+    let maxSlideLimit     = {{ $max_slide_limit ?? 10 }};
+    const expandSlideCost   = {{ $po_life_theater_slide_cost ?? 300 }};
+    const expandSlideAmount = {{ $po_life_theater_slide_amount ?? 5 }};
+
+    function checkAndOpenSlideAddModal() {
+        if (currentSlideCount >= maxSlideLimit) {
+            openModal('common-modal', {
+                title: 'スライド登録枠の拡張',
+                mess: `スライドの登録上限（${maxSlideLimit}枚）に達しています。\n\n${expandSlideCost}ポイントを使用して、登録枠を「${expandSlideAmount}枚」追加しますか？`,
+                cancel_btn: 'キャンセル',
+                confirm_btn: '枠を追加する',
+                user_chk: false,
+                onConfirm: function() {
+                    executeExpandSlideLimit();
+                }
+            });
+        } else {
+            openModal('life_theater_slide_add-modal');
+        }
+    }
+
+    async function executeExpandSlideLimit() {
+        const theaterId = "{{ $theater->id ?? $theater->life_theater_id ?? '' }}";
+        if (!theaterId) return;
+
+        try {
+            const res = await $.ajax({
+                type: "POST",
+                url: "{{ route('api.life_theater.slide.expand') }}",
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: { life_theater_id: theaterId }
+            });
+
+            if (res.status === 'success') {
+                if (typeof showNotification === 'function') {
+                    showNotification(res.message, "success", 2000);
+                } else {
+                    alert(res.message);
+                }
+                
+                if (res.data && res.data.new_limit) {
+                    maxSlideLimit = res.data.new_limit;
+                }
+                openModal('life_theater_slide_add-modal');
+
+            } else {
+                alert(res.message || "拡張に失敗しました。");
+            }
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.responseJSON && err.responseJSON.message ? err.responseJSON.message : '処理中にエラーが発生しました。';
+            alert(errMsg);
+        }
+    }
 </script>
