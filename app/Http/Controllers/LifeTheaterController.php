@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB; // ★追加
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterSlide;
 use App\Models\LifeTheaterShare;
@@ -12,9 +13,17 @@ use App\Models\LifeTheaterSlideObject;
 use App\Models\LifeTheaterMedia;
 use App\Models\CommonConfig;
 use App\Models\LifeTheaterPublicLink;
+use App\Services\PointService; // ★追加
 
 class LifeTheaterController extends Controller
 {
+    protected $pointService; // ★追加
+
+    public function __construct(PointService $pointService) // ★PointServiceを注入
+    {
+        $this->pointService = $pointService;
+    }
+
     /**
      * キャッシュ破棄用のヘルパーメソッド
      */
@@ -37,9 +46,7 @@ class LifeTheaterController extends Controller
             $my_theater_counts    = collect($my_theater_list)->groupBy('theme_color_num')->map->count();
             $share_theater_counts = collect($shared_theater_list)->groupBy('theme_color_num')->map->count();
 
-            // ==========================================================
-            // ★ 追加: 上限チェック用のデータ取得
-            // ==========================================================
+            // 上限チェック用のデータ取得
             $user = Auth::user();
             $current_theater_count = LifeTheater::where('user_id', $user->id)->count();
             $max_theater_limit     = $user->getTheaterLimit();
@@ -52,14 +59,15 @@ class LifeTheaterController extends Controller
             return view('life_theater.index', compact(
                 'my_theater_list', 'shared_theater_list', 
                 'my_theater_counts', 'share_theater_counts',
-                'current_theater_count', 'max_theater_limit',         // ★ 追加
-                'po_life_theater_limit_cost', 'po_life_theater_limit_amount' // ★ 追加
+                'current_theater_count', 'max_theater_limit',
+                'po_life_theater_limit_cost', 'po_life_theater_limit_amount'
             ));
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return redirect()->route('home')->with('error_msg', '一覧の取得に失敗しました。');
         }
     }
+
     /**
      * ライフシアター詳細・編集画面
      */
@@ -97,7 +105,7 @@ class LifeTheaterController extends Controller
             $slide_config_definitions = LifeTheaterSlide::getConfigDefinitions();
             $object_config_definitions = LifeTheaterSlideObject::getConfigDefinitions();
 
-            // ★ 発行済みの「広告なしURL数」を直接取得
+            // 発行済みの「広告なしURL数」を直接取得
             $used_ad_free_count = LifeTheaterPublicLink::where('life_theater_id', $theater_id)
                 ->where('is_ad_free', true)
                 ->count();
@@ -116,17 +124,13 @@ class LifeTheaterController extends Controller
             $po_life_theater_url_cost       = $configs['po_life_theater_url']->value1 ?? 300;
             $po_life_theater_url_free_count = $configs['po_life_theater_url']->value2 ?? 1;
             $po_life_theater_library_cost   = $configs['po_life_theater_library']->value1 ?? 100;
-            // スライド枠拡張のポイントと枚数を取得
-            $po_life_theater_slide_cost   = $configs['po_life_theater_slide_expand']->value1 ?? 300;
-            $po_life_theater_slide_amount = $configs['po_life_theater_slide_expand']->value2 ?? 5;
-            // オブジェクト枠拡張の設定値
-            $po_life_theater_object_cost   = $configs['po_life_theater_object_expand']->value1 ?? 100;
-            $po_life_theater_object_amount = $configs['po_life_theater_object_expand']->value2 ?? 2;
+            $po_life_theater_slide_cost     = $configs['po_life_theater_slide_expand']->value1 ?? 300;
+            $po_life_theater_slide_amount   = $configs['po_life_theater_slide_expand']->value2 ?? 5;
+            $po_life_theater_object_cost    = $configs['po_life_theater_object_expand']->value1 ?? 100;
+            $po_life_theater_object_amount  = $configs['po_life_theater_object_expand']->value2 ?? 2;
 
-            // スライド上限と現在の枚数を取得
             $theater_model = LifeTheater::find($theater_id);
-            $max_slide_limit = $theater_model ? $theater_model->getSlideLimit() : 10; // 見つからない場合のフォールバック
-            // オブジェクト上限を取得
+            $max_slide_limit = $theater_model ? $theater_model->getSlideLimit() : 10;
             $max_object_limit = $theater_model ? $theater_model->getObjectLimit() : 2;
             
             $current_slide_count = count($slides);
@@ -155,14 +159,12 @@ class LifeTheaterController extends Controller
             $user = Auth::user();
             $input['user_id'] = $user->id;
 
-            // ライフシアター作成上限のチェック
             $currentCount = LifeTheater::where('user_id', $user->id)->count();
             $limit = $user->getTheaterLimit();
 
             if ($currentCount >= $limit) {
                 return redirect()->back()->with('error_msg', "作成可能な作品数の上限（{$limit}件）に達しています。枠を拡張してください。");
             }
-            // ==========================================================
 
             $ret = LifeTheater::createLifeTheater($input);
 
@@ -182,49 +184,50 @@ class LifeTheaterController extends Controller
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         try {
             $input = $request->all();
-            $id    = get_proc_data($input,"id");
-            $plan_type  = get_proc_data($input,"plan_type");
+            $id    = get_proc_data($input, "id");
+            $plan_type = get_proc_data($input, "plan_type");
 
-            if($plan_type){
+            if ($plan_type) {
                 $user = Auth::user();
                 $common_conf_names = ['po_life_theater_premium'];
                 $configs = CommonConfig::getValues($common_conf_names);
-                $po_life_theater_premium = $configs['po_life_theater_premium']->value1;
-                
-                $check = $user->po_check($po_life_theater_premium);
-                if (!$check['can_use']) {
-                    $message = make_message('ポイントが不足しています。', 'error'); 
-                } else {
-                    $ret = LifeTheater::chgLifeTheater(['id' => $id, 'plan_type' => $plan_type]);
+                $po_life_theater_premium = isset($configs['po_life_theater_premium']) ? (int)$configs['po_life_theater_premium']->value1 : 1000;
 
-                    if ($ret['error_code'] == 0) {
-                        $poResult = $user->po_use($po_life_theater_premium, false, "ライフシアターpremiumパック");
-                        if (!$poResult['success']) {
-                            $message = make_message('購入処理に失敗しました。', 'error'); 
-                        } else {
-                            self::clearPlayCache($id); // ★ キャッシュ破棄
-                            $message = make_message('購入ありがとうございます。', 'success'); 
-                        }
-                    } else {
-                        $message = make_message('購入処理に失敗しました。', 'error'); 
+                // ★ DB::transaction でポイント消費とプラン更新をアトミックに実行
+                $message = DB::transaction(function () use ($user, $id, $plan_type, $po_life_theater_premium) {
+                    // 1. PointService で消費（事前チェック・ロット減算・ログ記録）
+                    $poResult = $this->pointService->consume($user, $po_life_theater_premium, false, "ライフシアターpremiumパック");
+                    if (!$poResult['success']) {
+                        return make_message($poResult['message'], 'error');
                     }
-                }
+
+                    // 2. プラン種別の更新
+                    $ret = LifeTheater::chgLifeTheater(['id' => $id, 'plan_type' => $plan_type]);
+                    if ($ret['error_code'] != 0) {
+                        throw new \Exception('プラン更新処理に失敗しました。');
+                    }
+
+                    self::clearPlayCache($id);
+                    return make_message('購入ありがとうございます。', 'success');
+                });
+
                 return redirect()->back()->with($message);
+
             } else {
                 $theater = LifeTheater::find($input['id'] ?? null);
                 if (!$theater) {
                     return redirect()->back()->with('error_msg', '対象データが存在しません。');
                 }
 
-                $isPremium = ($theater->plan_type ?? '') === 'premium';
-                $currentConfig        = LifeTheater::parseConfig($theater->config_data ?? null);
-                $inputConfig          = $input['config_data'] ?? [];
+                $isPremium     = ($theater->plan_type ?? '') === 'premium';
+                $currentConfig = LifeTheater::parseConfig($theater->config_data ?? null);
+                $inputConfig   = $input['config_data'] ?? [];
                 $input['config_data'] = LifeTheater::filterConfigByPlan($inputConfig, $isPremium, $currentConfig);
 
                 $ret = LifeTheater::chgLifeTheater($input);
 
                 if ($ret['error_code'] == 0) {
-                    self::clearPlayCache($input['id']); // ★ キャッシュ破棄
+                    self::clearPlayCache($input['id']);
                     return redirect()->back()->with('success_msg', '作品情報を更新しました。');
                 } else {
                     return redirect()->back()->with('error_msg', '更新に失敗しました。');
@@ -243,7 +246,6 @@ class LifeTheaterController extends Controller
             $input = $request->all();
             $theater_id = $input['id'] ?? null;
 
-            // ★ 追加: 作品を削除する前に、関連する公開URL（パブリックリンク）を一括削除
             if ($theater_id) {
                 LifeTheaterPublicLink::where('life_theater_id', $theater_id)->delete();
             }
@@ -251,7 +253,7 @@ class LifeTheaterController extends Controller
             $ret = LifeTheater::delLifeTheater($input);
 
             if ($ret['error_code'] == 0) {
-                self::clearPlayCache($theater_id); // キャッシュ破棄
+                self::clearPlayCache($theater_id);
                 return redirect()->route('life_theater.index')->with('success_msg', '作品を削除しました。');
             } else {
                 return redirect()->back()->with('error_msg', '削除に失敗しました。');
@@ -290,7 +292,6 @@ class LifeTheaterController extends Controller
                 return redirect()->back()->with('error_msg', '対象の作品が見つかりません。');
             }
 
-            // スライド登録枚数上限チェック
             $currentSlideCount = LifeTheaterSlide::where('life_theater_id', $theater->id)->count();
             $maxSlideLimit     = $theater->getSlideLimit();
             if ($currentSlideCount >= $maxSlideLimit) {
@@ -304,7 +305,7 @@ class LifeTheaterController extends Controller
             $ret = LifeTheaterSlide::createSlide($input);
 
             if ($ret['error_code'] == 0) {
-                self::clearPlayCache($input['life_theater_id'] ?? null); // ★ キャッシュ破棄
+                self::clearPlayCache($input['life_theater_id'] ?? null);
                 return redirect()->back()->with('success_msg', 'スライドを追加しました。');
             } else {
                 return redirect()->back()->with('error_msg', 'スライドの追加に失敗しました。');
@@ -333,7 +334,7 @@ class LifeTheaterController extends Controller
             $ret = LifeTheaterSlide::chgSlide($input);
 
             if ($ret['error_code'] == 0) {
-                self::clearPlayCache($slide->life_theater_id); // ★ キャッシュ破棄
+                self::clearPlayCache($slide->life_theater_id);
                 return redirect()->back()->with('success_msg', 'スライドを更新しました。');
             } else {
                 return redirect()->back()->with('error_msg', 'スライドの更新に失敗しました。');
@@ -355,7 +356,7 @@ class LifeTheaterController extends Controller
             $ret = LifeTheaterSlide::delSlide($input);
 
             if ($ret['error_code'] == 0) {
-                self::clearPlayCache($theaterId); // ★ キャッシュ破棄
+                self::clearPlayCache($theaterId);
                 return redirect()->back()->with('success_msg', 'スライドを削除しました。');
             } else {
                 return redirect()->back()->with('error_msg', 'スライドの削除に失敗しました。');
@@ -384,7 +385,7 @@ class LifeTheaterController extends Controller
                 ]);
             }
 
-            self::clearPlayCache($theaterId); // ★ キャッシュ破棄
+            self::clearPlayCache($theaterId);
             return response()->json(['status' => 'success', 'message' => '並び順を更新しました。']);
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
@@ -478,18 +479,15 @@ class LifeTheaterController extends Controller
                 ], 404);
             }
 
-            // 有効期限のチェック
             if ($link->expires_at && $link->expires_at->isPast()) {
                 return response()->view('life_theater.public_error', [
                     'message' => 'この公開URLは有効期限が切れています。'
                 ], 410);
             }
 
-            // ★ 追加: 合言葉（パスワード）チェック
             if (!empty($link->password)) {
                 $sessionKey = 'lt_passcode_authed_' . $link->id;
                 if (!session($sessionKey)) {
-                    // セッションに認証情報がなければ合言葉入力画面を表示
                     return view('life_theater.public_passcode', ['token' => $token]);
                 }
             }
@@ -526,12 +524,9 @@ class LifeTheaterController extends Controller
                 return redirect()->route('life_theater.public_play', ['token' => $token]);
             }
 
-            // 入力されたパスワードから全角・半角スペースを除去
             $inputPassword = preg_replace('/[\p{Z}\p{Cc}]/u', '', $request->input('password', ''));
 
-            // 合言葉の照合
             if ($link->password === $inputPassword) {
-                // 一致した場合はセッションにフラグを保持
                 $sessionKey = 'lt_passcode_authed_' . $link->id;
                 session([$sessionKey => true]);
 
@@ -553,7 +548,6 @@ class LifeTheaterController extends Controller
     {
         $cacheKey = 'life_theater_play_data_' . $theater_id;
 
-        // 作品・スライドデータを60秒間キャッシュ化
         $playData = Cache::remember($cacheKey, 60, function () use ($theater, $theater_id) {
             $slides = LifeTheaterSlide::getSlideList($theater_id);
 

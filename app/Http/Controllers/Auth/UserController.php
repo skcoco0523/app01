@@ -12,30 +12,34 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\User;
 use App\Models\CommonConfig;
+use App\Services\PointService; // ★追加
 
 use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
+    protected $pointService; // ★追加
+
+    public function __construct(PointService $pointService) // ★PointServiceを注入
+    {
+        $this->pointService = $pointService;
+    }
+
     public function password_reset_mailsend(Request $request)
     {
-        //echo "start";
         $log_file = __FUNCTION__ . '.log';
         $mail = $request->email;
         make_error_log($log_file,"-------start-------");
         make_error_log($log_file,"chk_address=".$mail);
         // 一致するユーザーを検索
         $user = DB::table('users')->where('email', $mail)->first();
-        //echo $send_addr;
         
         if($user){
-
             // パスワードリセットトークンを生成してDBに保存する
             $token = Str::random(60);
             DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $mail],
                 ['email' => $mail, 'token' => Hash::make($token), 'created_at' => now()]
-                //['email' => $mail, 'token' => $token, 'created_at' => now()]
             );
             $send_info = new \stdClass();
             $send_info->name = $user->name;
@@ -55,6 +59,7 @@ class UserController extends Controller
         // リダイレクト
         return redirect()->back();
     }
+
     //プロフィール情報取得
     public function profile_show(Request $request)
     {
@@ -66,14 +71,24 @@ class UserController extends Controller
         $free_point_reset_flag =  (bool)$conf_data['po_free_flag']->value1;
 
         $msg = null;
-        //dd($profile);
+
         if($profile){
-            return view('user.profile_show', compact('profile', 'free_point_reset_flag', 'service_free_point', 'msg'));
+            // ★ PointService から最新の残高情報を取得してビューに渡す
+            $pointData = $this->pointService->check(Auth::user(), 0);
+
+            return view('user.profile_show', compact(
+                'profile',
+                'free_point_reset_flag',
+                'service_free_point',
+                'msg',
+                'pointData'
+            ));
         }else{
             $message = ['message' => 'プロフィール情報の取得に失敗しました。','type' => '','sec' => '2000'];
             return redirect()->route('home')->with($message);
         }
     }
+
     //プロフィール情報変更
     public function profile_update(Request $request)
     {
@@ -97,7 +112,4 @@ class UserController extends Controller
             return redirect()->route('home')->with($message);
         }
     }
-
-    
-
 }

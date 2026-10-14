@@ -11,12 +11,16 @@ use App\Models\LifeTheaterMedia;
 use App\Models\LifeTheater;
 use App\Models\LifeTheaterShare;
 use App\Models\CommonConfig;
+use App\Services\PointService; // ★追加
 
 class ApiLifeTheaterMediaController extends Controller
 {
-    public function __construct()
+    protected $pointService; // ★追加
+
+    public function __construct(PointService $pointService) // ★PointServiceを注入
     {
         $this->middleware('auth');
+        $this->pointService = $pointService;
     }
 
     /**
@@ -68,18 +72,16 @@ class ApiLifeTheaterMediaController extends Controller
             if (!$this->checkPermission($life_theater_id)) {
                 return response()->json(['status' => 'error', 'message' => '権限がありません。'], 403);
             }
-            // ==========================================================
-            // ★ 追加: 画像ライブラリの上限枚数チェック
-            // ==========================================================
+
             $theater = LifeTheater::find($life_theater_id);
             if (!$theater) {
                 return response()->json(['status' => 'error', 'message' => '対象の作品が見つかりません。'], 404);
             }
 
-            $currentMediaCount = LifeTheaterMedia::where('life_theater_id',$life_theater_id)->count();
-            $maxMediaLimit =$theater->getMediaLimit();
+            $currentMediaCount = LifeTheaterMedia::where('life_theater_id', $life_theater_id)->count();
+            $maxMediaLimit = $theater->getMediaLimit();
 
-            if ($currentMediaCount >=$maxMediaLimit) {
+            if ($currentMediaCount >= $maxMediaLimit) {
                 return response()->json([
                     'status' => 'error', 
                     'message' => "画像ライブラリの上限（{$maxMediaLimit}枚）に達しています。\n不要な画像を削除するか、枠を拡張してください。"
@@ -142,14 +144,12 @@ class ApiLifeTheaterMediaController extends Controller
                     ]);
                 }
             }
-            // ==========================================================
-            // 新規登録（STORE）時の念のための上限チェック getPresignedUrl で弾かれますが、API直叩きのガードとして
-            // ==========================================================
-            $theater = LifeTheater::find($life_theater_id);
-            $currentMediaCount = LifeTheaterMedia::where('life_theater_id',$life_theater_id)->count();
-            $maxMediaLimit =$theater->getMediaLimit();
 
-            if ($currentMediaCount >=$maxMediaLimit) {
+            $theater = LifeTheater::find($life_theater_id);
+            $currentMediaCount = LifeTheaterMedia::where('life_theater_id', $life_theater_id)->count();
+            $maxMediaLimit = $theater->getMediaLimit();
+
+            if ($currentMediaCount >= $maxMediaLimit) {
                 return response()->json([
                     'status' => 'error', 
                     'message' => "画像ライブラリの上限（{$maxMediaLimit}枚）に達しています。"
@@ -200,8 +200,6 @@ class ApiLifeTheaterMediaController extends Controller
 
             // S3上の物理ファイルを削除する
             if (!empty($media->image_s3_key)) {
-                // DBに保存されているフルURLからS3内の相対パス（Key）を取り出す
-                // 例: "https://...amazonaws.com/life_theater_media/1/xxx.jpg" -> "life_theater_media/1/xxx.jpg"
                 $parsedPath = parse_url($media->image_s3_key, PHP_URL_PATH);
                 $s3Key = ltrim($parsedPath, '/');
 
@@ -223,6 +221,7 @@ class ApiLifeTheaterMediaController extends Controller
             return response()->json(['status' => 'error', 'message' => 'エラーが発生しました。'], 500);
         }
     }
+
     /**
      * 画像ライブラリの上限を拡張する (Ajax - DBトランザクション保護付き)
      */
@@ -247,31 +246,25 @@ class ApiLifeTheaterMediaController extends Controller
             ];
             $configs = CommonConfig::getValues($common_conf_names);
 
-            $po_cost   = $configs['po_life_theater_library']->value1 ?? 100;
-            $expandCount   = $configs['po_life_theater_library']->value2 ?? 10;
+            $po_cost     = $configs['po_life_theater_library']->value1 ?? 100;
+            $expandCount = $configs['po_life_theater_library']->value2 ?? 10;
 
             // トランザクション処理（ポイント引き落とし ＋ 上限拡張）
             $result = DB::transaction(function () use ($lifeTheaterId, $user, $po_cost, $expandCount) {
-                // ポイントチェック
-                $check = $user->po_check($po_cost);
-                if (!$check['can_use']) {
-                    throw new \Exception('ポイントが不足しています。（必要: ' . $po_cost . 'pt）');
-                }
-
-                // ポイント消費
-                $poResult = $user->po_use($po_cost, false, "ライフシアター 画像枠拡張 (+{$expandCount}枚)");
+                // ★ PointServiceで消費（失敗時は例外でトランザクション全体を安全にロールバック）
+                $poResult = $this->pointService->consume($user, $po_cost, false, "ライフシアター 画像枠拡張 (+{$expandCount}枚)");
                 if (!$poResult['success']) {
-                    throw new \Exception('ポイントの引き落としに失敗しました。');
+                    throw new \Exception($poResult['message']);
                 }
 
-                // 作品の拡張枠を加算
+                // 作品の拡張枠を加算（lockForUpdateで排他制御）
                 $theater = LifeTheater::lockForUpdate()->find($lifeTheaterId);
                 $theater->extra_media_limit += $expandCount;
                 $theater->save();
 
                 return [
                     'new_limit'   => $theater->getMediaLimit(),
-                    'total_point' => $user->fresh()->total_point
+                    'total_point' => $poResult['total_point'] // ★ 台帳計算された最新値を返却
                 ];
             });
 
@@ -283,7 +276,6 @@ class ApiLifeTheaterMediaController extends Controller
 
         } catch (\Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            // Exceptionのメッセージが「ポイントが不足しています」等の場合はそれをそのまま返す
             $msg = str_contains($e->getMessage(), 'ポイント') ? $e->getMessage() : '拡張処理中にエラーが発生しました。';
             return response()->json(['status' => 'error', 'message' => $msg], 400);
         }

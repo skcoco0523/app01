@@ -6,13 +6,13 @@
 <div class="card border-0 shadow-sm mb-3 bg-light">
     <div class="card-body p-3 d-flex justify-content-between align-items-center">
         <div class="text-end small text-muted" style="font-size: 11px;">
-            <div>無償: {{ number_format($profile->free_point ?? 0) }} pt</div>
-            <div>有償: {{ number_format($profile->pay_point ?? 0) }} pt</div>
+            <div>無償: {{ number_format($pointData['free_point'] ?? 0) }} pt</div>
+            <div>有償: {{ number_format($pointData['pay_point'] ?? 0) }} pt</div>
         </div>
         <div>
             <div class="text-secondary small" style="font-size: 11px;">現在の所持ポイント</div>
             <div class="fw-bold text-dark">
-                合計 <span class="fs-5 text-primary">{{ number_format(($profile->free_point ?? 0) + ($profile->pay_point ?? 0)) }}</span> pt
+                合計 <span class="fs-5 text-primary">{{ number_format($pointData['total_point'] ?? 0) }}</span> pt
             </div>
         </div>
     </div>
@@ -122,8 +122,8 @@
 <div class="card border-0 bg-light rounded p-3 mb-4">
     <ul class="text-secondary ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
         <li>購入完了後、ポイントは即時反映されます。</li>
-        <li>有償ポイントに有効期限はありません。無償ポイントから優先して消費されます。</li>
-        <li>スマートリモコンの操作は1日50回まで無料（0pt）です。超過後は1回 Xpt 消費されます。</li>
+        <li>有償ポイントの有効期限は購入日から180日間です。無償ポイントから優先して消費されます。</li>
+        <li>スマートリモコンの操作は1日{{ $whisper_free }}回まで無料（0pt）です。超過後は1回 {{ $whisper_po }}pt 消費されます。</li>
         <li>お客様都合による購入後のキャンセル・返金はできません。</li>
     </ul>
 </div>

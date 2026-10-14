@@ -19,21 +19,21 @@
         </div>
         
         <div class="d-flex justify-content-between align-items-center px-1">
-            {{-- 左側：無償pt / 有償pt --}}
+            {{-- 左側：無償pt / 有償pt （★ $pointData を参照） --}}
             <div class="lh-base">
                 <div class="small text-secondary">
-                    無償pt：<span class="fw-bold text-dark fs-6">{{ number_format($profile->free_point ?? 0) }}</span>
+                    無償pt：<span class="fw-bold text-dark fs-6">{{ number_format($pointData['free_point'] ?? 0) }}</span>
                 </div>
                 <div class="small text-secondary">
-                    有償pt：<span class="fw-bold text-primary fs-6">{{ number_format($profile->pay_point ?? 0) }}</span>
+                    有償pt：<span class="fw-bold text-primary fs-6">{{ number_format($pointData['pay_point'] ?? 0) }}</span>
                 </div>
             </div>
 
-            {{-- 右側：合計ポイント --}}
+            {{-- 右側：合計ポイント （★ $pointData を参照） --}}
             <div class="text-end bg-light rounded-3 px-3 py-2 border">
                 <div class="text-secondary small mb-1" style="font-size: 11px;">合計ポイント</div>
                 <div class="fw-bold text-primary fs-5 lh-1">
-                    {{ number_format(($profile->free_point ?? 0) + ($profile->pay_point ?? 0)) }}<span class="fs-6 fw-normal ms-1 text-dark">pt</span>
+                    {{ number_format($pointData['total_point'] ?? 0) }}<span class="fs-6 fw-normal ms-1 text-dark">pt</span>
                 </div>
             </div>
         </div>
@@ -140,7 +140,6 @@
         </form>
     </div>
 </div>
-
 
 @include('modals.share-modal')
 @endsection
