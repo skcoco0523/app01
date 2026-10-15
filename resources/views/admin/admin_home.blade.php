@@ -100,6 +100,7 @@
             'items' => [
                 ['url' => route('admin.system.config_maint'), 'label' => 'メンテナンス設定'],
                 ['url' => route('admin.system.config_mqtt'), 'label' => 'MQTT設定'],
+                ['url' => route('admin.system.config_payment'), 'label' => '決済設定'],
                 ['url' => route('admin.system.ai_test'), 'label' => 'AIテスト'],
             ]
         ],
@@ -195,11 +196,13 @@
             $view_right_file    = 'admin.game.admin_game_asset';
         }
     } elseif ($tab1 == 'system') {
-        if (in_array($tab2, ['config_maint', 'config_mqtt']) && $tab3 == '') {
+        if (in_array($tab2, ['config_maint', 'config_mqtt', 'config_payment']) && $tab3 == '') {
             $view_right_file    = 'admin.admin_system_config';
         } elseif ($tab2 == 'ai_test') {
             $view_right_file    = 'admin.system.ai_test';
         }
+
+        
     } elseif ($tab1 == 'another') {
         if ($tab2 == 'memo' && $tab3 == 'search') {
             $view_left_file     = 'admin.admin_memo_search_left';
