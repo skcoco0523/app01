@@ -258,14 +258,9 @@ class PointController extends Controller
         // Stripeから送られてきた署名とペイロード（生データ）
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
-        // ペイロードをデコードして livemode（テストか本番か）を判定
-        $eventData = json_decode($payload, true);
-        $isLiveMode = $eventData['livemode'] ?? false;
 
-        // livemode に応じて署名シークレットを切り替え
-        $endpointSecret = $isLiveMode
-            ? config('services.stripe.live.webhook_secret')
-            : config('services.stripe.test.webhook_secret');
+        // ライブ環境 / テスト環境のシークレットを柔軟に取得
+        $endpointSecret = config('services.stripe.live.webhook_secret') ?? config('services.stripe.test.webhook_secret');
 
         $event = null;
 
@@ -275,16 +270,21 @@ class PointController extends Controller
                 $payload, $sigHeader, $endpointSecret
             );
         } catch (\UnexpectedValueException $e) {
-            // ペイロードが不正な場合
             make_error_log($error_log, "Invalid payload: " . $e->getMessage());
             return response()->json(['error' => 'Invalid payload'], 400);
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
-            // 署名検証エラー（第三者からの不正リクエストなど）
             make_error_log($error_log, "Invalid signature: " . $e->getMessage());
             return response()->json(['error' => 'Invalid signature'], 400);
         }
 
-        // 決済完了イベント（checkout.session.completed）のみを処理
+        $eventId = $event->id;
+
+        // ★ すでに処理済みのイベントIDの場合は重複処理を避けるため即座に200を返す（べき等性の担保）
+        if (PointOrder::where('stripe_event_id', $eventId)->exists()) {
+            return response()->json(['status' => 'already_processed']);
+        }
+
+        // 決済完了イベント（checkout.session.completed）の処理
         if ($event->type === 'checkout.session.completed') {
             $session = $event->data->object;
             $orderNo = $session->client_reference_id ?? null;
@@ -293,7 +293,7 @@ class PointController extends Controller
             if ($orderNo) {
                 try {
                     // トランザクションと行ロックを使用して二重付与を完全に防止
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($orderNo, $paymentIntentId, $session) {
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($orderNo, $paymentIntentId, $session, $eventId) {
                         // pending状態の注文のみをロックして取得
                         $order = PointOrder::where('order_no', $orderNo)
                             ->where('status', 'pending')
@@ -301,10 +301,11 @@ class PointController extends Controller
                             ->first();
 
                         if ($order) {
-                            // 1. 注文ステータスを paid に更新し、Webhookの生データ(metadata)も保存
+                            // 1. 注文ステータスを paid に更新し、処理済みイベントIDとWebhookの生データを保存
                             $order->update([
                                 'status'              => 'paid',
                                 'external_payment_id' => $paymentIntentId,
+                                'stripe_event_id'     => $eventId,
                                 'metadata'            => $session->toArray(),
                             ]);
 
@@ -326,6 +327,11 @@ class PointController extends Controller
                     return response()->json(['error' => 'Internal server error'], 500);
                 }
             }
+        }
+        // 決済失敗イベントのハンドリング（運用監視用ログ出力）
+        elseif ($event->type === 'payment_intent.payment_failed') {
+            $paymentIntent = $event->data->object;
+            make_error_log($error_log, "Payment failed for intent: " . ($paymentIntent->id ?? 'unknown'));
         }
 
         // Stripeサーバーへ正常受信(HTTP 200)を返す

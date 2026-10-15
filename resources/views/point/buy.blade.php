@@ -111,6 +111,24 @@
         </div>
 
         <div class="sticky-bottom bg-white pt-2 pb-3 border-top">
+            {{-- カード情報非保持・セキュリティ安心表示 --}}
+            <div class="card border-0 bg-light rounded p-2 mb-2 text-center">
+                <div class="d-flex justify-content-center align-items-center gap-1 text-secondary mb-1" style="font-size: 11px;">
+                    <i class="fa-solid fa-lock text-success"></i>
+                    <span class="fw-bold">安全な暗号化通信 ＆ カード情報非保持</span>
+                </div>
+                <div class="text-muted" style="font-size: 10px; line-height: 1.3;">
+                    クレジット情報はStripe社により安全に処理され、当サイトのサーバーには一切保存されません。
+                </div>
+            </div>
+
+            <div class="mb-2 text-center text-muted" style="font-size: 11px;">
+                購入手続きへ進むことで、
+                <a href="{{ route('terms') }}" target="_blank" class="text-decoration-underline">利用規約</a>、
+                <a href="{{ route('privacy') }}" target="_blank" class="text-decoration-underline">プライバシーポリシー</a>、および
+                <a href="{{ route('tokushoho') }}" target="_blank" class="text-decoration-underline">特定商取引法に基づく表記</a>
+                に同意したものとみなされます。
+            </div>
             <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm py-3">
                 購入手続きへ進む
             </button>
