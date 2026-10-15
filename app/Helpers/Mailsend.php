@@ -75,6 +75,9 @@ if (! function_exists('get_MailMessage')) {
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         //app01\vendor\laravel\framework\src\Illuminate\Notifications\Messages\MailMessage.php
+
+        // お問い合わせフォームのURLを変数化しておく
+        $contactUrl = url(route('contact.index', [], false));
         switch($tmpl){
             //==============================================================================================
             //ユーザー充て
@@ -88,7 +91,7 @@ if (! function_exists('get_MailMessage')) {
                     ->line(Lang::get('このパスワード リセット リンクは :count 分後に期限切れになります。', ['count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]))
                     ->line(Lang::get('もしパスワード再発行をリクエストしていない場合、操作は不要です。'))
                     ->line(Lang::get('************************************'))
-                    ->line(Lang::get('問い合わせ先:skcoco.05.23@gmail.com'))
+                    ->line(Lang::get('お問い合わせ: ' . $contactUrl))
                     ->line(Lang::get('************************************'));
 
                 return $MailMessage;
@@ -103,7 +106,7 @@ if (! function_exists('get_MailMessage')) {
                     ->action(Lang::get('メールアドレスを認証する'), $send_info->url) // 生成したURLをセット
                     ->line(Lang::get('もし心当たりがない場合は、このメールを破棄してください。'))
                     ->line(Lang::get('************************************'))
-                    ->line(Lang::get('問い合わせ先:skcoco.05.23@gmail.com'))
+                    ->line(Lang::get('お問い合わせ: ' . $contactUrl))
                     ->line(Lang::get('************************************'));
 
                 return $MailMessage;
@@ -119,7 +122,7 @@ if (! function_exists('get_MailMessage')) {
                 ->line(Lang::get('メールが不要の場合は、配信停止設定をお願いいたします。'))
                 ->action(Lang::get('配信設定はこちらから'), url(route('profile.show')))
                 ->line(Lang::get('************************************'))
-                ->line(Lang::get('問い合わせ先:skcoco.05.23@gmail.com'))
+                ->line(Lang::get('お問い合わせ: ' . $contactUrl))
                 ->line(Lang::get('************************************'));
 
                 return $MailMessage;
