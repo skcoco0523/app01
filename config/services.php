@@ -60,6 +60,18 @@ return [
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
     ],
+    'stripe' => [
+        'test' => [
+            'key' => env('STRIPE_TEST_KEY'),
+            'secret' => env('STRIPE_TEST_SECRET'),
+            'webhook_secret' => env('STRIPE_TEST_WEBHOOK_SECRET'),
+        ],
+        'live' => [
+            'key' => env('STRIPE_LIVE_KEY'),
+            'secret' => env('STRIPE_LIVE_SECRET'),
+            'webhook_secret' => env('STRIPE_LIVE_WEBHOOK_SECRET'),
+        ],
+    ],
 
 
 ];

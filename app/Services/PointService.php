@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use Exception;
+use Carbon\Carbon;
 use App\Models\User;
 use App\Models\UserPoint;
 use App\Models\UserLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PointService
 {
@@ -85,52 +88,43 @@ class PointService
     /**
      * ポイント付与処理
      */
-    public function add(User $user, int $add_points = 0, bool $is_pay = false, string $memo = null): array
+    public function add($user, int $points, bool $isPay = false, string $memo = '', ?int $pointOrderId = null)
     {
+        // ★ プロジェクト規約に従ったログファイル名の定義
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        
-        if ($add_points <= 0) {
-            return ['success' => false, 'error_code' => 'INVALID_POINTS', 'message' => '付与ポイントが不正です'];
+
+        if ($points <= 0) {
+            return ['success' => false, 'message' => '追加するポイントは1以上を指定してください。'];
         }
 
         try {
-            return DB::transaction(function () use ($user, $add_points, $is_pay, $memo) {
-                $lockedUser = User::where('id', $user->id)->lockForUpdate()->first();
+            DB::transaction(function () use ($user, $points, $isPay, $pointOrderId) {
+                // 有効期限の計算 (有償: 180日, 無償: 期限なし)
+                $expiredAt = $isPay ? Carbon::now()->addDays(180) : null;
 
-                // 付与直前にキャッシュをクリア
-                $this->clearCache($lockedUser->id);
-
-                $type       = $is_pay ? 'paid' : 'free';
-                $expireDays = config('common.paid_point_expire_days', 180);
-                $expired_at = $is_pay ? now()->addDays($expireDays) : null;
-
-                UserPoint::create([
-                    'user_id'    => $lockedUser->id,
-                    'type'       => $type,
-                    'point'      => $add_points,
-                    'point_rem'  => $add_points,
-                    'expired_at' => $expired_at,
+                // user_point テーブルへロットをインサート
+                DB::table('user_point')->insert([
+                    'user_id'        => $user->id,
+                    'point_order_id' => $pointOrderId,
+                    'type'           => $isPay ? 'paid' : 'free',
+                    'point'          => $points,
+                    'point_rem'      => $points,
+                    'expired_at'     => $expiredAt,
+                    'created_at'     => Carbon::now(),
+                    'updated_at'     => Carbon::now(),
                 ]);
-
-                $freshFree = $this->getBalance($lockedUser->id, 'free');
-                $freshPay  = $this->getBalance($lockedUser->id, 'paid');
-                
-                $logType = $is_pay ? 'point_add_pay' : 'point_add_free';
-                UserLog::create_user_log($lockedUser->id, $logType, true, "pt付与(+{$add_points}pt) 残:free={$freshFree},pay={$freshPay} [{$memo}]");
-
-                return [
-                    'success'     => true,
-                    'free_point'  => $freshFree,
-                    'pay_point'   => $freshPay,
-                    'total_point' => $freshFree + $freshPay,
-                ];
             });
-        } catch (\Exception $e) {
+
+            // キャッシュをクリア
+            $this->clearCache($user->id);
+
+            return ['success' => true];
+        } catch (Exception $e) {
+            // ★ プロジェクト共通のログヘルパーに統一
             make_error_log($error_log, "Error Message: " . $e->getMessage());
-            return ['success' => false, 'error_code' => 'SYSTEM_ERROR', 'message' => 'ポイント付与処理中にエラーが発生しました'];
+            return ['success' => false, 'message' => 'ポイントの付与に失敗しました。'];
         }
     }
-
     /**
      * ポイント消費処理
      */
@@ -187,7 +181,7 @@ class PointService
                 }
 
                 if ($remainingToDeduct > 0) {
-                    throw new \Exception('ポイント消費処理中に残高不足エラーが発生しました。');
+                    throw new Exception('ポイント消費処理中に残高不足エラーが発生しました。');
                 }
 
                 if ($is_pay_only) {
@@ -216,7 +210,7 @@ class PointService
                     'total_point' => $freshFree + $freshPay,
                 ];
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             make_error_log($error_log, "Error Message: " . $e->getMessage());
             return ['success' => false, 'error_code' => 'SYSTEM_ERROR', 'message' => 'ポイント消費処理中にエラーが発生しました'];
         }

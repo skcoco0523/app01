@@ -52,6 +52,8 @@ class CommonConfig extends Model
         if ($name == 'stop_admin_connect_notify')   self::upsertValue('stop_admin_connect_notify',  'bool', 0, 0, '管理者デバイス接続通知停止');
         if ($name == 'stop_admin_api_token')        self::upsertValue('stop_admin_api_token',       'bool', 0, 0, '管理者デバイスへトークン送信停止');
         if ($name == 'maint_mode_flag')             self::upsertValue('maint_mode_flag',            'bool', 0, 0, 'メンテナンスモード');
+        // Stripe管理者テストモードフラグを追加
+        if ($name == 'payment_test_mode')           self::upsertValue('payment_test_mode',          'bool', 0, 0, '管理者Stripeテスト決済モード');
 
         
 

@@ -29,9 +29,22 @@ class AdminConfigController extends Controller
     {
         $common_conf_names = [
             'stop_admin_connect_notify','stop_admin_api_token'
+            
         ];
         $configs = CommonConfig::getValues($common_conf_names);
         $config_type = 'mqtt';
+        $msg = $request->query('msg');
+        return view('admin.admin_home', compact('configs', 'config_type', 'msg'));
+    }
+    // 決済
+    public function config_payment(Request $request)
+    {
+        $common_conf_names = [
+            'payment_test_mode'
+            
+        ];
+        $configs = CommonConfig::getValues($common_conf_names);
+        $config_type = 'payment';
         $msg = $request->query('msg');
         return view('admin.admin_home', compact('configs', 'config_type', 'msg'));
     }
@@ -53,6 +66,9 @@ class AdminConfigController extends Controller
             return redirect()->route('admin.system.config_maint', ['msg' => '設定を更新しました。']);
         } elseif($config_type=="mqtt") {
             return redirect()->route('admin.system.config_mqtt', ['msg' => '設定を更新しました。']);
+        } elseif($config_type=="payment") {
+            return redirect()->route('admin.system.config_payment', ['msg' => '設定を更新しました。']);
         }
     }
 }
+

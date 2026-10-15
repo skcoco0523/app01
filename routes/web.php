@@ -102,6 +102,8 @@ Route::get('/about', [LegalController::class, 'about'])->name('about');         
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');         // 問い合わせフォーム
 Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.send');     // 問い合わせ送信処理
 
+// Stripe Webhook 受信用（ログイン認証の外に配置）
+Route::post('/stripe/webhook', [PointController::class, 'webhook'])->name('stripe.webhook');
 
 //-------------------------------------------------------------------------------------------------------
 // 認証済み　メール未認証ユーザー向けルート
@@ -126,6 +128,10 @@ Route::middleware(['auth'])->group(function () {
     // メールリンククリックで認証完了
     Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify')
         ->middleware(['signed']);   //署名付きURLを検証するミドルウェア
+
+    // ポイント決済関連（ログイン必須）
+    Route::get('/point/success', [PointController::class, 'success'])->name('point.success');
+    Route::get('/point/cancel', [PointController::class, 'cancel'])->name('point.cancel');
 });
 
 //-------------------------------------------------------------------------------------------------------
@@ -401,6 +407,8 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function 
         //設定
         Route::get('system/config_maint', [AdminConfigController::class, 'config_maint'])->name('admin.system.config_maint');
         Route::get('system/config_mqtt', [AdminConfigController::class, 'config_mqtt'])->name('admin.system.config_mqtt');
+        Route::get('system/config_payment', [AdminConfigController::class, 'config_payment'])->name('admin.system.config_payment');
+        
         Route::post('system/config_update', [AdminConfigController::class, 'config_update'])->name('admin.system.config.update');
         //テスト
         Route::get('system/ai_test', [AdminAiController::class, 'ai_test'])->name('admin.system.ai_test');
