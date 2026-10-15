@@ -15,10 +15,18 @@ use App\Models\VirtualRemoteUser;
 use App\Models\IotDeviceSignal;
 use App\Models\Ai;
 use App\Models\Ir;
+use App\Services\PointService; // ★追加
 use Exception;
 
 class ApiAudioController extends Controller
 {
+    protected $pointService; // ★追加
+
+    public function __construct(PointService $pointService) // ★PointServiceを注入
+    {
+        $this->pointService = $pointService;
+    }
+
     /**
      * ESP32から送信された音声データ（WAVバイナリ）を受信し処理する
      *
@@ -118,19 +126,15 @@ class ApiAudioController extends Controller
             // ===========================================================================
             // 設定値取得 必須ポイント額チェック
             // ===========================================================================
-            //$common_conf_names = ['po_whisper', 'po_ai_text', 'po_ai_voice'];
             $common_conf_names = ['po_whisper', 'po_ai_voice'];
             $configs           = CommonConfig::getValues($common_conf_names);
             $po_whisper        = $configs['po_whisper']->value1;
             $whisper_free_cnt  = $configs['po_whisper']->value2;
-            //$po_ai_text        = $configs['po_ai_text']->value1;
-            //$ai_free_cnt       = $configs['po_ai_text']->value2;
             $po_ai_voice       = $configs['po_ai_voice']->value1;
             $ai_voice_free_cnt = $configs['po_ai_voice']->value2;
 
             $dateKey    = date('Ymd');
             $sttCount   = Cache::get("user_stt_count_{$user->id}_{$dateKey}", 0);
-            //$textCount  = Cache::get("user_text_count_{$user->id}_{$dateKey}", 0);
             $voiceCount = Cache::get("user_voice_count_{$user->id}_{$dateKey}", 0);
             $mode       = $device->ai_reply_mode ?? 'command';
             
@@ -147,8 +151,9 @@ class ApiAudioController extends Controller
                 ], 400);
             }
 
+            // ★ PointService で事前チェック
             if ($requiredPoint > 0) {
-                $check = $user->po_check($requiredPoint);
+                $check = $this->pointService->check($user, $requiredPoint);
                 if (!$check['can_use']) {
                     make_error_log($error_log, "Point Depleted: User {$user->id} has insufficient points.");
                     Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
@@ -230,8 +235,8 @@ class ApiAudioController extends Controller
                 'search_user_id'    => $user->id,
                 'search_admin_flag' => true
             ];
-            $remote_list          = VirtualRemoteUser::getVirtualRemoteUserList(null, false, null, $keyword); 
-            $my_remote            = [];
+            $remote_list         = VirtualRemoteUser::getVirtualRemoteUserList(null, false, null, $keyword); 
+            $my_remote           = [];
             $virtual_remote_conf = config('common.virtual_remote');
             
             foreach ($remote_list as $remote) {
@@ -268,7 +273,6 @@ class ApiAudioController extends Controller
             // モードおよび解析結果に応じた制御
             // ==========================================================================
             if (!empty($intentResult['matched'])) {
-                // 共通モデル Ir::sendSignal を使用して赤外線送信
                 $irResult = Ir::sendSignal([
                     'user_id'      => $user->id,
                     'remote_id'    => $intentResult['remote_id'] ?? null,
@@ -279,9 +283,7 @@ class ApiAudioController extends Controller
                 ]);
                 make_error_log($error_log, "[IR Send Result]: " . json_encode($irResult, JSON_UNESCAPED_UNICODE));
 
-                // 返答用メッセージを意図解析のメッセージで上書き
                 $transcript = $intentResult['message'] ?? '操作を実行しました。';
-                
 
             } else {
                 if ($mode === 'command') {
@@ -295,7 +297,8 @@ class ApiAudioController extends Controller
             // 処理完了後にポイント減算 ＆ 利用回数カウントアップ
             // ===========================================================================
             if ($requiredPoint > 0) {
-                $poResult = $user->po_use($requiredPoint, false, "音声対話処理({$usedProvider}): {$transcript}");
+                // ★ PointService で消費（トランザクション・FIFO・ログ記録）
+                $poResult = $this->pointService->consume($user, $requiredPoint, false, "音声対話処理({$usedProvider}): {$transcript}");
 
                 if (!$poResult['success']) {
                     make_error_log($error_log, "Error: Point deduction failed.");
@@ -310,10 +313,12 @@ class ApiAudioController extends Controller
                     Mosquitto::publishMQTT($macAddress, "point_status", json_encode(["status" => "empty"]));
                 }
             } else {
+                // ★ 無料枠内（0pt）の場合も PointService から正確な残高を取得（usersテーブルのカラム直接参照を排除）
+                $checkResult = $this->pointService->check($user, 0);
                 $poResult = [
-                    'free_point'  => $user->free_point,
-                    'pay_point'   => $user->pay_point,
-                    'total_point' => $user->free_point + $user->pay_point
+                    'free_point'  => $checkResult['free_point'],
+                    'pay_point'   => $checkResult['pay_point'],
+                    'total_point' => $checkResult['total_point']
                 ];
             }
 

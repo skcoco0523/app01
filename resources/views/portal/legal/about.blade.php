@@ -14,7 +14,8 @@
 
             <div class="border-bottom pb-2">
                 <div class="fw-bold text-secondary mb-1">運営者</div>
-                <div class="text-dark">{{ config('app.name', 'Application') }} 開発チーム（代表：菅野）</div>
+                {{-- ★修正：個人名表記を削除 --}}
+                <div class="text-dark">{{ config('app.name', 'Application') }} 開発チーム</div>
             </div>
 
             <div class="border-bottom pb-2">

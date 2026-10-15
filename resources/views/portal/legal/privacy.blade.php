@@ -8,7 +8,11 @@
 
         <section class="mb-4">
             <h5 class="fw-bold fs-6 border-bottom pb-2 text-secondary">1. 個人情報保護の方針</h5>
-            <p class="small text-secondary mb-1">当サイト（{{ config('app.base_domain', 'skcoco.com') }} およびそのサブドメインで提供されるサービス、例：{{ config('app.sub_domain', 'app01.skcoco.com') }}）は、提供するサービス（以下、「本サービス」といいます）におけるユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます）を定めます。</p>
+            <p class="small text-secondary mb-1">
+                当サイト（{{ config('app.base_domain', 'skcoco.com') }} およびそのサブドメインで提供されるサービス、
+                例：{{ config('app.sub_domain', 'app01.skcoco.com') }}）
+                は、提供するサービス（以下、「本サービス」といいます）におけるユーザーの個人情報の取扱いについて、
+                以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます）を定めます。</p>
             <p class="small text-secondary mb-0">運営者名：{{ config('app.name', 'Application') }} 開発チーム</p>
         </section>
 
@@ -47,12 +51,14 @@
 
         <section class="mb-4">
             <h5 class="fw-bold fs-6 border-bottom pb-2 text-secondary">6. 著作権</h5>
-            <p class="small text-secondary mb-0">当サイトに掲載されているコンテンツ（文章・画像・デザイン・システム構造等）の著作権は、{{ config('app.name', 'Application') }} 開発チーム（菅野）に帰属します。無断での転載、複製、販売等の行為は固く禁じます。</p>
+            {{-- ★修正：著作権の「菅野」を削除 --}}
+            <p class="small text-secondary mb-0">当サイトに掲載されているコンテンツ（文章・画像・デザイン・システム構造等）の著作権は、{{ config('app.name', 'Application') }} 開発チームに帰属します。無断での転載、複製、販売等の行為は固く禁じます。</p>
         </section>
 
         <section class="mb-0">
             <h5 class="fw-bold fs-6 border-bottom pb-2 text-secondary">7. お問い合わせ</h5>
-            <p class="small text-secondary mb-0">本ポリシーに関するお問い合わせ、または個人情報の取り扱いに関するご質問は、<a href="{{ route('contact.index') }}">お問い合わせフォーム</a>よりご連絡ください。<br>連絡先：skcoco0523@gmail.com</p>
+            {{-- ★修正：メールアドレスを削除し、フォームへのリンクのみ残す --}}
+            <p class="small text-secondary mb-0">本ポリシーに関するお問い合わせ、または個人情報の取り扱いに関するご質問は、<a href="{{ route('contact.index') }}">お問い合わせフォーム</a>よりご連絡ください。</p>
         </section>
     </div>
 </div>

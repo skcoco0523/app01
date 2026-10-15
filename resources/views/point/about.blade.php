@@ -2,7 +2,6 @@
 
 @section('content')
 
-
 {{-- ヘッダー --}}
 <div class="d-flex align-items-center mb-3">
     <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-secondary me-2">
@@ -27,14 +26,16 @@
                         @endif
                         広告視聴など
                     </div>
-                    <span class="badge bg-secondary mt-1">有効期限あり</span>
+                    {{-- ★ 無償ポイントは無期限 --}}
+                    <span class="badge bg-success mt-1">無期限</span>
                 </div>
             </div>
             <div class="col-6">
                 <div class="p-2 border rounded bg-light">
                     <div class="fw-bold small text-primary">有償ポイント</div>
                     <div class="text-muted" style="font-size: 11px;">ショップで購入した分</div>
-                    <span class="badge bg-success mt-1">無期限</span>
+                    {{-- ★ 有償ポイントは資金決済法に基づき180日 --}}
+                    <span class="badge bg-warning text-dark mt-1">有効期限180日</span>
                 </div>
             </div>
         </div>
@@ -69,7 +70,7 @@
             </div>
         </div>
 
-        {{-- スマートボット（名前未定）からの操作 --}}
+        {{-- スマートボットからの操作 --}}
         <div class="p-2 border-start border-4 border-warning bg-light mb-2">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="fw-bold text-dark small">スマートボットからの操作</div>
@@ -99,7 +100,6 @@
             @endif
         </h6>
         <ul class="text-muted ps-3 mb-0" style="font-size: 11px; line-height: 1.6;">
-            
             @if($free_point_reset_flag)
                 <li><strong>毎月1日のリセット：</strong> 無償ポイントが{{ $service_free_point }}pt未満の場合、
                     {{ $service_free_point }}ptまで自動補充されます（{{ $service_free_point }}pt以上保持している場合は減少・変更されません）。</li>

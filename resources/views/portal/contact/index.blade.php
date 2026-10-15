@@ -32,7 +32,7 @@
             <div class="mb-3">
                 <label for="message" class="form-label fw-bold small">お問い合わせ内容</label>
                 <textarea class="form-control" name="message" rows="5" required placeholder="具体的な内容をご記入ください">{{ $input['message'] ?? '' }}</textarea>
-                <div class="form-text small" style="font-size: 11px;">※通常24時間〜48時間以内に担当（菅野）より返答させていただきます。内容によっては回答を差し控えさせていただく場合もございますので、予めご了承ください。</div>
+                <div class="form-text small" style="font-size: 11px;">※通常24時間〜48時間以内に担当より返答させていただきます。内容によっては回答を差し控えさせていただく場合もございますので、予めご了承ください。</div>
             </div>
 
             {{-- 同意文言 --}}

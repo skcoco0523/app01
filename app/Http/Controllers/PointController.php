@@ -8,9 +8,17 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\User;
 use App\Models\CommonConfig;
+use App\Services\PointService;
 
 class PointController extends Controller
 {
+    protected $pointService;
+
+    public function __construct(PointService $pointService)
+    {
+        $this->pointService = $pointService;
+    }
+
     /**
      * ポイント購入ページ表示
      */
@@ -22,20 +30,29 @@ class PointController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $profile = User::getProfile($user->id);
+
+        // ★ PointServiceから最新の残高を取得してBladeに渡す
+        $pointData = $this->pointService->check($user, 0);
+
         $common_conf_names = [
             'po_pack1', 'po_pack2', 'po_pack3', 'po_pack4', 'po_pack5', 'po_pack6'
         ];
         $packs = CommonConfig::getValues($common_conf_names);
 
-        
-        $conf_data = CommonConfig::getValues(['po_pack_late','po_ad_reward']);
+        $conf_data = CommonConfig::getValues(['po_pack_late','po_ad_reward','po_ad_reward','po_whisper']);
         // 1円あたりの標準付与ポイント数（例: 1円＝1ptなら 1）
         $po_pack_late = $conf_data['po_pack_late']->value1;
         $po_ad_reward = $conf_data['po_ad_reward']->value1;
+        
+        // Whisper（文字起こし）におけるポイント、無料枠
+        $whisper_po =  $conf_data['po_whisper']->value1;
+        $whisper_free =  $conf_data['po_whisper']->value2;
+        
         foreach ($packs as $key => $pack) {
             // （獲得ポイント） - （価格 × 標準レート） ＝ お得なポイント数
             $pack->bonus = $pack->value2 - ($pack->value1 * $po_pack_late);
         }
+        
         // 午前(AM) / 午後(PM) 判定
         $isAm = date('H') < 12;
         $periodLabel = $isAm ? 'AM' : 'PM';
@@ -48,7 +65,7 @@ class PointController extends Controller
 
         $msg = "";
             
-        return view('point.buy', compact('profile', 'packs', 'po_ad_reward', 'remainingAdCount', 'maxDailyLimit', 'periodLabel', 'msg'));
+        return view('point.buy', compact('profile', 'packs', 'po_ad_reward', 'whisper_po', 'whisper_free', 'remainingAdCount', 'maxDailyLimit', 'periodLabel', 'msg', 'pointData'));
     }
 
     /**
@@ -63,6 +80,9 @@ class PointController extends Controller
         $user = Auth::user();
         $profile = User::getProfile($user->id);
         
+        // ★ 最新の残高を取得してBladeに渡す
+        $pointData = $this->pointService->check($user, 0);
+
         $conf_data = CommonConfig::getValues(['po_free','po_free_flag','po_ad_reward','po_whisper']);
         // 1日あたりの無料ポイント数
         $service_free_point =  $conf_data['po_free']->value1;
@@ -73,10 +93,9 @@ class PointController extends Controller
         $whisper_po =  $conf_data['po_whisper']->value1;
         $whisper_free =  $conf_data['po_whisper']->value2;
 
-
         $msg = "";
             
-        return view('point.about', compact('profile', 'service_free_point', 'free_point_reset_flag', 'ad_reward_point', 'whisper_po', 'whisper_free', 'msg'));
+        return view('point.about', compact('profile', 'service_free_point', 'free_point_reset_flag', 'ad_reward_point', 'whisper_po', 'whisper_free', 'msg', 'pointData'));
     }
 
     /**
@@ -84,8 +103,72 @@ class PointController extends Controller
      */
     public function checkout(Request $request)
     {
-        $packId = $request->input('pack_id');
-        return back()->with('message', '選択されたパック: ' . $packId);
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // buy.blade.php のラジオボタン (name="config_name") から取得
+        $configName = $request->input('config_name') ?? $request->input('pack_id');
+
+        if (!$configName) {
+            return redirect()->back()->with([
+                'message' => 'パックが選択されていません。',
+                'type'    => 'error',
+                'sec'     => 3000
+            ]);
+        }
+
+        // ★ 管理者ユーザーの場合：即時テスト付与を実行
+        if ($user->admin_flag) {
+            $configs = CommonConfig::getValues([$configName]);
+            $pack = $configs[$configName] ?? null;
+
+            if (!$pack) {
+                return redirect()->back()->with([
+                    'message' => '選択されたパック情報が見つかりません。',
+                    'type'    => 'error',
+                    'sec'     => 3000
+                ]);
+            }
+
+            $points = (int) ($pack->value2 ?? 0);
+            $packName = $pack->description ?? $configName;
+
+            if ($points <= 0) {
+                return redirect()->back()->with([
+                    'message' => 'パックの付与ポイント設定が不正です。',
+                    'type'    => 'error',
+                    'sec'     => 3000
+                ]);
+            }
+
+            // 有償ポイントとしてロット台帳へ付与（PointServiceを使用）
+            $result = $this->pointService->add($user, $points, true, "管理者テスト購入 ({$packName})");
+
+            if (!empty($result['success'])) {
+                return redirect()->route('point.buy')->with([
+                    'message' => "【管理者テスト】{$points}pt（有償）を付与しました。",
+                    'type'    => 'success',
+                    'sec'     => 3000
+                ]);
+            } else {
+                return redirect()->back()->with([
+                    'message' => 'ポイント付与に失敗しました: ' . ($result['message'] ?? ''),
+                    'type'    => 'error',
+                    'sec'     => 3000
+                ]);
+            }
+        }
+
+        // 一般ユーザー向け（決済代行実装前の仮処理）
+        return redirect()->back()->with([
+            'message' => '現在、決済機能は準備中です。（管理者アカウントのみ即時付与テストが可能です）',
+            'type'    => 'warning',
+            'sec'     => 3000
+        ]);
     }
 
     /**
@@ -118,11 +201,11 @@ class PointController extends Controller
             ], 400);
         }
 
-        // ポイント付与実行
-        
+        // ★ ポイント付与実行（PointServiceを利用）
         $conf_data = CommonConfig::getValues(['po_ad_reward']);
-        $ad_reward_point =  $conf_data['po_ad_reward']->value1;
-        $result = $user->add_po($ad_reward_point, false, '広告視聴');
+        $ad_reward_point = (int) ($conf_data['po_ad_reward']->value1 ?? 0);
+        
+        $result = $this->pointService->add($user, $ad_reward_point, false, '広告視聴');
 
         if (!empty($result['success'])) {
             // キャッシュ期限設定（午前なら12:00まで、午後なら23:59:59まで）

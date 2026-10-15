@@ -13,7 +13,7 @@
 
             <div class="border-bottom pb-2">
                 <div class="fw-bold text-secondary mb-1">代表者・運営責任者</div>
-                <div class="text-dark">菅野</div>
+                <div class="text-dark">菅野竣介</div>
             </div>
 
             <div class="border-bottom pb-2">
@@ -24,8 +24,7 @@
             <div class="border-bottom pb-2">
                 <div class="fw-bold text-secondary mb-1">お問い合わせ先</div>
                 <div class="text-dark">
-                    メールアドレス：skcoco0523@gmail.com<br>
-                    または<a href="{{ route('contact.index') }}">お問い合わせフォーム</a>よりご連絡ください。
+                    <a href="{{ route('contact.index') }}">お問い合わせフォーム</a>よりご連絡ください。
                 </div>
             </div>
 
@@ -47,6 +46,12 @@
             <div class="border-bottom pb-2">
                 <div class="fw-bold text-secondary mb-1">引き渡し時期</div>
                 <div class="text-dark">購入手続き完了後、即時アカウントにポイントが反映されます。</div>
+            </div>
+            
+            {{-- ★追加: 有効期限 --}}
+            <div class="border-bottom pb-2">
+                <div class="fw-bold text-secondary mb-1">商品の有効期限</div>
+                <div class="text-dark">購入した有償ポイントの有効期限は、購入日から180日間となります。</div>
             </div>
 
             <div>

@@ -12,8 +12,11 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Friendlist;
+use App\Models\UserDevice;
+use App\Models\UserExtraSlot;
+use App\Models\UserPoint;
+use App\Services\PointService; // ★ここでインポート
 
-//class User extends Authenticatable
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -66,6 +69,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->createToken($name)->plainTextToken;
     }
 
+    /**
+     * Bladeテンプレート等での表示用（PointService内部のキャッシュを利用）
+     * 例: Auth::user()->total_point
+     */
+    public function getTotalPointAttribute()
+    {
+        return app(PointService::class)->check($this, 0)['total_point'];
+    }
+
     //ユーザーリスト取得
     public static function getUserList($disp_cnt=null,$pageing=false,$page=1,$keyword=null,$sort_flag=false)
     {
@@ -94,8 +106,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
             if (isset($keyword['search_dev_reg_lock_flag'])) 
                 $sql_cmd = $sql_cmd->where('dev_reg_lock',$keyword['search_dev_reg_lock_flag']);   
-
-            
         }
 
         // ページング・取得件数指定・全件で分岐
@@ -139,6 +149,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
         return $profile;
     }
+
     //プロフィール情報変更
     public static function chgProfile($data)
     {
@@ -163,7 +174,6 @@ class User extends Authenticatable implements MustVerifyEmail
                 }
 
                 //NULLからの変更対応
-                //if (isset($data['birthdate']) && $user->birthdate->format('Y-m-d') != $data['birthdate'])
                 $before_birthdate = $user->birthdate ? $user->birthdate->format('Y-m-d') : null;
                 if (isset($data['birthdate']) && $before_birthdate != $data['birthdate'])
                     $updateData['birthdate']= $data['birthdate']; 
@@ -200,6 +210,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return ['error_code' => -1];   //更新失敗
         }
     }
+
     /**
      * プライベートユーザーかチェック
      * @return bool
@@ -213,7 +224,6 @@ class User extends Authenticatable implements MustVerifyEmail
         //local:検証
         return $this->id === 1;
     }
-
 
     //フレンドコード生成
     public static function generateUniqueFriendCode()
@@ -249,7 +259,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function extraSlot()
     {
-        return $this->hasOne(\App\Models\UserExtraSlot::class);
+        return $this->hasOne(UserExtraSlot::class);
     }
 
     /**
@@ -260,141 +270,18 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $baseLimit = 3; 
         $extraLimit = $this->extraSlot ? (int)$this->extraSlot->life_theater_limit : 0;
-        return $baseLimit +$extraLimit;
+        return $baseLimit + $extraLimit;
     }
 
-
+    // ==========================================
+    // ポイントロット台帳とのリレーション
+    // ==========================================
 
     /**
-     * ポイント残高 ＆ 利用可否チェック（参照のみ）
-     *
-     * @param int $req_points 必要ポイント数
-     * @param bool $is_pay_only 有償ポイント限定フラグ
-     * @return array 残高情報および可否判定
+     * ポイントロット台帳とのリレーション
      */
-    public function po_check($req_points = 1, $is_pay_only = false)
+    public function userPoints()
     {
-        $free  = (int)$this->free_point;
-        $pay   = (int)$this->pay_point;
-        $total = $free + $pay;
-        $req   = (int)$req_points;
-
-        $can_use = $is_pay_only ? ($pay >= $req) : ($total >= $req);
-
-        return [
-            'can_use'     => $can_use,
-            'free_point'  => $free,
-            'pay_point'   => $pay,
-            'total_point' => $total,
-        ];
+        return $this->hasMany(UserPoint::class);
     }
-
-    /**
-     * ポイント消費処理（DB更新）
-     *
-     * @param int $use_points 消費ポイント数
-     * @param bool $is_pay_only 有償ポイント限定フラグ
-     * @param string|null $memo ログ用メモ
-     * @return array 処理結果
-     */
-    public function po_use($use_points = 1, $is_pay_only = false, $memo = null)
-    {
-        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-
-        $use_points = (int)$use_points;
-        if ($use_points <= 0) {
-            return ['success' => false, 'error_code' => 'INVALID_POINTS', 'message' => '消費ポイントが不正です'];
-        }
-
-        return DB::transaction(function () use ($use_points, $is_pay_only, $memo, $error_log) {
-            // 最新情報を排他ロック取得
-            $user = User::where('id', $this->id)->lockForUpdate()->first();
-
-            // 事前判定
-            $check = $user->po_check($use_points, $is_pay_only);
-            if (!$check['can_use']) {
-                $type = $is_pay_only ? 'PAY_POINT_SHORTAGE' : 'POINT_SHORTAGE';
-                $msg  = $is_pay_only ? '有償ポイントが不足しています' : 'ポイントが不足しています';
-
-                UserLog::create_user_log($user->id, 'point_consume_failed', false, "ポイント不足 (必要:{$use_points}) [{$memo}]");
-                make_error_log($error_log, "Failed: Point insufficient. User:{$user->id}");
-
-                return ['success' => false, 'error_code' => $type, 'message' => $msg];
-            }
-
-            // 減算処理
-            if ($is_pay_only) {
-                $user->pay_point -= $use_points;
-                $logType = 'point_consume_pay';
-            } else {
-                if ($user->free_point >= $use_points) {
-                    $user->free_point -= $use_points;
-                    $logType = 'point_consume_free';
-                } else {
-                    $deficit = $use_points - $user->free_point;
-                    $user->free_point = 0;
-                    $user->pay_point -= $deficit;
-                    $logType = 'point_consume_mixed';
-                }
-            }
-
-            $user->save();
-
-            UserLog::create_user_log($user->id, $logType, true, "pt消費(-{$use_points}pt) 残:free={$user->free_point},pay={$user->pay_point} [{$memo}]");
-
-            return [
-                'success'     => true,
-                'free_point'  => $user->free_point,
-                'pay_point'   => $user->pay_point,
-                'total_point' => $user->free_point + $user->pay_point,
-            ];
-        });
-    }
-    
-    /**
-     * ポイント付与処理（DB更新）
-     *
-     * @param int $add_points 付与ポイント数
-     * @param bool $is_pay 有償ポイントかどうかのフラグ (true: 有償, false: 無償)
-     * @param string|null $memo ログ用メモ
-     * @return array 処理結果
-     */
-    public function add_po($add_points = 0, $is_pay = false, $memo = null)
-    {
-        $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
-        make_error_log($error_log, "add_points: {$add_points}, is_pay: {$is_pay}, memo: {$memo}");
-
-        $add_points = (int)$add_points;
-        if ($add_points <= 0) {
-            return ['success' => false, 'error_code' => 'INVALID_POINTS', 'message' => '付与ポイントが不正です'];
-        }
-
-        return DB::transaction(function () use ($add_points, $is_pay, $memo, $error_log) {
-            // 最新情報を排他ロック取得（同時に複数リクエストが来ても安全に処理）
-            $user = User::where('id', $this->id)->lockForUpdate()->first();
-
-            // 加算処理
-            if ($is_pay) {
-                $user->pay_point += $add_points;
-                $logType = 'point_add_pay';
-            } else {
-                $user->free_point += $add_points;
-                $logType = 'point_add_free';
-            }
-
-            $user->save();
-
-            // ログの記録（既存の UserLog::create_user_log を使用）
-            UserLog::create_user_log($user->id, $logType, true, "pt付与(+{$add_points}pt) 残:free={$user->free_point},pay={$user->pay_point} [{$memo}]");
-
-            return [
-                'success'     => true,
-                'free_point'  => $user->free_point,
-                'pay_point'   => $user->pay_point,
-                'total_point' => $user->free_point + $user->pay_point,
-            ];
-        });
-    }
-
-
 }
