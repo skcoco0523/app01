@@ -259,22 +259,39 @@ class PointController extends Controller
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
 
-        // ライブ環境 / テスト環境のシークレットを柔軟に取得
-        $endpointSecret = config('services.stripe.live.webhook_secret') ?? config('services.stripe.test.webhook_secret');
+        // ライブ環境 / テスト環境のシークレットをライブモード判定に応じて柔軟にフォールバック検証
+        $data = json_decode($payload, true);
+        $isLiveMode = $data['livemode'] ?? false;
+
+        $secrets = $isLiveMode 
+            ? [config('services.stripe.live.webhook_secret'), config('services.stripe.test.webhook_secret')]
+            : [config('services.stripe.test.webhook_secret'), config('services.stripe.live.webhook_secret')];
 
         $event = null;
+        $verified = false;
 
         try {
-            // Stripe SDKを利用して署名を検証し、安全なイベントオブジェクトを構築
-            $event = \Stripe\Webhook::constructEvent(
-                $payload, $sigHeader, $endpointSecret
-            );
+            foreach ($secrets as $secret) {
+                if (empty($secret)) continue;
+                try {
+                    // Stripe SDKを利用して署名を検証し、安全なイベントオブジェクトを構築
+                    $event = \Stripe\Webhook::constructEvent(
+                        $payload, $sigHeader, $secret
+                    );
+                    $verified = true;
+                    break;
+                } catch (\Stripe\Exception\SignatureVerificationException $e) {
+                    continue;
+                }
+            }
+
+            if (!$verified) {
+                make_error_log($error_log, "Invalid signature for all configured webhook secrets.");
+                return response()->json(['error' => 'Invalid signature'], 400);
+            }
         } catch (\UnexpectedValueException $e) {
             make_error_log($error_log, "Invalid payload: " . $e->getMessage());
             return response()->json(['error' => 'Invalid payload'], 400);
-        } catch (\Stripe\Exception\SignatureVerificationException $e) {
-            make_error_log($error_log, "Invalid signature: " . $e->getMessage());
-            return response()->json(['error' => 'Invalid signature'], 400);
         }
 
         $eventId = $event->id;
