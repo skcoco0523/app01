@@ -74,7 +74,7 @@
         <div class="p-2 border-start border-4 border-warning bg-light mb-2">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="fw-bold text-dark small">スマートボットからの操作</div>
-                <span class="badge bg-warning text-dark">1日 50回まで無料</span>
+                <span class="badge bg-warning text-dark">1日 {{ $whisper_free }}回まで無料</span>
             </div>
             <div class="text-muted" style="font-size: 11px;">
                 1日{{ $whisper_free }}回まで無料（0pt）で利用可能です（毎日午前0時にリセット）。<br>
