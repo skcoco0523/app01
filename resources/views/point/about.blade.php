@@ -56,7 +56,7 @@
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body p-3">
         <h6 class="fw-bold text-primary mb-2">
-            <i class="fa-solid fa-toggle-on me-1"></i> スマートリモコンの利用制限
+            <i class="fa-solid fa-toggle-on me-1"></i> スマートリモコンの利用
         </h6>
         
         {{-- アプリからの操作 --}}

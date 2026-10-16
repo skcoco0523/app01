@@ -26,11 +26,11 @@ class GuideController extends Controller
     /**
      * ガイド・解説記事詳細表示
      */
-    public function show(Request $request, $id)
+    public function show($slug) 
     {
         $error_log = class_basename(__CLASS__) . '_' . __FUNCTION__ . ".log";
         
         // ※記事IDに応じた詳細データを取得してビューへ渡す
-        return view('portal.guide.show', compact('id'));
+        return view('portal.guide.show', compact('slug'));
     }
 }
