@@ -90,7 +90,7 @@ Route::get('/life_theater/p/{token}', [LifeTheaterController::class, 'public_pla
 //-------------------------------------------------------------------------------------------------------
 // ガイド・解説記事（審査対策用コンテンツ）
 Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');               // ガイド一覧
-Route::get('/guide/{id}', [GuideController::class, 'show'])->name('guide.show');            // 記事詳細
+Route::get('/guide/{slug}', [GuideController::class, 'show'])->name('guide.show')->where('slug', '[A-Za-z0-9\-]+');// 記事詳細
 
 // 規約・法的事項・サービス情報
 Route::get('/privacy', [LegalController::class, 'privacy'])->name('privacy');               // プライバシーポリシー

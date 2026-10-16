@@ -1,84 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-
-{{-- サービス紹介・ビジュアルセクション（3大特徴のアピールエリア：未ログイン時のみ表示） --}}
+{{-- サービス紹介・ビジュアルセクション（未ログイン時のみ表示・CTAボタン付き） --}}
 @guest
-<div class="py-4 mb-4 border-bottom bg-light rounded-3 px-3 px-md-4">
-    <div class="container-fluid">
-        <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge bg-primary px-2 py-1" style="font-size: 10px;">Smart Home Platform</span>
-        </div>
-        
-        <h1 class="fs-4 fw-bold text-dark mb-2">家中の家電操作を、これひとつに。</h1>
-        <p class="text-secondary small lh-lg mb-3">
-            {{ config('app.name', 'SK_HOME') }}は、スマホやAI音声で家中の家電を一括コントロールできるスマートホームプラットフォームです。
-        </p>
-        
-        {{-- ★ 3大特徴カード（直接インライン指定で枠線の消滅をガード） --}}
-        <div class="row text-center g-2 mb-3">
-            {{-- 1. AI音声操作（青） --}}
-            <div class="col-4">
-                <div id="card-feature-0" class="feature-card p-2 rounded h-100 d-flex flex-column justify-content-center align-items-center" onclick="switchFeature(0)" style="border: 2px solid #cbd5e1; background-color: #ffffff; cursor: pointer;">
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mb-1" style="width: 38px; height: 38px;">
-                        <i class="fa-solid fa-wand-magic-sparkles fs-6"></i>
-                    </div>
-                    <div class="fw-bold text-dark" style="font-size: 10px;">AI音声操作</div>
-                    <div class="text-muted mt-1 d-none d-md-block" style="font-size: 9px;">声で家電をコントロール</div>
-                    <span class="badge border mt-1 tap-hint" style="font-size: 8px;">表示中 <i class="fa-solid fa-check"></i></span>
-                </div>
-            </div>
+<div class="py-2 mb-4 border-bottom bg-light rounded-3 px-2 px-md-3">
+    @include('portal.guide.detail.life_theater')
+    @include('portal.guide.detail.smart_remote')
 
-            {{-- 2. 外出先から操作（緑） --}}
-            <div class="col-4">
-                <div id="card-feature-1" class="feature-card p-2 rounded h-100 d-flex flex-column justify-content-center align-items-center" onclick="switchFeature(1)" style="border: 2px solid #cbd5e1; background-color: #ffffff; cursor: pointer;">
-                    <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mb-1" style="width: 38px; height: 38px;">
-                        <i class="fa-solid fa-globe fs-6"></i>
-                    </div>
-                    <div class="fw-bold text-dark" style="font-size: 10px;">外出先から操作</div>
-                    <div class="text-muted mt-1 d-none d-md-block" style="font-size: 9px;">帰宅前にエアコンON</div>
-                    <span class="badge border mt-1 tap-hint" style="font-size: 8px;">タップ <i class="fa-solid fa-hand-pointer"></i></span>
-                </div>
-            </div>
-
-            {{-- 3. 一元管理（黄） --}}
-            <div class="col-4">
-                <div id="card-feature-2" class="feature-card p-2 rounded h-100 d-flex flex-column justify-content-center align-items-center" onclick="switchFeature(2)" style="border: 2px solid #cbd5e1; background-color: #ffffff; cursor: pointer;">
-                    <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mb-1" style="width: 38px; height: 38px;">
-                        <i class="fa-solid fa-layer-group fs-6"></i>
-                    </div>
-                    <div class="fw-bold text-dark" style="font-size: 10px;">リモコン一元管理</div>
-                    <div class="text-muted mt-1 d-none d-md-block" style="font-size: 9px;">家中のリモコンをスマホへ</div>
-                    <span class="badge border mt-1 tap-hint" style="font-size: 8px;">タップ <i class="fa-solid fa-hand-pointer"></i></span>
-                </div>
-            </div>
-        </div>
-
-        {{-- ★ 連動する活用シーン表示ボックス --}}
-        <div class="p-3 bg-white border rounded-3 shadow-sm mb-3 position-relative">
-            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
-                <span id="scene-tag" class="badge bg-primary px-2">AI音声操作の活用シーン</span>
-                <span class="text-muted small ms-auto" style="font-size: 10px;"><i class="fa-regular fa-lightbulb text-warning me-1"></i>こんな時に大活躍！</span>
-            </div>
-            
-            <div id="scene-content" class="scene-fade">
-                {{-- JavaScriptで動的に挿入されます --}}
-            </div>
-        </div>
-
-        {{-- アクション導線（CTAボタン） --}}
-        <div class="d-flex gap-2 justify-content-center mb-3">
-            <a href="{{ route('guide.index') }}" class="btn btn-outline-primary btn-sm px-3 fw-bold" style="font-size: 11px;">
-                <i class="fa-solid fa-book-open me-1"></i>使い方ガイド
-            </a>
-            <a href="{{ route('register') }}" class="btn btn-primary btn-sm px-3 fw-bold" style="font-size: 11px;">
-                <i class="fa-solid fa-user-plus me-1"></i>無料登録して試す
-            </a>
-        </div>
-
-        <p class="text-center text-muted mb-0" style="font-size: 10px;">
-            <i class="fa-solid fa-shield-halved me-1 text-secondary"></i> ESP32デバイスと低遅延MQTT通信による安全な遠隔制御
-        </p>
+    
+    <div class="d-flex gap-2 justify-content-center mb-3">
+        <a href="{{ route('guide.index') }}" class="btn btn-outline-primary btn-sm px-3 fw-bold" style="font-size: 11px;">
+            <i class="fa-solid fa-book-open me-1"></i>使い方ガイド
+        </a>
+        <a href="{{ route('register') }}" class="btn btn-primary btn-sm px-3 fw-bold" style="font-size: 11px;">
+            <i class="fa-solid fa-user-plus me-1"></i>無料登録して試す
+        </a>
     </div>
 </div>
 @endguest
