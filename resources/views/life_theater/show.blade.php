@@ -72,12 +72,17 @@
                         </div>
 
                         {{-- タイムライン・スライドリスト --}}
-                        <div class="d-flex flex-column gap-2">
+                        <div class="d-flex flex-column gap-2" id="slideListContainer">
                             @forelse ($slides as $index => $slide)
-                                <div class="card border-0 shadow-sm">
+                                <div class="card border-0 shadow-sm slide-card" draggable="{{ ($theater->owner_flag || $theater->admin_flag ?? false) ? 'true' : 'false' }}" data-slide-id="{{ $slide->id }}" style="cursor: {{ ($theater->owner_flag || $theater->admin_flag ?? false) ? 'grab' : 'default' }}; transition: background-color 0.2s;">
                                     <div class="card-body p-3 d-flex justify-content-between align-items-center">
                                         <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                            <span class="badge bg-secondary">#{{ $index + 1 }}</span>
+                                            @if(($theater->owner_flag || $theater->admin_flag ?? false))
+                                                <span class="text-muted drag-handle px-1" style="cursor: grab;" title="ドラッグして並び替え">
+                                                    <i class="fa-solid fa-grip-vertical"></i>
+                                                </span>
+                                            @endif
+                                            <span class="badge bg-secondary slide-number-badge">#{{ $index + 1 }}</span>
                                             @if($slide->label)
                                                 <span class="badge bg-info text-dark">{{ $slide->label }}</span>
                                             @endif
@@ -98,7 +103,17 @@
                                             @endif
 
                                             @if(($theater->owner_flag || $theater->admin_flag ?? false))
-                                                {{-- ★修正：編集ボタンに btn-icon-square を適用 --}}
+                                                {{-- 上下移動ボタン（スマホ・タッチ操作用） --}}
+                                                <div class="d-flex flex-column gap-1 me-1">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm p-0 px-1" style="font-size: 9px; line-height: 1;" onclick="moveSlideOrder(this, 'up')" title="上へ移動">
+                                                        <i class="fa-solid fa-chevron-up"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm p-0 px-1" style="font-size: 9px; line-height: 1;" onclick="moveSlideOrder(this, 'down')" title="下へ移動">
+                                                        <i class="fa-solid fa-chevron-down"></i>
+                                                    </button>
+                                                </div>
+
+                                                {{-- 編集ボタン --}}
                                                 <button type="button" class="btn btn-outline-primary btn-icon-square"
                                                     data-slide="{{ json_encode([
                                                         'edit_slide_id'          => (string)$slide->id,
@@ -112,7 +127,7 @@
                                                         'edit_slide_media_url'   => (string)($slide->media->image_s3_key ?? ''),
                                                         'edit_slide_config_data' => $slide->parsed_config ?? []
                                                     ]) }}"
-                                                    onclick="openModal('life_theater_slide_edit-modal', JSON.parse(this.dataset.slide));">
+                                                    onclick="openModal('life_theater_slide_edit-modal', JSON.parse(this.dataset.slide));" title="編集">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </button>
 
@@ -494,6 +509,105 @@
             console.error(e);
             alert('通信エラーが発生しました');
             closeModal('life_theater_premium-modal');
+        }
+    }
+    // ==========================================
+    // ★追加: スライドのドラッグ＆ドロップおよび上下移動による並び替え処理
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('slideListContainer');
+        if (!container) return;
+
+        let draggedItem = null;
+
+        container.addEventListener('dragstart', function(e) {
+            const card = e.target.closest('.slide-card');
+            if (!card) return;
+            draggedItem = card;
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => card.style.opacity = '0.4', 0);
+        });
+
+        container.addEventListener('dragend', function(e) {
+            const card = e.target.closest('.slide-card') || draggedItem;
+            if (card) card.style.opacity = '1';
+            draggedItem = null;
+            document.querySelectorAll('.slide-card').forEach(c => c.style.borderTop = '');
+            saveSlideOrder();
+        });
+
+        container.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const targetCard = e.target.closest('.slide-card');
+            if (targetCard && targetCard !== draggedItem) {
+                const rect = targetCard.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                if (e.clientY < midpoint) {
+                    container.insertBefore(draggedItem, targetCard);
+                } else {
+                    container.insertBefore(draggedItem, targetCard.nextSibling);
+                }
+            }
+        });
+    });
+
+    function moveSlideOrder(btn, direction) {
+        const card = btn.closest('.slide-card');
+        if (!card) return;
+        const container = document.getElementById('slideListContainer');
+        if (!container) return;
+
+        if (direction === 'up') {
+            const prev = card.previousElementSibling;
+            if (prev) {
+                container.insertBefore(card, prev);
+                saveSlideOrder();
+            }
+        } else if (direction === 'down') {
+            const next = card.nextElementSibling;
+            if (next) {
+                container.insertBefore(next, card);
+                saveSlideOrder();
+            }
+        }
+    }
+
+    async function saveSlideOrder() {
+        const container = document.getElementById('slideListContainer');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.slide-card');
+        const slide_orders = [];
+        cards.forEach((card, index) => {
+            const id = card.getAttribute('data-slide-id');
+            const step_order = index + 1;
+            slide_orders.push({ id: id, step_order: step_order });
+            
+            // 番号バッジをリアルタイム更新
+            const badge = card.querySelector('.slide-number-badge');
+            if (badge) badge.textContent = '#' + step_order;
+        });
+
+        try {
+            const res = await $.ajax({
+                type: "POST",
+                url: "{{ route('life_theater.slide.sort') }}",
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: { slide_orders: slide_orders }
+            });
+
+            if (res.status === 'success') {
+                if (typeof showNotification === 'function') {
+                    showNotification(res.message, "success", 1500);
+                }
+            } else {
+                console.error(res.message || "並び順の更新に失敗しました。");
+            }
+        } catch (err) {
+            console.error("並び順保存エラー", err);
         }
     }
 </script>
